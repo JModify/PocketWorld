@@ -1,0 +1,7 @@
+name: PocketWorld
+main: me.modify.pocketworld.PocketWorldPlugin
+version: 1.0
+description: Personal player worlds plugin.
+api-version: 1.19
+depend: [SlimeWorldManager]
+author: Modify

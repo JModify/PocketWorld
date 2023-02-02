@@ -1,0 +1,23 @@
+debug: true
+# MongoDB Configuration
+mongodb:
+  use: false
+  uri: "uri"
+  database: "pocketworld"
+
+# MySQL Configuration
+mysql:
+  use: false
+  host: localhost
+  port: 3306
+  username: "user"
+  password: "pass"
+  database: "pocketworld"
+
+# General plugin configuration
+general:
+  # Maximum amount of worlds a player can be a part of.
+  max-worlds: 5
+
+
+
