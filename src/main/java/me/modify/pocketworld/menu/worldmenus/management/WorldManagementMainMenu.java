@@ -4,6 +4,7 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
 import me.modify.pocketworld.theme.PocketTheme;
+import me.modify.pocketworld.theme.ThemeCache;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.PocketWorldRegistry;
@@ -53,7 +54,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
 
                 if (world == null) continue;
 
-                PocketTheme theme = dao.getPocketTheme(world.getThemeId());
+                PocketTheme theme = plugin.getThemeCache().getThemeByID(world.getThemeId());
                 String members = world.getUsers().keySet().stream()
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
