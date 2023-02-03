@@ -1,7 +1,9 @@
-package me.modify.pocketworld.world.menu.creation;
+package me.modify.pocketworld.menu.thememenus;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketAnvilMenu;
+import me.modify.pocketworld.theme.creation.ThemeCreationController;
+import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
 import net.wesjd.anvilgui.AnvilGUI;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -11,13 +13,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WorldCreationNameMenu extends PocketAnvilMenu {
+public class EnterThemeNameMenu extends PocketAnvilMenu {
 
-    private final WorldCreationMainMenu mainMenu;
     private final PocketWorldPlugin plugin;
-    public WorldCreationNameMenu(Player player, PocketWorldPlugin plugin, WorldCreationMainMenu mainMenu) {
+    public EnterThemeNameMenu(Player player, PocketWorldPlugin plugin) {
         super(player);
-        this.mainMenu = mainMenu;
         this.plugin = plugin;
     }
 
@@ -34,15 +34,16 @@ public class WorldCreationNameMenu extends PocketAnvilMenu {
                     }
 
                     if (hasIllegalCharacters(text)) {
-                        return AnvilGUI.Response.text("Invalid world name.");
+                        return AnvilGUI.Response.text("Invalid theme name.");
                     }
 
-                    mainMenu.setWorldName(text);
-                    mainMenu.open();
+                    ThemeCreationController controller = ThemeCreationRegistry.getInstance().getController(player.getUniqueId());
+                    controller.setName(text);
+                    controller.nextState();
                     return AnvilGUI.Response.close();
                 })
                 .itemLeft(getItemLeft())
-                .title("Name your PocketWorld")
+                .title("Enter theme name")
                 .plugin(plugin)
                 .open(player);
     }
@@ -69,4 +70,5 @@ public class WorldCreationNameMenu extends PocketAnvilMenu {
 
         return matcher.find();
     }
+
 }

@@ -2,7 +2,7 @@ package me.modify.pocketworld.listener;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;
-import me.modify.pocketworld.theme.creation.menus.SelectIconMenu;
+import me.modify.pocketworld.menu.thememenus.SelectIconMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

@@ -5,6 +5,7 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -55,6 +56,7 @@ public class PocketItem {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(displayName != null ? ColorFormat.format(displayName) : " ");
         meta.setLore(lore != null ? ColorFormat.formatList(lore) : null);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 
         if (tag != null) {
             NamespacedKey namespacedKey = new NamespacedKey(plugin, tag);

@@ -1,4 +1,4 @@
-package me.modify.pocketworld.world.menu.creation;
+package me.modify.pocketworld.menu.worldmenus.creation;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;

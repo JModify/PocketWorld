@@ -1,10 +1,10 @@
-package me.modify.pocketworld.world.menu;
+package me.modify.pocketworld.menu.worldmenus;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;
 import me.modify.pocketworld.util.PocketItem;
-import me.modify.pocketworld.world.menu.creation.WorldCreationMainMenu;
-import me.modify.pocketworld.world.menu.management.WorldManagementMainMenu;
+import me.modify.pocketworld.menu.worldmenus.creation.WorldCreationMainMenu;
+import me.modify.pocketworld.menu.worldmenus.management.WorldManagementMainMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;

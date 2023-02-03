@@ -1,4 +1,4 @@
-package me.modify.pocketworld.world.menu.creation;
+package me.modify.pocketworld.menu.worldmenus.creation;
 
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
@@ -9,7 +9,7 @@ import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
-import me.modify.pocketworld.world.menu.PocketWorldMainMenu;
+import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;

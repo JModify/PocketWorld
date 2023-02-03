@@ -1,10 +1,7 @@
 package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.theme.PocketTheme;
-import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
-import me.modify.pocketworld.util.ColorFormat;
-import me.modify.pocketworld.world.menu.PocketWorldMainMenu;
+import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;

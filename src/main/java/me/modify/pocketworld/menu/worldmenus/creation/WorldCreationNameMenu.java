@@ -1,9 +1,7 @@
-package me.modify.pocketworld.theme.creation.menus;
+package me.modify.pocketworld.menu.worldmenus.creation;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketAnvilMenu;
-import me.modify.pocketworld.theme.creation.ThemeCreationController;
-import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
 import net.wesjd.anvilgui.AnvilGUI;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,11 +11,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class EnterThemeNameMenu extends PocketAnvilMenu {
+public class WorldCreationNameMenu extends PocketAnvilMenu {
 
+    private final WorldCreationMainMenu mainMenu;
     private final PocketWorldPlugin plugin;
-    public EnterThemeNameMenu(Player player, PocketWorldPlugin plugin) {
+    public WorldCreationNameMenu(Player player, PocketWorldPlugin plugin, WorldCreationMainMenu mainMenu) {
         super(player);
+        this.mainMenu = mainMenu;
         this.plugin = plugin;
     }
 
@@ -34,16 +34,15 @@ public class EnterThemeNameMenu extends PocketAnvilMenu {
                     }
 
                     if (hasIllegalCharacters(text)) {
-                        return AnvilGUI.Response.text("Invalid theme name.");
+                        return AnvilGUI.Response.text("Invalid world name.");
                     }
 
-                    ThemeCreationController controller = ThemeCreationRegistry.getInstance().getController(player.getUniqueId());
-                    controller.setName(text);
-                    controller.nextState();
+                    mainMenu.setWorldName(text);
+                    mainMenu.open();
                     return AnvilGUI.Response.close();
                 })
                 .itemLeft(getItemLeft())
-                .title("Enter theme name")
+                .title("Name your PocketWorld")
                 .plugin(plugin)
                 .open(player);
     }
@@ -70,5 +69,4 @@ public class EnterThemeNameMenu extends PocketAnvilMenu {
 
         return matcher.find();
     }
-
 }

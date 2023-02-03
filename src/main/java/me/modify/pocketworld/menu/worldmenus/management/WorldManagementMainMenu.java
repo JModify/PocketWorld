@@ -1,14 +1,13 @@
-package me.modify.pocketworld.world.menu.management;
+package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
 import me.modify.pocketworld.theme.PocketTheme;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.PocketWorldRegistry;
-import me.modify.pocketworld.world.menu.PocketWorldMainMenu;
+import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -18,7 +17,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,6 +24,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
 
     private PocketWorldMainMenu mainMenu;
     private final PocketWorldPlugin plugin;
+    private List<PocketWorld> worlds;
 
     public WorldManagementMainMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
         super(player);
@@ -44,7 +43,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
         addMenuBorder();
 
         DAO dao = plugin.getDataSource().getConnection().getDAO();
-        List<PocketWorld> worlds = dao.getPocketWorlds(player.getUniqueId());
+        worlds = dao.getPocketWorlds(player.getUniqueId());
 
         if (!worlds.isEmpty()) {
             for (int i = 0; i < maxItemsPerPage; i++) {
@@ -93,13 +92,25 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
             return;
         }
 
-        DAO dao = plugin.getDataSource().getConnection().getDAO();
+        if (tag.equalsIgnoreCase("is-home-button")) {
+            mainMenu.open();
+        } else if (tag.equalsIgnoreCase("is-page-next")) {
+            if (!((index + 1) >= worlds.size())) {
+                page = page + 1;
+                super.open();
+            }
+        } else if (tag.equalsIgnoreCase("is-page-back")) {
+            if (page > 0) {
+                page = page - 1;
+                super.open();
+            }
+        } else {
+            DAO dao = plugin.getDataSource().getConnection().getDAO();
 
-        PocketWorld world = dao.getPocketWorld(UUID.fromString(ChatColor.stripColor(tag)));
-        //
-
-        
-
+            PocketWorld world = dao.getPocketWorld(UUID.fromString(ChatColor.stripColor(tag)));
+            WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
+            managementMenu.open();
+        }
     }
 
     @Override

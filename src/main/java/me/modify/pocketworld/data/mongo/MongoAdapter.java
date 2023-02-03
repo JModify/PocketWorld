@@ -91,7 +91,7 @@ public class MongoAdapter {
         Map<UUID, WorldRank> users = new HashMap<>();
         for (Document entry : usersRaw) {
             UUID uuid = UUID.fromString(entry.getString("uuid"));
-            WorldRank rank = WorldRank.valueOf(entry.getString("worldrank"));
+            WorldRank rank = WorldRank.valueOf(entry.getString("worldrank").toUpperCase());
             users.put(uuid, rank);
         }
 
