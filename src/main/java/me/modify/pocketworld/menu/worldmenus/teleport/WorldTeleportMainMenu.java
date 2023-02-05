@@ -1,13 +1,14 @@
-package me.modify.pocketworld.menu.worldmenus.management;
+package me.modify.pocketworld.menu.worldmenus.teleport;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
+import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
+import me.modify.pocketworld.menu.worldmenus.management.WorldManagementMenu;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.PocketWorldRegistry;
-import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -18,17 +19,16 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class WorldManagementMainMenu extends PocketPaginatedMenu {
+public class WorldTeleportMainMenu extends PocketPaginatedMenu {
 
     private PocketWorldMainMenu mainMenu;
     private final PocketWorldPlugin plugin;
     private List<PocketWorld> worlds;
 
-    public WorldManagementMainMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
+    public WorldTeleportMainMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
         super(player);
         this.plugin = plugin;
         this.mainMenu = mainMenu;
@@ -36,7 +36,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
 
     @Override
     public String getMenuName() {
-        return "&4&lManage Your PocketWorlds";
+        return "&4&lTravel to a PocketWorld";
     }
 
     @Override
@@ -45,9 +45,6 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
         addMenuBorder();
 
         DAO dao = plugin.getDataSource().getConnection().getDAO();
-
-        // Retrieves all pocket worlds a player is associated too.
-        // This list will be later discarded since actual pocket worlds should be retrieved
         worlds = dao.getPocketWorlds(player.getUniqueId());
 
         if (!worlds.isEmpty()) {
@@ -70,7 +67,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
                         .material(theme.getIcon())
                         .stackSize(1)
                         .displayName("&b" + world.getWorldName())
-                        .lore(List.of("&7Click to manage this world.", " ",
+                        .lore(List.of("&7Click to teleport to this world.", " ",
                                 "&6Properties", "&eTheme: " + theme.getName(), "&eMembers: " + members,
                                 " ", status, "&8" + world.getId().toString()))
                         .tag(world.getId().toString())
@@ -114,24 +111,16 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
 
             PocketWorldRegistry registry = PocketWorldRegistry.getInstance();
 
-            // If the registry contains this world, grab it from there
+            // If world is loaded, just teleport to it
             if (registry.containsWorld(worldId)) {
                 PocketWorld world = registry.getWorld(worldId);
-                WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
-                managementMenu.open();
+                World bWorld = Bukkit.getWorld(worldId.toString());
+                world.teleport(bWorld, player);
             } else {
-                // If the registry doesn't, grab it from the previously collected list of worlds
-                // the player is associated too. This is done to avoid having to get the world from the data
-                // source a second time in this menu
-                Optional<PocketWorld> optionalWorld = worlds.stream().filter(t -> t.getId().equals(worldId)).findFirst();
-
-                if (optionalWorld.isEmpty()) {
-                    return;
-                }
-
-                PocketWorld world = optionalWorld.get();
-                WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
-                managementMenu.open();
+                // If world is not loaded, load it then teleport.
+                DAO dao = plugin.getDataSource().getConnection().getDAO();
+                PocketWorld pocketWorld = dao.getPocketWorld(worldId);
+                pocketWorld.asyncLoadWorld(plugin, player.getUniqueId(), true, false);
             }
         }
     }
@@ -166,7 +155,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
         inventory.setItem(50, pageNext.getAsSkull("MHF_ArrowRight"));
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.BLUE_STAINED_GLASS_PANE)
+                .material(Material.PURPLE_STAINED_GLASS_PANE)
                 .displayName(" ")
                 .build().get();
         addFillers(fillerItem, 0, 9);
@@ -179,4 +168,5 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
             }
         }
     }
+
 }

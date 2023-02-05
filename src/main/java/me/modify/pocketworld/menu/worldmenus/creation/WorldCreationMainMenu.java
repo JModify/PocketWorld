@@ -112,7 +112,7 @@ public class WorldCreationMainMenu extends PocketMenu {
 
             PocketWorld world = PocketWorld.create(worldName, pocketTheme.getId());
             world.getUsers().put(player.getUniqueId(), WorldRank.OWNER);
-            world.asyncLoadWorld(plugin, player.getUniqueId());
+            world.asyncLoadWorld(plugin, player.getUniqueId(), true, true);
 
             PocketUser user = dao.getPocketUser(player.getUniqueId());
             user.addWorld(world.getId());

@@ -18,17 +18,17 @@ import java.util.stream.Collectors;
 
 public class WorldManagementMenu extends PocketMenu {
 
-    private WorldManagementMainMenu mainMenu;
+    private WorldManagementMainMenu previousMenu;
 
     /** World being managed */
     private PocketWorld world;
 
     private PocketWorldPlugin plugin;
-    public WorldManagementMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, WorldManagementMainMenu mainMenu) {
+    public WorldManagementMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, WorldManagementMainMenu previousMenu) {
         super(player);
         this.plugin = plugin;
         this.world = world;
-        this.mainMenu = mainMenu;
+        this.previousMenu = previousMenu;
     }
 
     @Override
@@ -62,11 +62,20 @@ public class WorldManagementMenu extends PocketMenu {
                 .tag("world-player-management")
                 .build().get();
 
+        ItemStack homePage = new PocketItem.Builder(plugin)
+                .material(Material.ARROW)
+                .stackSize(1)
+                .displayName("&aMain Menu")
+                .lore(List.of("&7Click to return to main menu."))
+                .tag("is-home-button")
+                .build().get();
+
         ItemStack leaveOrDelete = getLeaveOrDeleteWorldIcon();
 
         inventory.setItem(13, globe);
         inventory.setItem(20, playerManagement);
         inventory.setItem(24, leaveOrDelete);
+        inventory.setItem(27, homePage);
 
         // Only world owners have access to edit world properties.
         if (world.getUsers().get(player.getUniqueId()) == WorldRank.OWNER) {
@@ -115,10 +124,12 @@ public class WorldManagementMenu extends PocketMenu {
             // Open player management menu specific to world rank
 
         } else if (tag.equalsIgnoreCase("world-properties")) {
-            // Open world properties menu (visible to owner only)
-
+            WorldPropertiesMenu propertiesMenu = new WorldPropertiesMenu(player, plugin, world, this);
+            propertiesMenu.open();
         } else if (tag.equalsIgnoreCase("world-leave-or-delete")) {
             // Open leave or delete confirmation menu
+        } else if (tag.equalsIgnoreCase("is-home-button")) {
+            previousMenu.open();
         }
     }
 

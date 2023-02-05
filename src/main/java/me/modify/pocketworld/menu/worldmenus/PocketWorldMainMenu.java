@@ -2,6 +2,7 @@ package me.modify.pocketworld.menu.worldmenus;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;
+import me.modify.pocketworld.menu.worldmenus.teleport.WorldTeleportMainMenu;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.menu.worldmenus.creation.WorldCreationMainMenu;
 import me.modify.pocketworld.menu.worldmenus.management.WorldManagementMainMenu;
@@ -103,7 +104,8 @@ public class PocketWorldMainMenu extends PocketMenu {
             WorldManagementMainMenu managementMainMenu = new WorldManagementMainMenu(player, plugin, this);
             managementMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-teleportation-icon")) {
-            // TODO: World Management
+            WorldTeleportMainMenu teleportMainMenu = new WorldTeleportMainMenu(player, plugin, this);
+            teleportMainMenu.open();
         }
     }
 }

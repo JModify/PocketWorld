@@ -27,12 +27,12 @@ public class PocketWorldRegistry {
     }
 
     public void registerWorld(PocketWorld world) {
-        if (!isWorldLoaded(world.getId())) {
+        if (!containsWorld(world.getId())) {
             worlds.add(world);
         }
     }
 
-    public boolean isWorldLoaded(UUID worldId) {
+    public boolean containsWorld(UUID worldId) {
         return worlds.stream().anyMatch(w -> w.getId().equals(worldId));
     }
 

@@ -14,6 +14,12 @@ import java.util.*;
  * Adapts plugin related objects to and from Mongo objects.
  */
 public class MongoAdapter {
+
+    /**
+     * Adapts a PocketTheme object into a document
+     * @param theme theme to adapt
+     * @return document of pocket theme
+     */
     public static Document pocketThemeToDocument(PocketTheme theme) {
         UUID themeId = theme.getId();
         Document document = new Document("_id", themeId.toString());
@@ -23,6 +29,11 @@ public class MongoAdapter {
         return document;
     }
 
+    /**
+     * Adapts a theme document into a PocketTheme object.
+     * @param document document to adapt
+     * @return a PocketTheme object representing the document.
+     */
     public static PocketTheme pocketThemeFromDocument(Document document) {
         UUID themeId = UUID.fromString(document.getString("_id"));
         String name = document.getString("name");
@@ -32,9 +43,9 @@ public class MongoAdapter {
     }
 
     /**
-     * Converts a PocketUser object into a document.
-     * @param pocketUser pocket user to convert
-     * @return document
+     * Adapts a PocketUser object into a document.
+     * @param pocketUser pocket user to adapt
+     * @return document to adapt
      */
     public static Document pocketUserToDocument(PocketUser pocketUser) {
         Set<UUID> worlds = pocketUser.getWorlds();
@@ -48,7 +59,7 @@ public class MongoAdapter {
     }
 
     /**
-     * Converts a user document into a valid PocketUser object.
+     * Adapts a user document into a PocketUser object.
      * @param document document to convert
      * @return pocket user object
      */

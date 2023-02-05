@@ -9,10 +9,15 @@ import com.grinderwolf.swm.api.world.properties.SlimePropertyMap;
 import lombok.Getter;
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Cow;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -40,13 +45,13 @@ public class PocketWorld {
     @Getter @Setter private int worldSize;
 
     /** Spawn for this pocket world. Modifiable world owner */
-    @Getter @Setter private WorldSpawn worldSpawn;
+    @Getter private WorldSpawn worldSpawn;
 
     /** Allow animals for this pocket world? Modifiable by world owner */
-    @Getter @Setter private boolean allowAnimals;
+    @Getter private boolean allowAnimals;
 
     /** Allow monsters for this pocket world? Modifiable by world owner */
-    @Getter @Setter private boolean allowMonsters;
+    @Getter private boolean allowMonsters;
 
     /** Allow pvp for this pocket world? Modifiable by world owner */
     @Getter private boolean pvp;
@@ -84,7 +89,7 @@ public class PocketWorld {
         return propertyMap;
     }
 
-    public void asyncLoadWorld(PocketWorldPlugin plugin, UUID loaderId) {
+    public void asyncLoadWorld(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify) {
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = getPropertyMap();
 
@@ -131,10 +136,22 @@ public class PocketWorld {
 
                         Player loader = Bukkit.getPlayer(loaderId);
                         if (loader != null) {
-                            loader.sendMessage(ColorFormat.format("&aWorld successfully loaded in " + time + "ms"));
 
+                            if (shouldNotify) {
+                                loader.sendMessage(ColorFormat.format("&aWorld successfully loaded in " + time + "ms"));
+                            }
                             World bWorld = Bukkit.getWorld(id.toString());
-                            loader.teleport(worldSpawn.getBukkitLocation(bWorld));
+
+                            if (bWorld != null) {
+
+                                if (shouldTeleport) {
+                                    teleport(bWorld, loader);
+                                }
+
+                                WorldBorder border = bWorld.getWorldBorder();
+                                border.setCenter(0.0, 0.0);
+                                border.setSize(worldSize);
+                            }
                         }
 
                         // Set world border, other post load actions.
@@ -155,6 +172,10 @@ public class PocketWorld {
     }
 
     public void unloadWorld(PocketWorldPlugin plugin) {
+
+        DAO dao = plugin.getDataSource().getConnection().getDAO();
+        dao.updatePocketWorld(this);
+
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimeLoader loader = slime.getLoader("mongo");
 
@@ -177,5 +198,42 @@ public class PocketWorld {
         }
 
         Bukkit.unloadWorld(bWorld, true);
+    }
+
+    public void setAllowAnimals(boolean state) {
+        this.allowAnimals = state;
+
+        World world = Bukkit.getWorld(id.toString());
+        if (world == null) {
+            return;
+        }
+
+        if (!state) {
+            world.getEntitiesByClass(Animals.class).forEach(c -> c.setHealth(0));
+        }
+    }
+
+    public void setAllowMonsters(boolean state) {
+        this.allowMonsters = state;
+
+        World world = Bukkit.getWorld(id.toString());
+        if (world == null) {
+            return;
+        }
+
+        if (!state) {
+            world.getEntitiesByClass(Monster.class).forEach(c -> c.setHealth(0));
+        }
+    }
+
+    public void setPvp(boolean state) {
+        this.pvp = state;
+
+        World world = Bukkit.getWorld(id.toString());
+        if (world == null) {
+            return;
+        }
+
+        world.setPVP(false);
     }
 }

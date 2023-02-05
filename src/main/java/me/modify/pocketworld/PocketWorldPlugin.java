@@ -13,12 +13,14 @@ import me.modify.pocketworld.exceptions.DataSourceConnectionException;
 import me.modify.pocketworld.hooks.SlimeHook;
 import me.modify.pocketworld.listener.InventoryListener;
 import me.modify.pocketworld.listener.PlayerListener;
+import me.modify.pocketworld.listener.WorldListener;
 import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
 import me.modify.pocketworld.theme.ThemeCache;
 import me.modify.pocketworld.util.PocketDebugger;
 import me.modify.pocketworld.world.PocketWorldRegistry;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PocketWorldPlugin extends JavaPlugin {
@@ -71,8 +73,11 @@ public class PocketWorldPlugin extends JavaPlugin {
     }
 
     private void registerListeners() {
-        Bukkit.getPluginManager().registerEvents(new PlayerListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new InventoryListener(this), this);
+        PluginManager pluginManager = Bukkit.getPluginManager();
+        pluginManager.registerEvents(new PlayerListener(this), this);
+        pluginManager.registerEvents(new InventoryListener(this), this);
+        pluginManager.registerEvents(new WorldListener(), this);
+
     }
 
     private void connectToDataSource() {
