@@ -43,7 +43,6 @@ public interface DAO {
      */
     void updatePocketWorld(PocketWorld world);
 
-
     /**
      * Registers a pocket user with the data source.
      * This method should follow newly created pocket user objects (i.e. new players who join the server).

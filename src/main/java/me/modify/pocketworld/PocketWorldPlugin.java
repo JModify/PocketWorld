@@ -18,7 +18,7 @@ import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
 import me.modify.pocketworld.theme.ThemeCache;
 import me.modify.pocketworld.util.PocketDebugger;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -61,7 +61,7 @@ public class PocketWorldPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        PocketWorldRegistry.getInstance().shutdown(this);
+        LoadedWorldRegistry.getInstance().shutdown(this);
 
         dataSource.shutdown();
     }

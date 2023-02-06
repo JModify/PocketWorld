@@ -107,16 +107,15 @@ public class WorldCreationMainMenu extends PocketMenu {
         }  else if (tag.equalsIgnoreCase("is-back-button")) {
             mainMenu.open();
         }else if (tag.equalsIgnoreCase("world-confirm-create") && (worldName != null && pocketTheme != null)) {
-
             DAO dao = plugin.getDataSource().getConnection().getDAO();
 
             PocketWorld world = PocketWorld.create(worldName, pocketTheme.getId());
             world.getUsers().put(player.getUniqueId(), WorldRank.OWNER);
-            world.asyncLoadWorld(plugin, player.getUniqueId(), true, true);
+            world.load(plugin, player.getUniqueId(), true, true);
 
             PocketUser user = dao.getPocketUser(player.getUniqueId());
             user.addWorld(world.getId());
-            dao.updatePocketUser(user);
+            user.update(plugin);
 
             player.closeInventory();
         }

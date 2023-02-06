@@ -4,11 +4,10 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
 import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
-import me.modify.pocketworld.menu.worldmenus.management.WorldManagementMenu;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -60,7 +59,7 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
 
-                String status = PocketWorldRegistry.getInstance().containsWorld(world.getId())
+                String status = LoadedWorldRegistry.getInstance().containsWorld(world.getId())
                         ? "&aLOADED" : "&cNOT LOADED";
 
                 PocketItem worldIcon = new PocketItem.Builder(plugin)
@@ -109,7 +108,7 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
         } else {
             UUID worldId = UUID.fromString(ChatColor.stripColor(tag));
 
-            PocketWorldRegistry registry = PocketWorldRegistry.getInstance();
+            LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
 
             // If world is loaded, just teleport to it
             if (registry.containsWorld(worldId)) {
@@ -120,7 +119,7 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
                 // If world is not loaded, load it then teleport.
                 DAO dao = plugin.getDataSource().getConnection().getDAO();
                 PocketWorld pocketWorld = dao.getPocketWorld(worldId);
-                pocketWorld.asyncLoadWorld(plugin, player.getUniqueId(), true, false);
+                pocketWorld.load(plugin, player.getUniqueId(), true, false);
             }
         }
     }

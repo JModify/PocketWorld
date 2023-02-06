@@ -1,20 +1,21 @@
 package me.modify.pocketworld.world;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
 public class WorldSpawn {
 
-    @Getter int x;
-    @Getter int y;
-    @Getter int z;
+    @Getter @Setter double x;
+    @Getter @Setter double y;
+    @Getter @Setter double z;
 
-    @Getter float yaw;
-    @Getter float pitch;
+    @Getter @Setter float yaw;
+    @Getter @Setter float pitch;
 
-    public WorldSpawn(int x, int y, int z, float yaw, float pitch) {
+    public WorldSpawn(double x, double y, double z, float yaw, float pitch) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -24,19 +25,19 @@ public class WorldSpawn {
 
     @Override
     public String toString() {
-        return String.format("%d:%d:%d:%f:%f", x, y, z, yaw, pitch);
+        return String.format("%f:%f:%f:%f:%f", x, y, z, yaw, pitch);
     }
 
     public static WorldSpawn fromString(String spawn) {
         String[] parts = spawn.split(":");
 
-        int x = 0, y = 100, z = 0;
+        double x = 0, y = 100, z = 0;
         float yaw = 0, pitch = 0;
 
         try {
-            x = Integer.parseInt(parts[0]);
-            y = Integer.parseInt(parts[1]);
-            z = Integer.parseInt(parts[2]);
+            x = Double.parseDouble(parts[0]);
+            y = Double.parseDouble(parts[1]);
+            z = Double.parseDouble(parts[2]);
             yaw = Float.parseFloat(parts[3]);
             pitch = Float.parseFloat(parts[4]);
 

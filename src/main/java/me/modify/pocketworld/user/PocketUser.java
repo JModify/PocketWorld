@@ -1,6 +1,8 @@
 package me.modify.pocketworld.user;
 
 import lombok.Getter;
+import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.DAO;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -24,5 +26,14 @@ public class PocketUser {
 
     public void addWorld(UUID id) {
         worlds.add(id);
+    }
+
+    public void removeWorld(UUID id) {
+        worlds.remove(id);
+    }
+
+    public void update(PocketWorldPlugin plugin) {
+        DAO dao = plugin.getDataSource().getConnection().getDAO();
+        dao.updatePocketUser(this);
     }
 }

@@ -1,11 +1,10 @@
 package me.modify.pocketworld.listener;
 
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bukkit.World;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,7 +21,7 @@ public class WorldListener implements Listener {
         String name = world.getName();
 
         if (isUUID(name)) {
-            PocketWorldRegistry registry = PocketWorldRegistry.getInstance();
+            LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
             UUID uuid = UUID.fromString(name);
 
             // World creature is spawning in is assumed to be a loaded pocket world.

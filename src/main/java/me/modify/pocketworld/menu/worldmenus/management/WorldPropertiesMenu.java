@@ -1,10 +1,13 @@
 package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketMenu;
+import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -56,8 +59,17 @@ public class WorldPropertiesMenu extends PocketMenu {
         ItemStack spawnPoint = new PocketItem.Builder(plugin)
                 .material(Material.ENDER_EYE)
                 .displayName("&5Spawn Point")
-                .lore(List.of("&7Click to set world spawnpoint to your current position"))
+                .lore(List.of("&7Click to set world spawn point to your current position.",
+                        "&7You must be standing in your pocket world to set this."))
                 .tag("property-spawn-point")
+                .build().get();
+
+        ItemStack back = new PocketItem.Builder(plugin)
+                .material(Material.ARROW)
+                .stackSize(1)
+                .displayName("&aGo Back")
+                .lore(List.of("&7Click to return to previous menu."))
+                .tag("is-back-button")
                 .build().get();
 
         ItemStack pvp = getAllowPvp();
@@ -69,6 +81,7 @@ public class WorldPropertiesMenu extends PocketMenu {
         inventory.setItem(22, animalSpawns);
         inventory.setItem(24, pvp);
         inventory.setItem(31, spawnPoint);
+        inventory.setItem(36, back);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
                 .material(Material.BLACK_STAINED_GLASS_PANE)
@@ -101,6 +114,36 @@ public class WorldPropertiesMenu extends PocketMenu {
         if (tag == null) {
             return;
         }
+
+        DAO dao = plugin.getDataSource().getConnection().getDAO();
+        if (tag.equalsIgnoreCase("property-animal-spawns")) {
+            world.setAllowAnimals(!world.isAllowAnimals());
+            world.update(plugin);
+            open();
+        } else if (tag.equalsIgnoreCase("property-monster-spawns")) {
+            world.setAllowMonsters(!world.isAllowMonsters());
+            world.update(plugin);
+            open();
+        } else if (tag.equalsIgnoreCase("property-pvp")) {
+            world.setPvp(!world.isPvp());
+            world.update(plugin);
+            open();
+        } else if (tag.equalsIgnoreCase("property-spawn-point")) {
+            Location playerLoc = player.getLocation();
+
+            if (playerLoc.getWorld() == null || !playerLoc.getWorld().getName().equals(world.getId().toString())) {
+                player.sendMessage(ColorFormat.format("&4&lERROR &r&cFailed to set world spawn point. " +
+                        "You are not currently inside this pocket world!"));
+                return;
+            }
+
+            world.setSpawnPoint(playerLoc);
+            world.update(plugin);
+
+            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPocket world spawn set to your location."));
+        } else if (tag.equalsIgnoreCase("is-back-button")) {
+            previousMenu.open();
+        }
     }
 
     private ItemStack getAllowAnimals() {
@@ -115,7 +158,7 @@ public class WorldPropertiesMenu extends PocketMenu {
                 .material(material)
                 .displayName(displayName)
                 .lore(lore)
-                .tag("property-animals-spawns").build().get();
+                .tag("property-animal-spawns").build().get();
     }
 
     private ItemStack getAllowMonsters() {

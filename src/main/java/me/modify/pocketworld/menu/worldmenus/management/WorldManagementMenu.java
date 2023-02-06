@@ -126,9 +126,13 @@ public class WorldManagementMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("world-properties")) {
             WorldPropertiesMenu propertiesMenu = new WorldPropertiesMenu(player, plugin, world, this);
             propertiesMenu.open();
-        } else if (tag.equalsIgnoreCase("world-leave-or-delete")) {
-            // Open leave or delete confirmation menu
-        } else if (tag.equalsIgnoreCase("is-home-button")) {
+        } else if (tag.equalsIgnoreCase("world-leave")) {
+            WorldLeaveConfirmationMenu confirmationMenu = new WorldLeaveConfirmationMenu(player, plugin, this, world);
+            confirmationMenu.open();
+        } else if (tag.equalsIgnoreCase("world-delete")) {
+            WorldDeleteConfirmationMenu confirmationMenu = new WorldDeleteConfirmationMenu(player, plugin, this, world);
+            confirmationMenu.open();
+        }else if (tag.equalsIgnoreCase("is-home-button")) {
             previousMenu.open();
         }
     }
@@ -137,15 +141,19 @@ public class WorldManagementMenu extends PocketMenu {
         WorldRank rank = world.getUsers().get(player.getUniqueId());
 
         if (rank == null) {
-            plugin.getLogger().severe("Failed to get world rank of " + player.getName() + ". " +
+            plugin.getLogger().severe("Failed to get world rank of " + player.getName() + " in world "
+                    + world.getId().toString()  + ". " +
                     "Player opening menu when they are not a member of the world?");
             return null;
         }
 
         String displayName = "&cLeave World";
         List<String> lore = new ArrayList<>();
+        String leaveOrDeleteTag = "leave";
+
         if (rank == WorldRank.OWNER) {
             displayName = "&cDelete World";
+            leaveOrDeleteTag = "delete";
             lore.add("&7Permanently delete this pocket world.");
         }else {
             lore.add("&7Leave this pocket world.");
@@ -155,7 +163,7 @@ public class WorldManagementMenu extends PocketMenu {
                 .material(Material.BARRIER)
                 .displayName(displayName)
                 .lore(lore)
-                .tag("world-leave-or-delete")
+                .tag("world-" + leaveOrDeleteTag)
                 .build();
 
         return leaveOrDelete.get();

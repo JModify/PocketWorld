@@ -19,6 +19,10 @@ public class PocketTheme {
     @Getter
     private Material icon;
 
+    // TODO: Implement description and default spawn point for themes
+    private String description;
+    private String spawnPoint;
+
     public PocketTheme(UUID id, String name, String biome, Material icon) {
         this.id = id;
         this.name = name;

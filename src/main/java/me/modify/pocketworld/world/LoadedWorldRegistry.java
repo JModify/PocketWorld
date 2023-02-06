@@ -11,24 +11,38 @@ import java.util.UUID;
 /**
  * Represents the list of pocket worlds loaded by players on the server.
  */
-public class PocketWorldRegistry {
+public class LoadedWorldRegistry {
 
     @Getter
-    private static final PocketWorldRegistry instance = new PocketWorldRegistry();
+    private static final LoadedWorldRegistry instance = new LoadedWorldRegistry();
 
     @Getter private final Set<PocketWorld> worlds;
-    public PocketWorldRegistry() {
+    public LoadedWorldRegistry() {
         this.worlds = new LinkedHashSet<>();
     }
 
     public PocketWorld getWorld(UUID worldId) {
-        Optional<PocketWorld> possibleWorld = worlds.stream().filter(world -> world.getId().equals(worldId)).findFirst();
+        Optional<PocketWorld> possibleWorld = worlds.stream()
+                .filter(world -> world.getId().equals(worldId)).findFirst();
         return possibleWorld.orElse(null);
     }
 
-    public void registerWorld(PocketWorld world) {
+    public void add(PocketWorld world) {
         if (!containsWorld(world.getId())) {
             worlds.add(world);
+        }
+    }
+
+    public void delete(UUID worldId) {
+        Optional<PocketWorld> possibleWorld = worlds.stream()
+                .filter(world -> world.getId().equals(worldId)).findFirst();
+        possibleWorld.ifPresent(worlds::remove);
+    }
+
+    public void update(PocketWorld world) {
+        if (containsWorld(world.getId())) {
+            delete(world.getId());
+            add(world);
         }
     }
 
@@ -38,7 +52,7 @@ public class PocketWorldRegistry {
 
     public void shutdown(PocketWorldPlugin plugin) {
         for (PocketWorld world : worlds) {
-            world.unloadWorld(plugin);
+            world.unload(plugin, true);
         }
         worlds.clear();
     }

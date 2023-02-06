@@ -15,7 +15,7 @@ import com.mongodb.client.result.UpdateResult;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.mongo.MongoConnection;
 import me.modify.pocketworld.data.mongo.MongoConstant;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
@@ -144,7 +144,7 @@ public class MongoLoader implements SlimeLoader {
             long lockMillis = lock ? System.currentTimeMillis() : 0L;
             if (worldDoc == null) {
                 plugin.getDataSource().getConnection().getDAO()
-                        .registerPocketWorld(PocketWorldRegistry.getInstance().getWorld(UUID.fromString(worldId)));
+                        .registerPocketWorld(LoadedWorldRegistry.getInstance().getWorld(UUID.fromString(worldId)));
             } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {
                 updateLock(worldId, true);
             }
@@ -209,11 +209,13 @@ public class MongoLoader implements SlimeLoader {
                 throw new UnknownWorldException(worldId);
             }
 
+            System.out.println("Found valid GridFS file with object id " + file.getObjectId());
             bucket.delete(file.getObjectId());
 
             // Delete backup file
             for (GridFSFile backupFile : bucket.find(Filters.eq("filename", worldId + "_backup"))) {
                 bucket.delete(backupFile.getObjectId());
+                System.out.println("Found backup file.. deleting it (" + file.getObjectId() + ")");
             }
 
             MongoCollection<Document> mongoCollection = database.getCollection(MongoConstant.worldCollection);

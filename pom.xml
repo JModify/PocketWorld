@@ -66,6 +66,10 @@
                   <pattern>org.bson</pattern>
                   <shadedPattern>lib.mongo.bson</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>net.wesjd.anvilgui</pattern>
+                  <shadedPattern>lib.anvilgui</shadedPattern>
+                </relocation>
               </relocations>
               <filters>
                 <filter>

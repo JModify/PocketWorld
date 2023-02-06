@@ -6,12 +6,11 @@ import me.modify.pocketworld.menu.PocketPaginatedMenu;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -47,7 +46,6 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
         DAO dao = plugin.getDataSource().getConnection().getDAO();
 
         // Retrieves all pocket worlds a player is associated too.
-        // This list will be later discarded since actual pocket worlds should be retrieved
         worlds = dao.getPocketWorlds(player.getUniqueId());
 
         if (!worlds.isEmpty()) {
@@ -63,7 +61,7 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
 
-                String status = PocketWorldRegistry.getInstance().containsWorld(world.getId())
+                String status = LoadedWorldRegistry.getInstance().containsWorld(world.getId())
                         ? "&aLOADED" : "&cNOT LOADED";
 
                 PocketItem worldIcon = new PocketItem.Builder(plugin)
@@ -111,28 +109,16 @@ public class WorldManagementMainMenu extends PocketPaginatedMenu {
             }
         } else {
             UUID worldId = UUID.fromString(ChatColor.stripColor(tag));
+            Optional<PocketWorld> optionalWorld = worlds.stream().filter(t -> t.getId().equals(worldId)).findFirst();
 
-            PocketWorldRegistry registry = PocketWorldRegistry.getInstance();
-
-            // If the registry contains this world, grab it from there
-            if (registry.containsWorld(worldId)) {
-                PocketWorld world = registry.getWorld(worldId);
-                WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
-                managementMenu.open();
-            } else {
-                // If the registry doesn't, grab it from the previously collected list of worlds
-                // the player is associated too. This is done to avoid having to get the world from the data
-                // source a second time in this menu
-                Optional<PocketWorld> optionalWorld = worlds.stream().filter(t -> t.getId().equals(worldId)).findFirst();
-
-                if (optionalWorld.isEmpty()) {
-                    return;
-                }
-
-                PocketWorld world = optionalWorld.get();
-                WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
-                managementMenu.open();
+            if (optionalWorld.isEmpty()) {
+                // Will never be empty.
+                return;
             }
+
+            PocketWorld world = optionalWorld.get();
+            WorldManagementMenu managementMenu = new WorldManagementMenu(player, plugin, world, this);
+            managementMenu.open();
         }
     }
 

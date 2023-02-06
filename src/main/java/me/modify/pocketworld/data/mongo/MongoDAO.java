@@ -9,7 +9,7 @@ import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.PocketWorldRegistry;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bson.Document;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -41,9 +41,9 @@ public class MongoDAO implements DAO {
 
     @Override
     public void updatePocketWorld(PocketWorld world) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
+        MongoCollection<Document> worldCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
         Document replacement = MongoAdapter.pocketWorldToDocument(world);
-        userCollection.replaceOne(Filters.eq("_id", world.getId().toString()), replacement);
+        worldCollection.replaceOne(Filters.eq("_id", world.getId().toString()), replacement);
     }
 
     @Override
@@ -54,17 +54,17 @@ public class MongoDAO implements DAO {
     }
 
     @Override
-    public PocketTheme getPocketTheme(UUID themeId) {
-        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
-        Document themeDocument = themeCollection.find(Filters.eq("_id", themeId.toString())).first();
-        return themeDocument != null ? MongoAdapter.pocketThemeFromDocument(themeDocument) : null;
-    }
-
-    @Override
     public void updatePocketUser(PocketUser user) {
         MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
         Document replacement = MongoAdapter.pocketUserToDocument(user);
         userCollection.replaceOne(Filters.eq("_id", user.getId().toString()), replacement);
+    }
+
+    @Override
+    public PocketTheme getPocketTheme(UUID themeId) {
+        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
+        Document themeDocument = themeCollection.find(Filters.eq("_id", themeId.toString())).first();
+        return themeDocument != null ? MongoAdapter.pocketThemeFromDocument(themeDocument) : null;
     }
 
     @Override
@@ -92,7 +92,7 @@ public class MongoDAO implements DAO {
         PocketUser user = getPocketUser(userId);
 
         Set<UUID> worldIds = user.getWorlds();
-        PocketWorldRegistry worldRegistry = PocketWorldRegistry.getInstance();
+        LoadedWorldRegistry worldRegistry = LoadedWorldRegistry.getInstance();
 
 
         List<PocketWorld> worlds = new ArrayList<>();
@@ -122,8 +122,12 @@ public class MongoDAO implements DAO {
 
     @Override
     public void registerPocketUser(UUID userId) {
-        PocketUser user = new PocketUser(userId, new HashSet<>(), null);
-        if (getPocketUser(userId) == null) {
+        MongoCollection<Document> userCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.userCollection);
+
+        Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
+        if (userDoc == null) {
+            PocketUser user = new PocketUser(userId, new HashSet<>(), null);
             connection.getMongoDatabase().getCollection(MongoConstant.userCollection)
                     .insertOne(MongoAdapter.pocketUserToDocument(user));
         }
@@ -131,6 +135,11 @@ public class MongoDAO implements DAO {
 
     @Override
     public void registerPocketWorld(PocketWorld world) {
+        if (world == null) {
+            System.out.println("Failed to register a pocket world. World is null?");
+            return;
+        }
+
         connection.getMongoDatabase().getCollection(MongoConstant.worldCollection)
                 .insertOne(MongoAdapter.pocketWorldToDocument(world));
     }
