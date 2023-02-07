@@ -67,6 +67,15 @@ public interface DAO {
     void updatePocketUser(PocketUser user);
 
     /**
+     * Retrieves the user name of the specified user.
+     * <p>
+     * Name stored in database is updated upon joining the server.
+     * @param userId id of user to retrieve username
+     * @return username of target user.
+     */
+    String getUserName(UUID userId);
+
+    /**
      * Registers a pocket theme with the data source.
      * This method should follow newly created pocket themes.
      * @param theme

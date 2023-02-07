@@ -28,11 +28,8 @@ public class WorldCreationMainMenu extends PocketMenu {
     private PocketTheme pocketTheme;
 
     private PocketWorldMainMenu mainMenu;
-    private final PocketWorldPlugin plugin;
     public WorldCreationMainMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
-        super(player);
-        this.plugin = plugin;
-
+        super(player, plugin);
         this.pocketTheme = null;
         this.worldName = null;
         this.mainMenu = mainMenu;
@@ -52,34 +49,30 @@ public class WorldCreationMainMenu extends PocketMenu {
     public void setMenuItems() {
         Inventory inventory = getInventory();
 
-        PocketItem enterName = getNameEntryIcon();
-        PocketItem selectTheme = getThemeSelectIcon();
-        PocketItem confirmCreate = getConfirmIcon();
+        ItemStack enterName = getNameEntryIcon();
+        ItemStack selectTheme = getThemeSelectIcon();
+        ItemStack confirmCreate = getConfirmIcon();
 
-        PocketItem backButton = new PocketItem.Builder(plugin)
+        ItemStack backButton = new PocketItem.Builder(plugin)
                 .material(Material.ARROW)
                 .stackSize(1)
                 .displayName("&aGo Back")
                 .lore(List.of("&7Return to main menu."))
                 .tag("is-back-button")
-                .build();
+                .build().get();
 
-        inventory.setItem(11, enterName.get());
-        inventory.setItem(13, selectTheme.get());
-        inventory.setItem(15, confirmCreate.get());
+        inventory.setItem(11, enterName);
+        inventory.setItem(13, selectTheme);
+        inventory.setItem(15, confirmCreate);
+        inventory.setItem(18, backButton);
 
-        PocketItem fillerItem = new PocketItem.Builder(plugin)
+        ItemStack fillerItem = new PocketItem.Builder(plugin)
                 .material(Material.BLACK_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName(" ")
-                .build();
+                .build().get();
 
-        addFillers(fillerItem.get(), 0, 8);
-        addFillers(fillerItem.get(), 18, 26);
-
-        inventory.setItem(9, fillerItem.get());
-        inventory.setItem(17, fillerItem.get());
-        inventory.setItem(18, backButton.get());
+        addFillerBorder(fillerItem);
     }
 
     @Override
@@ -121,7 +114,7 @@ public class WorldCreationMainMenu extends PocketMenu {
         }
     }
 
-    public PocketItem getNameEntryIcon() {
+    public ItemStack getNameEntryIcon() {
         List<String> lore = new ArrayList<>(List.of("&7Enter a name for your pocket world.",
                 " ",
                 "&6Restrictions: ",
@@ -143,10 +136,10 @@ public class WorldCreationMainMenu extends PocketMenu {
                 .displayName("&bName Entry")
                 .lore(lore)
                 .tag("world-name-icon")
-                .build();
+                .build().get();
     }
 
-    public PocketItem getThemeSelectIcon() {
+    public ItemStack getThemeSelectIcon() {
         List<String> lore = new ArrayList<>();
         lore.add("&7Select a theme for your pocket world.");
         lore.add(" ");
@@ -169,10 +162,10 @@ public class WorldCreationMainMenu extends PocketMenu {
                 .displayName("&bTheme Select")
                 .lore(lore)
                 .tag("world-theme-icon")
-                .build();
+                .build().get();
     }
 
-    public PocketItem getConfirmIcon() {
+    public ItemStack getConfirmIcon() {
         List<String> lore = new ArrayList<>();
         String displayName;
         Material material;
@@ -196,6 +189,6 @@ public class WorldCreationMainMenu extends PocketMenu {
                 .displayName(displayName)
                 .lore(lore)
                 .tag("world-confirm-create")
-                .build();
+                .build().get();
     }
 }

@@ -61,6 +61,12 @@ public class MongoDAO implements DAO {
     }
 
     @Override
+    public String getUserName(UUID userId) {
+        //TODO: Implement this
+        return null;
+    }
+
+    @Override
     public PocketTheme getPocketTheme(UUID themeId) {
         MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
         Document themeDocument = themeCollection.find(Filters.eq("_id", themeId.toString())).first();
@@ -136,7 +142,6 @@ public class MongoDAO implements DAO {
     @Override
     public void registerPocketWorld(PocketWorld world) {
         if (world == null) {
-            System.out.println("Failed to register a pocket world. World is null?");
             return;
         }
 

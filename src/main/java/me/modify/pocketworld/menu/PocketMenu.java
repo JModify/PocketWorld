@@ -1,6 +1,7 @@
 package me.modify.pocketworld.menu;
 
 import lombok.NonNull;
+import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,6 +16,9 @@ public abstract class PocketMenu implements InventoryHolder {
     /** Player opening the menu */
     protected Player player;
 
+    /** Instance of plugin */
+    protected PocketWorldPlugin plugin;
+
     /** Inventory object to create an modify */
     private Inventory inventory;
 
@@ -22,8 +26,9 @@ public abstract class PocketMenu implements InventoryHolder {
      * Create a new instance of a menu
      * @param player player opening the menu
      */
-    public PocketMenu(Player player) {
+    public PocketMenu(Player player, PocketWorldPlugin plugin) {
         this.player = player;
+        this.plugin = plugin;
     }
 
     /**
@@ -87,6 +92,39 @@ public abstract class PocketMenu implements InventoryHolder {
                 if(is == null || is.getType() == Material.AIR){
                     inventory.setItem(i, fillerItem);
                 }
+            }
+        }
+    }
+
+    /**
+     * Adds filler items to the border of the menu.
+     * @param fillerItem filler item to create border
+     */
+    public void addFillerBorder(ItemStack fillerItem) {
+        int slots = getMenuSlots();
+        if (slots < 27) {
+            return;
+        }
+
+        // Top row border
+        addFillers(fillerItem, 0, 8);
+
+        // Bottom row border
+        addFillers(fillerItem, (slots - 1) - 9, (slots - 1));
+
+        // Left hand side
+        for (int i = 9; i < (slots - 9); i += 9) {
+            ItemStack is = inventory.getItem(i);
+            if (is == null || is.getType() == Material.AIR) {
+                inventory.setItem(i, fillerItem);
+            }
+        }
+
+        // Right hand side
+        for (int j = 17; j < slots - 9; j += 9) {
+            ItemStack is = inventory.getItem(j);
+            if (is == null || is.getType() == Material.AIR) {
+                inventory.setItem(j, fillerItem);
             }
         }
     }

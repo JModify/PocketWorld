@@ -15,10 +15,8 @@ import java.util.List;
 
 public class SelectIconMenu extends PocketMenu {
 
-    private final PocketWorldPlugin plugin;
     public SelectIconMenu(Player player, PocketWorldPlugin plugin) {
-        super(player);
-        this.plugin = plugin;
+        super(player, plugin);
     }
 
     @Override
@@ -35,7 +33,7 @@ public class SelectIconMenu extends PocketMenu {
     public void setMenuItems() {
 
         PocketItem fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.LIME_STAINED_GLASS_PANE)
+                .material(Material.BLACK_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName("&cSelect Icon")
                 .lore(List.of("&7Place desired item in empty slot to set the icon for this theme", "&8Close inventory once done."))

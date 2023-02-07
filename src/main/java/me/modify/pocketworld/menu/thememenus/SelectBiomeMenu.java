@@ -15,10 +15,8 @@ import java.util.List;
 
 public class SelectBiomeMenu extends PocketMenu {
 
-    private final PocketWorldPlugin plugin;
     public SelectBiomeMenu(Player player, PocketWorldPlugin plugin) {
-        super(player);
-        this.plugin = plugin;
+        super(player, plugin);
     }
 
 

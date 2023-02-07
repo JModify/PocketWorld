@@ -15,11 +15,9 @@ import java.util.*;
 public class WorldCreationThemeMenu extends PocketMenu {
 
     private final WorldCreationMainMenu mainMenu;
-    private final PocketWorldPlugin plugin;
     public WorldCreationThemeMenu(Player player, PocketWorldPlugin plugin, WorldCreationMainMenu mainMenu) {
-        super(player);
+        super(player, plugin);
         this.mainMenu = mainMenu;
-        this.plugin = plugin;
     }
 
     @Override
@@ -37,17 +35,13 @@ public class WorldCreationThemeMenu extends PocketMenu {
 
         Inventory inventory = getInventory();
 
-        //TODO: Make all menus call get() only once for each ItemStack
         ItemStack fillerItem = new PocketItem.Builder(plugin)
                 .material(Material.BLACK_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName(" ")
                 .build().get();
 
-        addFillers(fillerItem, 0, 8);
-        inventory.setItem(9, fillerItem);
-        inventory.setItem(17, fillerItem);
-        addFillers(fillerItem, 18, 26);
+        addFillerBorder(fillerItem);
 
         ItemStack emptyThemeItem = new PocketItem.Builder(plugin)
                 .material(Material.BARRIER)

@@ -20,14 +20,12 @@ import java.util.stream.Collectors;
 
 public class WorldPropertiesMenu extends PocketMenu {
 
-    private PocketWorldPlugin plugin;
     private PocketWorld world;
-    private WorldManagementMenu previousMenu;
+    private ManageWorldMenu previousMenu;
 
     public WorldPropertiesMenu(Player player, PocketWorldPlugin plugin, PocketWorld world,
-                               WorldManagementMenu previousMenu) {
-        super(player);
-        this.plugin = plugin;
+                               ManageWorldMenu previousMenu) {
+        super(player, plugin);
         this.world = world;
         this.previousMenu = previousMenu;
     }
@@ -53,7 +51,8 @@ public class WorldPropertiesMenu extends PocketMenu {
         ItemStack globe = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
-                .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members, " ", "&8" + world.getId().toString()))
+                .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
+                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack spawnPoint = new PocketItem.Builder(plugin)
@@ -84,21 +83,11 @@ public class WorldPropertiesMenu extends PocketMenu {
         inventory.setItem(36, back);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.BLACK_STAINED_GLASS_PANE)
+                .material(Material.BLUE_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName(" ")
                 .build().get();
-
-        // Top and bottom filler rows
-        addFillers(fillerItem, 0, 8);
-        addFillers(fillerItem, 36, 44);
-
-        int[] slotsToReplace = {9, 18, 27, 17, 26, 35};
-        for (int i : slotsToReplace) {
-            if (inventory.getItem(i) == null) {
-                inventory.setItem(i, fillerItem);
-            }
-        }
+        addFillerBorder(fillerItem);
     }
 
     @Override

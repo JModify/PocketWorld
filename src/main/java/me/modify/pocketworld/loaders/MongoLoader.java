@@ -209,13 +209,11 @@ public class MongoLoader implements SlimeLoader {
                 throw new UnknownWorldException(worldId);
             }
 
-            System.out.println("Found valid GridFS file with object id " + file.getObjectId());
             bucket.delete(file.getObjectId());
 
             // Delete backup file
             for (GridFSFile backupFile : bucket.find(Filters.eq("filename", worldId + "_backup"))) {
                 bucket.delete(backupFile.getObjectId());
-                System.out.println("Found backup file.. deleting it (" + file.getObjectId() + ")");
             }
 
             MongoCollection<Document> mongoCollection = database.getCollection(MongoConstant.worldCollection);

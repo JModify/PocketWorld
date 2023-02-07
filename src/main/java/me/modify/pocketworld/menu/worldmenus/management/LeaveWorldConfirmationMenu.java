@@ -7,7 +7,6 @@ import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -15,23 +14,21 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.UUID;
 
-public class WorldDeleteConfirmationMenu extends PocketMenu {
+public class LeaveWorldConfirmationMenu extends PocketMenu {
 
-    private PocketWorldPlugin plugin;
     private PocketWorld world;
-    private WorldManagementMenu previousMenu;
-    public WorldDeleteConfirmationMenu(Player player, PocketWorldPlugin plugin, WorldManagementMenu previousMenu, PocketWorld world) {
-        super(player);
-        this.plugin = plugin;
+    private ManageWorldMenu previousMenu;
+    public LeaveWorldConfirmationMenu(Player player, PocketWorldPlugin plugin, PocketWorld world,
+                                      ManageWorldMenu previousMenu) {
+        super(player, plugin);
         this.world = world;
         this.previousMenu = previousMenu;
     }
 
     @Override
     public String getMenuName() {
-        return "&4&lDelete World Confirmation";
+        return "&4&lLeave World Confirmation";
     }
 
     @Override
@@ -46,28 +43,25 @@ public class WorldDeleteConfirmationMenu extends PocketMenu {
         ItemStack confirm = new PocketItem.Builder(plugin)
                 .material(Material.LIME_WOOL)
                 .displayName("&a&lConfirm")
-                .lore(List.of("&aClick to confirm deletion of this PocketWorld", " ",
-                        "&7Note: Deleting a PocketWorld is permanent and", "&7the world cannot be recovered &7All ",
-                        "&7members of this world will be unable ", "&7to access it indefinitely."))
-                .tag("world-confirm-delete")
+                .lore(List.of("&cClick to confirm leaving this pocket world."))
+                .tag("world-confirm-leave")
                 .build().get();
 
         ItemStack cancel = new PocketItem.Builder(plugin)
-                .material(Material.RED_STAINED_GLASS)
+                .material(Material.RED_WOOL)
                 .displayName("&c&lCancel")
                 .lore(List.of("&cClick to cancel and go to the previous menu."))
-                .tag("world-cancel-delete")
+                .tag("world-cancel-leave")
                 .build().get();
 
         inventory.setItem(11, cancel);
         inventory.setItem(15, confirm);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.BLACK_STAINED_GLASS_PANE)
+                .material(Material.RED_STAINED_GLASS_PANE)
                 .displayName(" ")
                 .build().get();
-
-        addFillers(fillerItem);
+        addFillerBorder(fillerItem);
     }
 
     @Override
@@ -84,11 +78,21 @@ public class WorldDeleteConfirmationMenu extends PocketMenu {
             return;
         }
 
-        if (tag.equalsIgnoreCase("world-cancel-delete")) {
+        if (tag.equalsIgnoreCase("world-cancel-leave")) {
             previousMenu.open();
-        } else if (tag.equalsIgnoreCase("world-confirm-delete")) {
-            world.delete(plugin);
-            player.sendMessage(ColorFormat.format("Successfully deleted Pocket World '" + world.getWorldName() + "'."));
+        } else if (tag.equalsIgnoreCase("world-confirm-leave")) {
+
+            // Remove user from world then update the world
+            world.getUsers().remove(player.getUniqueId());
+            world.update(plugin);
+
+            DAO dao = plugin.getDataSource().getConnection().getDAO();
+            PocketUser user = dao.getPocketUser(player.getUniqueId());
+            user.addWorld(world.getId());
+            user.update(plugin);
+
+            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aYou left PocketWorld " + world.getWorldName()));
+            player.closeInventory();
         }
 
     }

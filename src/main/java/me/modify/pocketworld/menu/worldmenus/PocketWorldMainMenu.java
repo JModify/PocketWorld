@@ -5,7 +5,7 @@ import me.modify.pocketworld.menu.PocketMenu;
 import me.modify.pocketworld.menu.worldmenus.teleport.WorldTeleportMainMenu;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.menu.worldmenus.creation.WorldCreationMainMenu;
-import me.modify.pocketworld.menu.worldmenus.management.WorldManagementMainMenu;
+import me.modify.pocketworld.menu.worldmenus.management.WorldManagementListMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -16,10 +16,8 @@ import java.util.List;
 
 public class PocketWorldMainMenu extends PocketMenu {
 
-
-    private final PocketWorldPlugin plugin;
     public PocketWorldMainMenu(Player player, PocketWorldPlugin plugin) {
-        super(player);
+        super(player, plugin);
         this.plugin = plugin;
     }
 
@@ -38,48 +36,38 @@ public class PocketWorldMainMenu extends PocketMenu {
         Inventory inventory = getInventory();
 
         int maxWorlds = plugin.getConfigFile().getYaml().getInt("general.max-worlds", 5);
-        PocketItem worldCreation = new PocketItem.Builder(plugin)
+        ItemStack worldCreation = new PocketItem.Builder(plugin)
                 .material(Material.CRAFTING_TABLE)
-                .stackSize(1)
                 .displayName("&aWorld Creation")
-                .lore(List.of("&7Create a new pocket world."," ", "&fMaximum: " + maxWorlds))
+                .lore(List.of("&7Create a new pocket world."," ", "&8Maximum Worlds: " + maxWorlds))
                 .tag("world-creation-icon")
-                .build();
+                .build().get();
 
         int worldCount = plugin.getDataSource().getConnection().getDAO().countPocketWorlds(player.getUniqueId());
-        PocketItem worldManagement = new PocketItem.Builder(plugin)
+        ItemStack worldManagement = new PocketItem.Builder(plugin)
                 .material(Material.ANVIL)
-                .stackSize(1)
                 .displayName("&aWorld Management")
-                .lore(List.of("&7Manage an existing pocket world.", " ", "&fWorld Count: " + worldCount))
+                .lore(List.of("&7Manage an existing pocket world.", " ", "&8World Count: " + worldCount))
                 .tag("world-management-icon")
-                .build();
+                .build().get();
 
-        PocketItem worldTeleport = new PocketItem.Builder(plugin)
+        ItemStack worldTeleport = new PocketItem.Builder(plugin)
                 .material(Material.ENDER_PEARL)
-                .stackSize(1)
                 .displayName("&aWorld Teleportation")
                 .lore(List.of("&7Travel to a pocket world."))
                 .tag("world-teleportation-icon")
-                .build();
+                .build().get();
 
-        PocketItem fillerItem = new PocketItem.Builder(plugin)
+        inventory.setItem(11, worldCreation);
+        inventory.setItem(13, worldManagement);
+        inventory.setItem(15, worldTeleport);
+
+        ItemStack fillerItem = new PocketItem.Builder(plugin)
                 .material(Material.BLACK_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName(" ")
-                .build();
-
-        inventory.setItem(11, worldCreation.get());
-        inventory.setItem(13, worldManagement.get());
-        inventory.setItem(15, worldTeleport.get());
-
-        // Add filler items in a border formation
-        addFillers(fillerItem.get(), 0, 8);
-        addFillers(fillerItem.get(), 27, 35);
-        inventory.setItem(9, fillerItem.get());
-        inventory.setItem(17, fillerItem.get());
-        inventory.setItem(18, fillerItem.get());
-        inventory.setItem(26, fillerItem.get());
+                .build().get();
+        addFillerBorder(fillerItem);
     }
 
     @Override
@@ -98,10 +86,19 @@ public class PocketWorldMainMenu extends PocketMenu {
         }
 
         if (tag.equalsIgnoreCase("world-creation-icon")) {
+            int maxWorlds = plugin.getConfigFile().getYaml().getInt("general.max-worlds", 5);
+            int worldCount = plugin.getDataSource().getConnection().getDAO().countPocketWorlds(player.getUniqueId());
+
+            if (worldCount >= maxWorlds) {
+                player.sendMessage("&4&lERROR &r&cMaximum PocketWorld's reached.");
+                player.closeInventory();
+                return;
+            }
+
             WorldCreationMainMenu worldCreationMainMenu = new WorldCreationMainMenu(player, plugin, this);
             worldCreationMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-management-icon")) {
-            WorldManagementMainMenu managementMainMenu = new WorldManagementMainMenu(player, plugin, this);
+            WorldManagementListMenu managementMainMenu = new WorldManagementListMenu(player, plugin, this);
             managementMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-teleportation-icon")) {
             WorldTeleportMainMenu teleportMainMenu = new WorldTeleportMainMenu(player, plugin, this);

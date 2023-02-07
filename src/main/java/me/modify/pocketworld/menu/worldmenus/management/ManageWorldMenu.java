@@ -16,17 +16,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class WorldManagementMenu extends PocketMenu {
+public class ManageWorldMenu extends PocketMenu {
 
-    private WorldManagementMainMenu previousMenu;
+    private WorldManagementListMenu previousMenu;
 
     /** World being managed */
     private PocketWorld world;
 
-    private PocketWorldPlugin plugin;
-    public WorldManagementMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, WorldManagementMainMenu previousMenu) {
-        super(player);
-        this.plugin = plugin;
+    public ManageWorldMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, WorldManagementListMenu previousMenu) {
+        super(player, plugin);
         this.world = world;
         this.previousMenu = previousMenu;
     }
@@ -52,7 +50,8 @@ public class WorldManagementMenu extends PocketMenu {
         ItemStack globe = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
-                .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members, " ", "&8" + world.getId().toString()))
+                .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
+                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack playerManagement = new PocketItem.Builder(plugin)
@@ -62,12 +61,12 @@ public class WorldManagementMenu extends PocketMenu {
                 .tag("world-player-management")
                 .build().get();
 
-        ItemStack homePage = new PocketItem.Builder(plugin)
+        ItemStack backButton = new PocketItem.Builder(plugin)
                 .material(Material.ARROW)
                 .stackSize(1)
                 .displayName("&aMain Menu")
-                .lore(List.of("&7Click to return to main menu."))
-                .tag("is-home-button")
+                .lore(List.of("&7Click to return to previous menu."))
+                .tag("is-back-button")
                 .build().get();
 
         ItemStack leaveOrDelete = getLeaveOrDeleteWorldIcon();
@@ -75,7 +74,7 @@ public class WorldManagementMenu extends PocketMenu {
         inventory.setItem(13, globe);
         inventory.setItem(20, playerManagement);
         inventory.setItem(24, leaveOrDelete);
-        inventory.setItem(27, homePage);
+        inventory.setItem(27, backButton);
 
         // Only world owners have access to edit world properties.
         if (world.getUsers().get(player.getUniqueId()) == WorldRank.OWNER) {
@@ -90,20 +89,12 @@ public class WorldManagementMenu extends PocketMenu {
         }
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.BLACK_STAINED_GLASS_PANE)
+                .material(Material.BLUE_STAINED_GLASS_PANE)
                 .stackSize(1)
                 .displayName(" ")
                 .build().get();
 
-        // Top and bottom filler rows
-        addFillers(fillerItem, 0, 8);
-        addFillers(fillerItem, 27, 35);
-
-        // Filler items on left and right border
-        inventory.setItem(9, fillerItem);
-        inventory.setItem(17, fillerItem);
-        inventory.setItem(18, fillerItem);
-        inventory.setItem(26, fillerItem);
+        addFillerBorder(fillerItem);
     }
 
     @Override
@@ -120,19 +111,19 @@ public class WorldManagementMenu extends PocketMenu {
             return;
         }
 
-        if (tag.equalsIgnoreCase("player-management")) {
-            // Open player management menu specific to world rank
-
+        if (tag.equalsIgnoreCase("world-player-management")) {
+            PlayerManagementListMenu playerMenu = new PlayerManagementListMenu(player, plugin, world, this);
+            playerMenu.open();
         } else if (tag.equalsIgnoreCase("world-properties")) {
             WorldPropertiesMenu propertiesMenu = new WorldPropertiesMenu(player, plugin, world, this);
             propertiesMenu.open();
         } else if (tag.equalsIgnoreCase("world-leave")) {
-            WorldLeaveConfirmationMenu confirmationMenu = new WorldLeaveConfirmationMenu(player, plugin, this, world);
+            LeaveWorldConfirmationMenu confirmationMenu = new LeaveWorldConfirmationMenu(player, plugin, world, this);
             confirmationMenu.open();
         } else if (tag.equalsIgnoreCase("world-delete")) {
-            WorldDeleteConfirmationMenu confirmationMenu = new WorldDeleteConfirmationMenu(player, plugin, this, world);
+            DeleteWorldConfirmationMenu confirmationMenu = new DeleteWorldConfirmationMenu(player, plugin, world, this);
             confirmationMenu.open();
-        }else if (tag.equalsIgnoreCase("is-home-button")) {
+        }else if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         }
     }

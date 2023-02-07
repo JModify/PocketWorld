@@ -21,10 +21,7 @@ import org.bukkit.entity.*;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class PocketWorld {
 
@@ -55,6 +52,9 @@ public class PocketWorld {
 
     /** Allow pvp for this pocket world? Modifiable by world owner */
     @Getter private boolean pvp;
+
+    //TODO: Implement this - invitations of users to the pocket world. key = sender, value = recipient
+    @Getter private Map<UUID, UUID> invitations;
 
     public PocketWorld(UUID id, UUID themeId, String worldName, long locked, Map<UUID, WorldRank> users, int worldSize,
                        WorldSpawn worldSpawn, boolean allowAnimals, boolean allowMonsters, boolean pvp) {
@@ -250,6 +250,10 @@ public class PocketWorld {
         // If this world is loaded, update it in the LoadedWorldRegistry.
         LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
         registry.update(this);
+    }
+
+    public String getWorldSizeFormatted() {
+        return worldSize + "x" + worldSize;
     }
 
     public void setAllowAnimals(boolean state) {

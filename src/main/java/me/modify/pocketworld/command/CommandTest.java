@@ -4,6 +4,7 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.Connection;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.world.PocketWorld;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
@@ -41,7 +42,7 @@ public class CommandTest extends BukkitCommand {
                 Connection connection = plugin.getDataSource().getConnection();
                 ItemStack[] contents = connection.getDAO().retrieveUserInventory(player.getUniqueId());
                 player.getInventory().setContents(contents);
-            } else if (args[0].equalsIgnoreCase("rename")) {
+            }  else if (args[0].equalsIgnoreCase("rename")) {
 
                 if (length < 2) {
                     return true;
