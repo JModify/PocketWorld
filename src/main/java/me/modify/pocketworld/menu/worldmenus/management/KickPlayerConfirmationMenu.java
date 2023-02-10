@@ -1,6 +1,5 @@
 package me.modify.pocketworld.menu.worldmenus.management;
 
-import lombok.NonNull;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketMenu;
@@ -9,7 +8,6 @@ import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -27,7 +25,7 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
     private ManagePlayerMenu previousMenu;
 
     public KickPlayerConfirmationMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, UUID userToKick,
-                                       ManagePlayerMenu previousMenu) {
+                                      ManagePlayerMenu previousMenu) {
         super(player, plugin);
         this.world = world;
         this.userToKick = userToKick;

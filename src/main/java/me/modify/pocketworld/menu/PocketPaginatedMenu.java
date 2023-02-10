@@ -1,18 +1,13 @@
 package me.modify.pocketworld.menu;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
-import me.modify.pocketworld.world.PocketWorld;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class PocketPaginatedMenu extends PocketMenu {
 

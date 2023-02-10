@@ -47,7 +47,7 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
+                        "&7Size: " + getWorldSizeFormatted(world.getWorldSize()), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
         inventory.setItem(4, globe);
 
@@ -123,5 +123,9 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
             nextMenu.open();
 
         }
+    }
+
+    private String getWorldSizeFormatted(int worldSize) {
+        return worldSize + "x" + worldSize;
     }
 }

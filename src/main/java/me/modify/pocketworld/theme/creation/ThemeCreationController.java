@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.theme.PocketTheme;
+import me.modify.pocketworld.user.UserInventory;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import org.bukkit.Bukkit;
@@ -23,6 +24,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Consumer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,6 +48,12 @@ public class ThemeCreationController {
 
     @Getter @Setter
     private Material icon;
+
+    @Getter @Setter
+    private String description;
+
+    @Getter @Setter
+    private String spawnPoint;
 
     @Getter @Setter
     private ThemeCreationState state;
@@ -90,7 +98,9 @@ public class ThemeCreationController {
             return false;
         }
 
-        plugin.getDataSource().getConnection().getDAO().saveUserInventory(userId, player.getInventory());
+        // Add NBT data to player flagging them as having an inventory which needs to be restored.
+        UserInventory.saveUserInventory(plugin, player);
+
         player.getInventory().clear();
         player.getInventory().setItem(4, nameEntry.get());
         player.getInventory().setItem(8, cancel.get());
@@ -111,13 +121,13 @@ public class ThemeCreationController {
             return;
         }
 
-        PocketItem cancel = new PocketItem.Builder(plugin)
+        ItemStack cancel = new PocketItem.Builder(plugin)
                 .material(Material.BARRIER)
                 .stackSize(1)
                 .displayName("&c&lCancel")
                 .lore(List.of("&7Click to cancel theme creation."))
                 .tag("is-cancel-theme")
-                .build();
+                .build().get();
 
         //TODO: Add sound effects when new state starts
 
@@ -126,66 +136,92 @@ public class ThemeCreationController {
             case SELECT_NAME -> {
                 PocketItem biomeSelect = new PocketItem.Builder(plugin)
                         .material(Material.GRASS_BLOCK)
-                        .stackSize(1)
                         .displayName("&6&lBiome Select")
                         .lore(List.of("&7Right click to select theme biome."))
                         .tag("is-biome-select")
                         .build();
                 player.getInventory().clear();
                 player.getInventory().setItem(4, biomeSelect.get());
-                player.getInventory().setItem(8, cancel.get());
+                player.getInventory().setItem(8, cancel);
                 player.getInventory().setHeldItemSlot(4);
                 this.state = ThemeCreationState.SELECT_BIOME;
             }
             case SELECT_BIOME -> {
                 PocketItem selectIcon = new PocketItem.Builder(plugin)
                         .material(Material.BEDROCK)
-                        .stackSize(1)
                         .displayName("&6&lIcon Select")
                         .lore(List.of("&7Select an icon to represent your theme."))
                         .tag("is-icon-select")
                         .build();
                 player.getInventory().clear();
                 player.getInventory().setItem(4, selectIcon.get());
-                player.getInventory().setItem(8, cancel.get());
+                player.getInventory().setItem(8, cancel);
                 player.getInventory().setHeldItemSlot(4);
                 this.state = ThemeCreationState.SELECT_ICON;
             }
 
             case SELECT_ICON -> {
+                List<String> message = new ArrayList<>();
+                message.add("&7&m---------------------------------");
+                message.add("&6&lEnter Theme Description");
+                message.add("&eType a description for your theme in chat to continue.");
+                message.add("&7This description is visible to players when creating a PocketWorld.");
+                message.add("&7&m---------------------------------");
+
+                ColorFormat.formatList(message).forEach(player::sendMessage);
+
+                // Next state requires chat input. No items other than "cancel" item to be added.
+                player.getInventory().clear();
+                player.getInventory().setItem(8, cancel);
+                player.getInventory().setHeldItemSlot(4);
+                this.state = ThemeCreationState.ENTER_DESCRIPTION;
+            }
+
+            case ENTER_DESCRIPTION -> {
                 PocketItem generatingItem = new PocketItem.Builder(plugin)
                         .material(Material.ENDER_PEARL)
-                        .stackSize(1)
                         .displayName("&6&lGenerating Editor World...")
                         .lore(List.of("&7Please wait!"))
                         .build();
 
                 player.getInventory().clear();
                 player.getInventory().setItem(4, generatingItem.get());
-                player.getInventory().setItem(8, cancel.get());
+                player.getInventory().setItem(8, cancel);
                 player.getInventory().setHeldItemSlot(4);
                 generateEditorWorld();
                 this.state = ThemeCreationState.GENERATING_WORLD;
             }
 
             case GENERATING_WORLD -> {
+                PocketItem spawnPointItem = new PocketItem.Builder(plugin)
+                        .material(Material.ENDER_EYE)
+                        .displayName("&d&lSpawn Point")
+                        .lore(List.of("&7Click to set default spawn point of this theme",
+                                "&7to your current location."))
+                        .tag("is-spawn-point")
+                        .build();
+
+                player.getInventory().clear();
+                player.getInventory().setItem(4, spawnPointItem.get());
+                player.getInventory().setItem(8, cancel);
+                player.getInventory().setHeldItemSlot(4);
+                this.state = ThemeCreationState.SET_SPAWN;
+            }
+            case SET_SPAWN -> {
                 PocketItem completeItem = new PocketItem.Builder(plugin)
                         .material(Material.LIME_WOOL)
-                        .stackSize(1)
                         .displayName("&a&lDone")
                         .lore(List.of("&7Click to save and complete creation process."))
                         .tag("is-theme-complete")
                         .build();
 
                 player.getInventory().clear();
-                player.getInventory().setItem(4, completeItem.get());
-                player.getInventory().setItem(8, cancel.get());
-                player.getInventory().setHeldItemSlot(1);
+                player.getInventory().setItem(7, completeItem.get());
+                player.getInventory().setItem(8, cancel);
+                player.getInventory().setHeldItemSlot(7);
                 this.state = ThemeCreationState.BUILDING;
             }
-            case BUILDING -> {
-                completeCreation();
-            }
+            case BUILDING -> completeCreation();
         }
 
     }
@@ -213,34 +249,33 @@ public class ThemeCreationController {
      * Generates an editor world for this theme.
      */
     private void generateEditorWorld() {
-        SlimePropertyMap propertyMap = getEditorWorldPropertyMap();
+        this.themeId = UUID.randomUUID();
 
+        SlimePropertyMap propertyMap = getEditorWorldPropertyMap();
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimeLoader loader = slime.getLoader("theme");
-        
-        Player player = Bukkit.getPlayer(userId);
 
-        this.themeId = UUID.randomUUID();
+        Player player = Bukkit.getPlayer(userId);
 
         long startTime = System.currentTimeMillis();
         Consumer<Boolean> postLoadActions = outcome -> {
             if (outcome) {
                 World world = Bukkit.getWorld(themeId.toString());
-                world.getBlockAt(0, 64, 0).setType(Material.BEDROCK);
+
+                if (world != null) world.getBlockAt(0, 64, 0).setType(Material.BEDROCK);
 
                 long time = System.currentTimeMillis() - startTime;
-
-                if (player.isOnline()) {
+                if (player != null) {
                     player.sendMessage(ColorFormat.format("&aSuccessfully generated editor world in " + time + "ms"));
                     player.teleport(new Location(world, 0, 66, 0));
                 }
-
                 nextState();
             }
         };
 
         Consumer<Exception> generationFailure = e -> {
-          // Handle generation failure
+            plugin.getLogger().severe("Failed to generate editor world for " + themeId.toString() + " theme.");
+            e.printStackTrace();
         };
 
         editorWorldGenerationTask = Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -268,8 +303,7 @@ public class ThemeCreationController {
         // Restore inventory if player is online, else inventory is to be restored on next login.
         Player player = Bukkit.getPlayer(userId);
         if (player != null) {
-            ItemStack[] contents = plugin.getDataSource().getConnection().getDAO().retrieveUserInventory(userId);
-            player.getInventory().setContents(contents);
+            UserInventory.restoreUserInventory(plugin, player);
         }
 
         if (state == ThemeCreationState.GENERATING_WORLD) {
@@ -298,7 +332,7 @@ public class ThemeCreationController {
     }
 
     public void completeCreation() {
-        PocketTheme theme = new PocketTheme(themeId, name, biome, icon);
+        PocketTheme theme = new PocketTheme(themeId, name, description, spawnPoint, biome, icon);
         plugin.getDataSource().getConnection().getDAO().registerPocketTheme(theme);
         plugin.getThemeCache().cacheTheme(theme);
         ThemeCreationRegistry.getInstance().removeByController(this);
@@ -309,10 +343,10 @@ public class ThemeCreationController {
             World defaultWorld = plugin.getServer().getWorlds().get(0);
             player.teleport(defaultWorld.getSpawnLocation());
 
-            ItemStack[] contents = plugin.getDataSource().getConnection().getDAO().retrieveUserInventory(userId);
-            player.getInventory().setContents(contents);
+            UserInventory.restoreUserInventory(plugin, player);
         }
 
+        // Unlock the world so that it can be saved
         SlimeLoader loader = plugin.getSlimeHook().getAPI().getLoader("theme");
         try {
             loader.unlockWorld(themeId.toString());
@@ -321,14 +355,24 @@ public class ThemeCreationController {
         }
 
         World bWorld = Bukkit.getWorld(themeId.toString());
-        Bukkit.unloadWorld(bWorld, true);
+        if (bWorld != null) Bukkit.unloadWorld(bWorld, true);
+    }
+
+    public void handleChatInput(String message) {
+        if (state != ThemeCreationState.ENTER_DESCRIPTION) {
+            return;
+        }
+
+        //TODO: Maybe some restrictions later down the road for theme descriptions. i.e. length
+        setDescription(message);
+        nextState();
     }
 
     /**
      * Represents the state of the creation process this controller controls.
      */
     private enum ThemeCreationState {
-        SELECT_NAME, SELECT_BIOME, SELECT_ICON, GENERATING_WORLD, BUILDING
+        SELECT_NAME, SELECT_BIOME, SELECT_ICON, ENTER_DESCRIPTION, GENERATING_WORLD, SET_SPAWN, BUILDING
     }
 
 }

@@ -20,16 +20,17 @@ public class PocketUser {
     /** References to pocket worlds the user is a part of */
     @Getter private Set<UUID> worlds;
 
-    @Getter private String inventory;
+    /** Username the user currently goes by */
+    @Getter private String name;
 
     //TODO: Implement this. value = id of pocket world invited too
     /** Invitations to pocket worlds */
     @Getter private Set<UUID> invitations;
 
-    public PocketUser(UUID id, Set<UUID> worlds, String inventory) {
+    public PocketUser(UUID id, String name, Set<UUID> worlds) {
         this.id = id;
+        this.name = name;
         this.worlds = worlds;
-        this.inventory = inventory;
     }
 
     public void addWorld(UUID id) {

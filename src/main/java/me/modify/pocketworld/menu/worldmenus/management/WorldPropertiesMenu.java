@@ -52,7 +52,7 @@ public class WorldPropertiesMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
+                        "&7Size: " + getWorldSizeFormatted(world.getWorldSize()), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack spawnPoint = new PocketItem.Builder(plugin)
@@ -196,5 +196,7 @@ public class WorldPropertiesMenu extends PocketMenu {
         return lore;
     }
 
-
+    private String getWorldSizeFormatted(int worldSize) {
+        return worldSize + "x" + worldSize;
+    }
 }

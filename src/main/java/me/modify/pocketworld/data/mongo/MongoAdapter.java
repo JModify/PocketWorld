@@ -26,6 +26,8 @@ public class MongoAdapter {
         document.append("name", theme.getName());
         document.append("biome", theme.getBiome());
         document.append("icon", theme.getIcon().name());
+        document.append("description", theme.getDescription());
+        document.append("spawnpoint", theme.getSpawnPoint());
         return document;
     }
 
@@ -39,7 +41,9 @@ public class MongoAdapter {
         String name = document.getString("name");
         String biome = document.getString("biome");
         Material icon = Material.valueOf(document.getString("icon"));
-        return new PocketTheme(themeId, name, biome, icon);
+        String description = document.getString("description");
+        String spawnPoint = document.getString("spawnpoint");
+        return new PocketTheme(themeId, name, description, spawnPoint, biome, icon);
     }
 
     /**
@@ -52,9 +56,9 @@ public class MongoAdapter {
         UUID userId = pocketUser.getId();
 
         Document document = new Document("_id", userId.toString());
+        document.append("name", pocketUser.getName());
         List<Document> worldReferences = worlds.stream().map(id -> new Document("id", id.toString())).toList();
         document.append("worlds", worldReferences);
-        document.append("inventory", pocketUser.getInventory());
         return document;
     }
 
@@ -65,21 +69,22 @@ public class MongoAdapter {
      */
     public static PocketUser pocketUserFromDocument(Document document) {
         UUID userId = UUID.fromString(document.getString("_id"));
+        String name = document.getString("name");
         List<Document> referencesRaw = document.get("worlds", List.class);
 
         Set<UUID> worlds = new HashSet<>();
         for (Document reference : referencesRaw) {
             worlds.add(UUID.fromString(reference.getString("id")));
         }
-        String inventory = document.getString("inventory");
 
-        return new PocketUser(userId, worlds, inventory);
+        return new PocketUser(userId, name, worlds);
     }
 
     public static Document pocketWorldToDocument(PocketWorld pocketWorld) {
         Document document = new Document("_id", pocketWorld.getId().toString());
-        document.append("theme", pocketWorld.getThemeId().toString());
         document.append("name", pocketWorld.getWorldName());
+        document.append("icon", pocketWorld.getIcon().name());
+        document.append("biome", pocketWorld.getBiome());
         document.append("users", memberMapToDocumentList(pocketWorld.getUsers()));
         document.append("world-size", pocketWorld.getWorldSize());
         document.append("world-spawn", pocketWorld.getWorldSpawn().toString());
@@ -93,11 +98,13 @@ public class MongoAdapter {
 
     public static PocketWorld pocketWorldFromDocument(Document document) {
         UUID id = UUID.fromString(document.getString("_id"));
-        UUID themeId = UUID.fromString(document.getString("theme"));
         String worldName = document.getString("name");
+        String biome = document.getString("biome");
+        Material icon = Material.valueOf(document.getString("icon"));
 
         @SuppressWarnings("unchecked")
         List<Document> usersRaw = document.get("users", List.class);
+
 
         Map<UUID, WorldRank> users = new HashMap<>();
         for (Document entry : usersRaw) {
@@ -107,13 +114,13 @@ public class MongoAdapter {
         }
 
         int worldSize = document.getInteger("world-size");
-        WorldSpawn worldSpawn = WorldSpawn.fromString("world-spawn");
+        WorldSpawn worldSpawn = WorldSpawn.fromString(document.getString("world-spawn"));
         boolean allowAnimals = document.getBoolean("allow-animals");
         boolean allowMonsters = document.getBoolean("allow-monsters");
         boolean pvp = document.getBoolean("pvp");
         long locked = document.getLong("locked");
 
-        return new PocketWorld(id, themeId, worldName, locked, users, worldSize, worldSpawn,
+        return new PocketWorld(id, worldName, icon, locked, users, biome, worldSize, worldSpawn,
                 allowAnimals, allowMonsters, pvp);
     }
 

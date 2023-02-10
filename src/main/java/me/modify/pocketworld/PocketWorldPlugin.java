@@ -13,6 +13,7 @@ import me.modify.pocketworld.exceptions.DataSourceConnectionException;
 import me.modify.pocketworld.hooks.SlimeHook;
 import me.modify.pocketworld.listener.InventoryListener;
 import me.modify.pocketworld.listener.PlayerListener;
+import me.modify.pocketworld.listener.ThemeCreationListener;
 import me.modify.pocketworld.listener.WorldListener;
 import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
@@ -45,16 +46,13 @@ public class PocketWorldPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-
         debugger = new PocketDebugger(this);
-
         slimeHook = new SlimeHook(this);
         slimeHook.hook();
 
         configFile = new ConfigFile(this);
 
         connectToDataSource();
-
         registerCommands();
         registerListeners();
         registerSlimeLoaders();
@@ -81,6 +79,7 @@ public class PocketWorldPlugin extends JavaPlugin {
         pluginManager.registerEvents(new PlayerListener(this), this);
         pluginManager.registerEvents(new InventoryListener(this), this);
         pluginManager.registerEvents(new WorldListener(), this);
+        pluginManager.registerEvents(new ThemeCreationListener(this), this);
 
     }
 

@@ -1,8 +1,10 @@
 package me.modify.pocketworld.data;
 
+import com.mongodb.client.model.Updates;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.world.PocketWorld;
+import org.bson.conversions.Bson;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -46,9 +48,11 @@ public interface DAO {
     /**
      * Registers a pocket user with the data source.
      * This method should follow newly created pocket user objects (i.e. new players who join the server).
-     * @param userId
+     * @param userId ID of player
+     * @param username username of player
+     * @return true if the user did not exist (registration was successful), else false.
      */
-    void registerPocketUser(UUID userId);
+    boolean registerPocketUser(UUID userId, String username);
 
     /**
      * Retrieves a PocketUser with the given ID from the data source.
@@ -65,6 +69,13 @@ public interface DAO {
      * @param user pocket user to update in the data source.
      */
     void updatePocketUser(PocketUser user);
+
+    /**
+     * Updates a user in the data source using the given MongoDB update.
+     * @param userId id of user to update
+     * @param update update to apply
+     */
+    void updatePocketUser(UUID userId, Bson update);
 
     /**
      * Retrieves the user name of the specified user.
@@ -118,7 +129,7 @@ public interface DAO {
      * @param userId id of user to save inventory.
      * @param inventory inventory to save.
      */
-    void saveUserInventory(UUID userId, Inventory inventory);
+    //void saveUserInventory(UUID userId, Inventory inventory);
 
     /**
      * Retrieves a users inventory from the data source.
@@ -129,6 +140,6 @@ public interface DAO {
      * @param userId id of user to retrieve inventory.
      * @return ItemStack array of the user's inventory.
      */
-    ItemStack[] retrieveUserInventory(UUID userId);
+    //ItemStack[] retrieveUserInventory(UUID userId);
 
 }

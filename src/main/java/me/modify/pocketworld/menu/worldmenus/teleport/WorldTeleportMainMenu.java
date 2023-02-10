@@ -4,7 +4,6 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
 import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
-import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.LoadedWorldRegistry;
@@ -14,7 +13,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
@@ -52,7 +50,6 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
 
                 if (world == null) continue;
 
-                PocketTheme theme = plugin.getThemeCache().getThemeByID(world.getThemeId());
                 String members = world.getUsers().keySet().stream()
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
@@ -61,11 +58,11 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
                         ? "&aLOADED" : "&cNOT LOADED";
 
                 ItemStack worldIcon = new PocketItem.Builder(plugin)
-                        .material(theme.getIcon())
+                        .material(world.getIcon())
                         .stackSize(1)
                         .displayName("&b" + world.getWorldName())
                         .lore(List.of("&7Click to teleport to this world.", " ",
-                                "&6Properties", "&eTheme: " + theme.getName(), "&eMembers: " + members,
+                                "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
                                 " ", status, "&8" + world.getId().toString()))
                         .tag(world.getId().toString())
                         .build().get();

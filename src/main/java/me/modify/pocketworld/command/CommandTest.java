@@ -2,9 +2,10 @@ package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.Connection;
+import me.modify.pocketworld.user.UserInventory;
 import me.modify.pocketworld.util.ColorFormat;
+import me.modify.pocketworld.world.LoadedWorldRegistry;
 import me.modify.pocketworld.world.PocketWorld;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
+import java.util.UUID;
 
 public class CommandTest extends BukkitCommand {
 
@@ -36,12 +38,21 @@ public class CommandTest extends BukkitCommand {
             if (args[0].equalsIgnoreCase("create")) {
                 //idk
             } else if (args[0].equalsIgnoreCase("save")) {
-                Connection connection = plugin.getDataSource().getConnection();
-                connection.getDAO().saveUserInventory(player.getUniqueId(), player.getInventory());
+                UserInventory.saveUserInventory(plugin, player);
             } else if (args[0].equalsIgnoreCase("load")) {
-                Connection connection = plugin.getDataSource().getConnection();
-                ItemStack[] contents = connection.getDAO().retrieveUserInventory(player.getUniqueId());
-                player.getInventory().setContents(contents);
+                UserInventory.restoreUserInventory(plugin, player);
+            } else if (args[0].equalsIgnoreCase("getspawn")) {
+                UUID id = UUID.fromString(args[1]);
+
+                LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
+                PocketWorld worldInRegistry = registry.getWorld(id);
+                PocketWorld worldInData = plugin.getDataSource().getConnection().getDAO().getPocketWorld(id);
+
+                player.sendMessage(id.toString());
+                player.sendMessage(worldInRegistry != null ? "registry - "
+                        + worldInRegistry.getWorldSpawn().toString() : "null");
+                player.sendMessage("datasource - " + worldInData.getWorldSpawn().toString());
+
             }  else if (args[0].equalsIgnoreCase("rename")) {
 
                 if (length < 2) {

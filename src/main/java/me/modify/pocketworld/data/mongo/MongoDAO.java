@@ -9,8 +9,8 @@ import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -61,6 +61,12 @@ public class MongoDAO implements DAO {
     }
 
     @Override
+    public void updatePocketUser(UUID userId, Bson update) {
+        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
+        userCollection.findOneAndUpdate(Filters.eq("_id", userId.toString()), update);
+    }
+
+    @Override
     public String getUserName(UUID userId) {
         //TODO: Implement this
         return null;
@@ -96,24 +102,12 @@ public class MongoDAO implements DAO {
     @Override
     public List<PocketWorld> getPocketWorlds(UUID userId) {
         PocketUser user = getPocketUser(userId);
-
         Set<UUID> worldIds = user.getWorlds();
-        LoadedWorldRegistry worldRegistry = LoadedWorldRegistry.getInstance();
-
 
         List<PocketWorld> worlds = new ArrayList<>();
         for (UUID worldId : worldIds) {
-            PocketWorld loadedWorld = worldRegistry.getWorld(worldId);
-
-            // If the target world is loaded, get it from the loaded world registry (faster)
-            if (loadedWorld != null) {
-                worlds.add(loadedWorld);
-                continue;
-            }
-
-            // If the target world is not loaded, grab from data source (slower)
-            PocketWorld unloadedWorld = getPocketWorld(worldId);
-            worlds.add(unloadedWorld);
+            PocketWorld world = getPocketWorld(worldId);
+            worlds.add(world);
         }
 
         return worlds;
@@ -127,24 +121,24 @@ public class MongoDAO implements DAO {
     }
 
     @Override
-    public void registerPocketUser(UUID userId) {
+    public boolean registerPocketUser(UUID userId, String username) {
         MongoCollection<Document> userCollection = connection.getMongoDatabase()
                 .getCollection(MongoConstant.userCollection);
 
         Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
         if (userDoc == null) {
-            PocketUser user = new PocketUser(userId, new HashSet<>(), null);
+            PocketUser user = new PocketUser(userId, username, new HashSet<>());
             connection.getMongoDatabase().getCollection(MongoConstant.userCollection)
                     .insertOne(MongoAdapter.pocketUserToDocument(user));
+            return true;
         }
+
+        return false;
     }
 
     @Override
     public void registerPocketWorld(PocketWorld world) {
-        if (world == null) {
-            return;
-        }
-
+        if (world == null) return;
         connection.getMongoDatabase().getCollection(MongoConstant.worldCollection)
                 .insertOne(MongoAdapter.pocketWorldToDocument(world));
     }
@@ -155,7 +149,7 @@ public class MongoDAO implements DAO {
                 .insertOne(MongoAdapter.pocketThemeToDocument(theme));
     }
 
-    @Override
+/*    @Override
     public void saveUserInventory(UUID userId, Inventory inventory) {
         ItemStack[] items = inventory.getContents();
         try {
@@ -221,5 +215,5 @@ public class MongoDAO implements DAO {
         }
 
         return null;
-    }
+    }*/
 }

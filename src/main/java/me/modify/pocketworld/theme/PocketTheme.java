@@ -7,26 +7,39 @@ import java.util.UUID;
 
 public class PocketTheme {
 
-    @Getter
-    private UUID id;
+    /** UUID of this theme */
+    @Getter private UUID id;
 
-    @Getter
-    private String name;
+    /** Name of this theme */
+    @Getter private String name;
 
-    @Getter
-    private String biome;
+    /** Biome for theme world. */
+    @Getter private String biome;
 
-    @Getter
-    private Material icon;
+    /** Icon representing theme. Visible to players when creating pocket world. */
+    @Getter private Material icon;
 
-    // TODO: Implement description and default spawn point for themes
-    private String description;
-    private String spawnPoint;
+    /** Description for this theme. Visible to players when creating pocket world. */
+    @Getter private String description;
 
-    public PocketTheme(UUID id, String name, String biome, Material icon) {
+    /** Default spawn point for this theme in format x:y:z */
+    @Getter private String spawnPoint;
+
+    /**
+     * Creates a new PocketTheme object.
+     * @param id id of theme
+     * @param name name of theme
+     * @param description description of theme
+     * @param spawnPoint default spawn point for theme
+     * @param biome biome of theme world.
+     * @param icon icon representing theme
+     */
+    public PocketTheme(UUID id, String name, String description, String spawnPoint, String biome, Material icon) {
         this.id = id;
         this.name = name;
         this.biome = biome;
         this.icon = icon;
+        this.description = description;
+        this.spawnPoint = spawnPoint;
     }
 }

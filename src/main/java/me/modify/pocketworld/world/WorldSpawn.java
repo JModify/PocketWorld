@@ -40,8 +40,9 @@ public class WorldSpawn {
             z = Double.parseDouble(parts[2]);
             yaw = Float.parseFloat(parts[3]);
             pitch = Float.parseFloat(parts[4]);
-
-        } catch (NumberFormatException ignored){}
+        } catch (NumberFormatException e){
+            e.printStackTrace();
+        }
 
         return new WorldSpawn(x, y, z, yaw, pitch);
     }

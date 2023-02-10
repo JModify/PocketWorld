@@ -51,7 +51,7 @@ public class ManageWorldMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
+                        "&7Size: " + getWorldSizeFormatted(world.getWorldSize()), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack playerManagement = new PocketItem.Builder(plugin)
@@ -160,4 +160,7 @@ public class ManageWorldMenu extends PocketMenu {
         return leaveOrDelete.get();
     }
 
+    private String getWorldSizeFormatted(int worldSize) {
+        return worldSize + "x" + worldSize;
+    }
 }

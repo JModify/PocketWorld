@@ -3,7 +3,6 @@ package me.modify.pocketworld.menu.worldmenus.management;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
-import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.LoadedWorldRegistry;
@@ -54,7 +53,7 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
 
                 if (world == null) continue;
 
-                PocketTheme theme = plugin.getThemeCache().getThemeByID(world.getThemeId());
+                Material icon = world.getIcon();
                 String members = world.getUsers().keySet().stream()
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
@@ -63,11 +62,10 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
                         ? "&aLOADED" : "&cNOT LOADED";
 
                 ItemStack worldIcon = new PocketItem.Builder(plugin)
-                        .material(theme.getIcon())
-                        .stackSize(1)
+                        .material(icon)
                         .displayName("&b" + world.getWorldName())
                         .lore(List.of("&7Click to manage this world.", " ",
-                                "&6Properties", "&eTheme: " + theme.getName(), "&eMembers: " + members,
+                                "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
                                 "&eSize: " + world.getWorldSize() + "x" + world.getWorldSize(),
                                 " ", status, "&8" + world.getId().toString()))
                         .tag(world.getId().toString())

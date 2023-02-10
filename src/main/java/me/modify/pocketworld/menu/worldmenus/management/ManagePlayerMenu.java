@@ -53,7 +53,7 @@ public class ManagePlayerMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + members,
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId().toString()))
+                        "&7Size: " + getWorldSizeFormatted(world.getWorldSize()), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
         String name = Bukkit.getPlayer(userToManage).getName();
@@ -132,5 +132,9 @@ public class ManagePlayerMenu extends PocketMenu {
                     world, userToManage, this);
             kickConfirmation.open();
         }
+    }
+
+    private String getWorldSizeFormatted(int worldSize) {
+        return worldSize + "x" + worldSize;
     }
 }

@@ -59,7 +59,7 @@ public class WorldCreationThemeMenu extends PocketMenu {
                         .material(theme.getIcon())
                         .stackSize(1)
                         .displayName("&b" + theme.getName())
-                        .lore(List.of("&7Biome: " + theme.getBiome()))
+                        .lore(List.of("&7Description: " + theme.getDescription(), "&7Biome: " + theme.getBiome()))
                         .tag(theme.getId().toString())
                         .build();
 

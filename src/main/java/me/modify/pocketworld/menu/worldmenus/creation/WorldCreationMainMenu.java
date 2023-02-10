@@ -8,7 +8,6 @@ import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.WorldRank;
 import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -102,9 +101,8 @@ public class WorldCreationMainMenu extends PocketMenu {
         }else if (tag.equalsIgnoreCase("world-confirm-create") && (worldName != null && pocketTheme != null)) {
             DAO dao = plugin.getDataSource().getConnection().getDAO();
 
-            PocketWorld world = PocketWorld.create(worldName, pocketTheme.getId());
-            world.getUsers().put(player.getUniqueId(), WorldRank.OWNER);
-            world.load(plugin, player.getUniqueId(), true, true);
+            PocketWorld world = PocketWorld.create(plugin, player.getUniqueId(), worldName, pocketTheme.getId());
+            PocketWorld.createWorldFromTheme(plugin, world, pocketTheme, player.getUniqueId());
 
             PocketUser user = dao.getPocketUser(player.getUniqueId());
             user.addWorld(world.getId());
