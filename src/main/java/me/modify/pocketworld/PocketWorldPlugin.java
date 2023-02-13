@@ -17,15 +17,12 @@ import me.modify.pocketworld.listener.ThemeCreationListener;
 import me.modify.pocketworld.listener.WorldListener;
 import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
-import me.modify.pocketworld.theme.ThemeCache;
+import me.modify.pocketworld.theme.ThemeRegistry;
 import me.modify.pocketworld.util.PocketDebugger;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
+import me.modify.pocketworld.world.PocketWorldCache;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class PocketWorldPlugin extends JavaPlugin {
 
@@ -42,7 +39,10 @@ public class PocketWorldPlugin extends JavaPlugin {
     public PocketDebugger debugger;
 
     @Getter
-    public ThemeCache themeCache;
+    public ThemeRegistry themeRegistry;
+
+    @Getter
+    private PocketWorldCache worldCache;
 
     @Override
     public void onEnable() {
@@ -51,20 +51,20 @@ public class PocketWorldPlugin extends JavaPlugin {
         slimeHook.hook();
 
         configFile = new ConfigFile(this);
+        worldCache = new PocketWorldCache(this);
 
         connectToDataSource();
         registerCommands();
         registerListeners();
         registerSlimeLoaders();
 
-        themeCache = new ThemeCache(this);
-        themeCache.load();
+        themeRegistry = new ThemeRegistry(this);
+        themeRegistry.load();
     }
 
     @Override
     public void onDisable() {
-        LoadedWorldRegistry.getInstance().shutdown(this);
-
+        worldCache.shutdown();
         dataSource.shutdown();
     }
 
@@ -78,7 +78,7 @@ public class PocketWorldPlugin extends JavaPlugin {
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new PlayerListener(this), this);
         pluginManager.registerEvents(new InventoryListener(this), this);
-        pluginManager.registerEvents(new WorldListener(), this);
+        pluginManager.registerEvents(new WorldListener(this), this);
         pluginManager.registerEvents(new ThemeCreationListener(this), this);
 
     }

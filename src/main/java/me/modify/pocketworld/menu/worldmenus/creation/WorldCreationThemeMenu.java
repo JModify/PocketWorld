@@ -50,7 +50,7 @@ public class WorldCreationThemeMenu extends PocketMenu {
                 .lore(List.of("&7More themes coming soon."))
                 .build().get();
 
-        List<PocketTheme> themes = plugin.getThemeCache().getThemes();
+        List<PocketTheme> themes = plugin.getThemeRegistry().getThemes();
 
         for (int i = 0; i < 7; i++) {
             try {
@@ -88,7 +88,7 @@ public class WorldCreationThemeMenu extends PocketMenu {
         }
 
         UUID themeId = UUID.fromString(tag);
-        PocketTheme theme = plugin.getThemeCache().getThemeByID(themeId);
+        PocketTheme theme = plugin.getThemeRegistry().getThemeByID(themeId);
         mainMenu.setPocketTheme(theme);
         mainMenu.open();
     }

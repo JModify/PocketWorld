@@ -334,7 +334,7 @@ public class ThemeCreationController {
     public void completeCreation() {
         PocketTheme theme = new PocketTheme(themeId, name, description, spawnPoint, biome, icon);
         plugin.getDataSource().getConnection().getDAO().registerPocketTheme(theme);
-        plugin.getThemeCache().cacheTheme(theme);
+        plugin.getThemeRegistry().register(theme);
         ThemeCreationRegistry.getInstance().removeByController(this);
 
         Player player = Bukkit.getPlayer(userId);

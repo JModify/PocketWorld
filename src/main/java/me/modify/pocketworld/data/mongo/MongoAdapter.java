@@ -92,7 +92,6 @@ public class MongoAdapter {
         document.append("allow-monsters", pocketWorld.isAllowMonsters());
         document.append("pvp", pocketWorld.isPvp());
         document.append("locked", pocketWorld.getLocked());
-
         return document;
     }
 
@@ -121,7 +120,7 @@ public class MongoAdapter {
         long locked = document.getLong("locked");
 
         return new PocketWorld(id, worldName, icon, locked, users, biome, worldSize, worldSpawn,
-                allowAnimals, allowMonsters, pvp);
+                allowAnimals, allowMonsters, pvp, false);
     }
 
     public static List<Document> memberMapToDocumentList(Map<UUID, WorldRank> map) {

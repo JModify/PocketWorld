@@ -124,7 +124,6 @@ public class PlayerSetRankMenu extends PocketMenu {
             player.closeInventory();
 
             world.getUsers().put(userToSetRank, WorldRank.MEMBER);
-            world.update(plugin);
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MEMBER"));
         } else if (tag.equalsIgnoreCase("set-rank-mod")) {
             if (rank == WorldRank.MOD) {
@@ -135,13 +134,11 @@ public class PlayerSetRankMenu extends PocketMenu {
             player.closeInventory();
 
             world.getUsers().put(userToSetRank, WorldRank.MOD);
-            world.update(plugin);
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MOD"));
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
             player.closeInventory();
             world.getUsers().put(userToSetRank, WorldRank.OWNER);
             world.getUsers().put(player.getUniqueId(), WorldRank.MOD);
-            world.update(plugin);
 
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aWorld owner transferred to '" + name + "'"));
         }

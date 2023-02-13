@@ -1,47 +1,41 @@
 package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.Connection;
 import me.modify.pocketworld.user.UserInventory;
 import me.modify.pocketworld.util.ColorFormat;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
-import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.UUID;
 
 public class CommandTest extends BukkitCommand {
 
-    private PocketWorldPlugin plugin;
+    private final PocketWorldPlugin plugin;
     public CommandTest(PocketWorldPlugin plugin) {
         super("test");
         this.plugin = plugin;
     }
 
     @Override
-    public boolean execute(CommandSender sender, String label, String[] args) {
+    public boolean execute(@NotNull CommandSender sender, @NotNull String label, String[] args) {
 
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("Must be a player to execute this command.");
             return true;
         }
 
         int length = args.length;
-        Player player = (Player) sender;
 
         if (length > 0) {
-            if (args[0].equalsIgnoreCase("create")) {
-                //idk
-            } else if (args[0].equalsIgnoreCase("save")) {
+            if (args[0].equalsIgnoreCase("save")) {
                 UserInventory.saveUserInventory(plugin, player);
             } else if (args[0].equalsIgnoreCase("load")) {
                 UserInventory.restoreUserInventory(plugin, player);
-            } else if (args[0].equalsIgnoreCase("getspawn")) {
+            } /*else if (args[0].equalsIgnoreCase("get-spawn")) {
                 UUID id = UUID.fromString(args[1]);
 
                 LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
@@ -53,7 +47,7 @@ public class CommandTest extends BukkitCommand {
                         + worldInRegistry.getWorldSpawn().toString() : "null");
                 player.sendMessage("datasource - " + worldInData.getWorldSpawn().toString());
 
-            }  else if (args[0].equalsIgnoreCase("rename")) {
+            } */ else if (args[0].equalsIgnoreCase("rename")) {
 
                 if (length < 2) {
                     return true;
@@ -62,6 +56,9 @@ public class CommandTest extends BukkitCommand {
                 String newName = ColorFormat.format(args[1]);
 
                 ItemMeta meta = player.getInventory().getItemInMainHand().getItemMeta();
+
+                if (meta == null) return true;
+
                 meta.setDisplayName(newName);
 
                 if (length > 2) {

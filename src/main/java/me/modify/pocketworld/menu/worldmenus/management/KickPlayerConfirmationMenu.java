@@ -88,14 +88,13 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("player-confirm-kick")) {
             world.getUsers().remove(userToKick);
-            world.update(plugin);
 
             DAO dao = plugin.getDataSource().getConnection().getDAO();
             PocketUser user = dao.getPocketUser(userToKick);
             user.removeWorld(world.getId());
             user.update(plugin);
 
-            if (user.isInPocketWorld(world.getId())) {
+            if (user.isInPocketWorld(plugin, world.getId())) {
                 World defaultWorld = Bukkit.getWorlds().get(0);
 
                 // Player is never null, checked in user.isInPocketWorld method.

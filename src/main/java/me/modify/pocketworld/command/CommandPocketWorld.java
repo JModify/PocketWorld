@@ -5,12 +5,13 @@ import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class CommandPocketWorld extends BukkitCommand {
 
-    private PocketWorldPlugin plugin;
+    private final PocketWorldPlugin plugin;
     public CommandPocketWorld(PocketWorldPlugin plugin) {
         super("pocketworld");
         setAliases(List.of("pw"));
@@ -18,7 +19,7 @@ public class CommandPocketWorld extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(CommandSender sender, String label, String[] args) {
+    public boolean execute(@NotNull CommandSender sender, @NotNull String label, @NotNull String[] args) {
 
         if (!(sender instanceof Player)) {
             sender.sendMessage("Must be a player to execute this command.");

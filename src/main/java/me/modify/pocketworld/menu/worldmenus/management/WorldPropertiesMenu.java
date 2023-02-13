@@ -107,15 +107,12 @@ public class WorldPropertiesMenu extends PocketMenu {
         DAO dao = plugin.getDataSource().getConnection().getDAO();
         if (tag.equalsIgnoreCase("property-animal-spawns")) {
             world.setAllowAnimals(!world.isAllowAnimals());
-            world.update(plugin);
             open();
         } else if (tag.equalsIgnoreCase("property-monster-spawns")) {
             world.setAllowMonsters(!world.isAllowMonsters());
-            world.update(plugin);
             open();
         } else if (tag.equalsIgnoreCase("property-pvp")) {
             world.setPvp(!world.isPvp());
-            world.update(plugin);
             open();
         } else if (tag.equalsIgnoreCase("property-spawn-point")) {
             Location playerLoc = player.getLocation();
@@ -127,7 +124,6 @@ public class WorldPropertiesMenu extends PocketMenu {
             }
 
             world.setSpawnPoint(playerLoc);
-            world.update(plugin);
 
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPocket world spawn set to your location."));
         } else if (tag.equalsIgnoreCase("is-back-button")) {

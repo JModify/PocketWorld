@@ -84,11 +84,10 @@ public class LeaveWorldConfirmationMenu extends PocketMenu {
 
             // Remove user from world then update the world
             world.getUsers().remove(player.getUniqueId());
-            world.update(plugin);
 
             DAO dao = plugin.getDataSource().getConnection().getDAO();
             PocketUser user = dao.getPocketUser(player.getUniqueId());
-            user.addWorld(world.getId());
+            user.removeWorld(world.getId());
             user.update(plugin);
 
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aYou left PocketWorld " + world.getWorldName()));

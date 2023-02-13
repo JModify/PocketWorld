@@ -1,12 +1,10 @@
 package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
+import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
-import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -23,10 +21,11 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
 
     private PocketWorldMainMenu mainMenu;
     private List<PocketWorld> worlds;
-
-    public WorldManagementListMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
+    public WorldManagementListMenu(Player player, PocketWorldPlugin plugin, List<PocketWorld> worlds,
+                                   PocketWorldMainMenu mainMenu) {
         super(player, plugin);
         this.mainMenu = mainMenu;
+        this.worlds = worlds;
     }
 
     @Override
@@ -38,11 +37,6 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
     public void setMenuItems() {
 
         addMenuBorder(Material.BLUE_STAINED_GLASS_PANE);
-
-        DAO dao = plugin.getDataSource().getConnection().getDAO();
-
-        // Retrieves all pocket worlds a player is associated too.
-        worlds = dao.getPocketWorlds(player.getUniqueId());
 
         if (!worlds.isEmpty()) {
             for (int i = 0; i < maxItemsPerPage; i++) {
@@ -58,8 +52,7 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
                         .map(uuid -> Bukkit.getPlayer(uuid).getName())
                         .collect(Collectors.joining(", "));
 
-                String status = LoadedWorldRegistry.getInstance().containsWorld(world.getId())
-                        ? "&aLOADED" : "&cNOT LOADED";
+                String status = world.isLoaded() ? "&aLOADED" : "&cNOT LOADED";
 
                 ItemStack worldIcon = new PocketItem.Builder(plugin)
                         .material(icon)

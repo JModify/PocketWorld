@@ -8,37 +8,35 @@ import java.util.*;
  * Represents the set of all themes available on the server.
  * All themes are cached here from data source upon server start.
  */
-public class ThemeCache {
+public class ThemeRegistry {
 
     private final PocketWorldPlugin plugin;
+    private Set<PocketTheme> registry;
 
-    private Set<PocketTheme> cache;
-
-    public ThemeCache(PocketWorldPlugin plugin) {
+    public ThemeRegistry(PocketWorldPlugin plugin) {
         this.plugin = plugin;
-        this.cache = new HashSet<>();
+        this.registry = new HashSet<>();
     }
 
     public void load() {
-        cache.addAll(plugin.getDataSource().getConnection().getDAO().getAllPocketThemes());
+        registry.addAll(plugin.getDataSource().getConnection().getDAO().getAllPocketThemes());
     }
 
-    public void cacheTheme(PocketTheme theme) {
-        cache.add(theme);
+    public void register(PocketTheme theme) {
+        registry.add(theme);
     }
 
     public void reload() {
-        cache.clear();
+        registry.clear();
         load();
     }
 
     public List<PocketTheme> getThemes() {
-        List<PocketTheme> copy = new ArrayList<>(cache);
-        return copy;
+        return new ArrayList<>(registry);
     }
 
     public PocketTheme getThemeByID(UUID id) {
-        Optional<PocketTheme> theme = cache.stream().filter(t -> t.getId().equals(id)).findFirst();
+        Optional<PocketTheme> theme = registry.stream().filter(t -> t.getId().equals(id)).findFirst();
         return theme.orElse(null);
     }
 

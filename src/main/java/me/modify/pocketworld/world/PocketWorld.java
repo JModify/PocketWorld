@@ -52,11 +52,13 @@ public class PocketWorld {
 
     @Getter private Material icon;
 
+    @Getter @Setter private boolean loaded;
+
     //TODO: Implement this - invitations of users to the pocket world. key = sender, value = recipient
     @Getter private Map<UUID, UUID> invitations;
 
     public PocketWorld(UUID id, String worldName, Material icon, long locked, Map<UUID, WorldRank> users, String biome, int worldSize,
-                       WorldSpawn worldSpawn, boolean allowAnimals, boolean allowMonsters, boolean pvp) {
+                       WorldSpawn worldSpawn, boolean allowAnimals, boolean allowMonsters, boolean pvp, boolean loaded) {
         this.id = id;
         this.locked = locked;
         this.users = users;
@@ -68,11 +70,12 @@ public class PocketWorld {
         this.pvp = pvp;
         this.worldName = worldName;
         this.icon = icon;
+        this.loaded = loaded;
     }
 
     public static PocketWorld create(PocketWorldPlugin plugin, UUID creatorId, String worldName, UUID themeId) {
         // Set the default spawn point for this pocket world based on theme setup.
-        PocketTheme theme = plugin.themeCache.getThemeByID(themeId);
+        PocketTheme theme = plugin.themeRegistry.getThemeByID(themeId);
         String[] parts = theme.getSpawnPoint().split(":");
         double x = Double.parseDouble(parts[0]);
         double y = Double.parseDouble(parts[1]);
@@ -80,8 +83,8 @@ public class PocketWorld {
         float yaw = Float.parseFloat(parts[3]);
         float pitch = Float.parseFloat(parts[4]);
 
-        PocketWorld world = new PocketWorld(UUID.randomUUID(), worldName, theme.getIcon(), 0, new HashMap<>(), theme.getBiome(),
-                100, new WorldSpawn(x, y, z, yaw, pitch), true, true, true);
+        PocketWorld world = new PocketWorld(UUID.randomUUID(), worldName, theme.getIcon(), 0, new HashMap<>(),
+                theme.getBiome(), 100, new WorldSpawn(x, y, z, yaw, pitch), true, true, true, false);
         world.getUsers().put(creatorId, WorldRank.OWNER);
         return world;
     }
@@ -108,7 +111,6 @@ public class PocketWorld {
     public void load(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify) {
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = getPropertyMap();
-        LoadedWorldRegistry.getInstance().add(this);
         SlimeLoader mongoLoader = slime.getLoader("mongo");
 
         // Asynchronously load the world
@@ -148,6 +150,8 @@ public class PocketWorld {
                                 }
                             }
                         }
+
+                        setLoaded(true);
                         plugin.getLogger().info("Successfully loaded pocket world " + id.toString() + " in "
                                 + time + "ms!");
                     });
@@ -163,9 +167,6 @@ public class PocketWorld {
 
     public static void createWorldFromTheme(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme,
                                             UUID creatorId) {
-        // Add world to loaded worlds registry TODO: try moving this further down - if a world fails, its still in reg
-        LoadedWorldRegistry.getInstance().add(world);
-
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = world.getPropertyMap();
         SlimeLoader mongoLoader = slime.getLoader("mongo");
@@ -215,6 +216,7 @@ public class PocketWorld {
                                 }, 20L);
                             }
                         }
+                        world.setLoaded(true);
                         plugin.getLogger().info("Successfully created pocket world " + world.getId().toString()
                                 + " in " + time + "ms!");
                     });
@@ -231,10 +233,7 @@ public class PocketWorld {
         unload(plugin, false);
 
         // If the world was loaded remove from loaded worlds registry.
-        LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
-        if (registry.containsWorld(id)) {
-            registry.delete(id);
-        }
+        plugin.getWorldCache().delete(id);
 
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimeLoader loader = slime.getLoader("mongo");
@@ -253,19 +252,9 @@ public class PocketWorld {
         }
     }
 
-    public void update(PocketWorldPlugin plugin) {
-        // World first updated in data source
-        DAO dao = plugin.getDataSource().getConnection().getDAO();
-        dao.updatePocketWorld(this);
-
-        // If this world is loaded, update it in the LoadedWorldRegistry.
-        LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
-        registry.update(this);
-    }
-
     public void unload(PocketWorldPlugin plugin, boolean save) {
         // If the world is not loaded, return.
-        if (!LoadedWorldRegistry.getInstance().containsWorld(id)) return;
+        if (!loaded) return;
 
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimeLoader loader = slime.getLoader("mongo");
@@ -288,8 +277,8 @@ public class PocketWorld {
             plugin.getLogger().severe("Failed to unload pocket world: " + id.toString());
             e.printStackTrace();
         }
-
         Bukkit.unloadWorld(bWorld, save);
+        setLoaded(false);
     }
 
     public void teleport(World world, Player player) {

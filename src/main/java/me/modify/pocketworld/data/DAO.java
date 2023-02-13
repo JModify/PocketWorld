@@ -38,9 +38,6 @@ public interface DAO {
 
     /**
      * Updates the data source with respect to a pocket world.
-     * <p>
-     * Any changes made to a PocketWorld object should be followed by this method so that the data source
-     * recognises these changes and persists them across server restarts.
      * @param world pocket world to update in the data source.
      */
     void updatePocketWorld(PocketWorld world);

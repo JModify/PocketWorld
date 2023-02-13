@@ -5,7 +5,10 @@ import com.grinderwolf.swm.api.exceptions.UnknownWorldException;
 import com.grinderwolf.swm.api.exceptions.WorldInUseException;
 import com.grinderwolf.swm.api.loaders.SlimeLoader;
 import com.mongodb.MongoException;
-import com.mongodb.client.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSFile;
@@ -15,13 +18,15 @@ import com.mongodb.client.result.UpdateResult;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.mongo.MongoConnection;
 import me.modify.pocketworld.data.mongo.MongoConstant;
-import me.modify.pocketworld.world.LoadedWorldRegistry;
 import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -143,11 +148,15 @@ public class MongoLoader implements SlimeLoader {
 
             long lockMillis = lock ? System.currentTimeMillis() : 0L;
             if (worldDoc == null) {
+                return;
+            }
+/*
+            if (worldDoc == null) {
                 plugin.getDataSource().getConnection().getDAO()
                         .registerPocketWorld(LoadedWorldRegistry.getInstance().getWorld(UUID.fromString(worldId)));
-            } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {
+            } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {*/
                 updateLock(worldId, true);
-            }
+            //}
         } catch (MongoException ex) {
             throw new IOException(ex);
         }

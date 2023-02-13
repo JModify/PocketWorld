@@ -1,24 +1,49 @@
 package me.modify.pocketworld.menu.worldmenus;
 
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketMenu;
 import me.modify.pocketworld.menu.worldmenus.teleport.WorldTeleportMainMenu;
+import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.menu.worldmenus.creation.WorldCreationMainMenu;
 import me.modify.pocketworld.menu.worldmenus.management.WorldManagementListMenu;
+import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class PocketWorldMainMenu extends PocketMenu {
 
+    private List<PocketWorld> worlds;
     public PocketWorldMainMenu(Player player, PocketWorldPlugin plugin) {
         super(player, plugin);
         this.plugin = plugin;
+        this.worlds = new ArrayList<>();
+        cacheWorlds();
+    }
+
+    /**
+     * Caches worlds which aren't already cached and adds all worlds a user is associated
+     * to a sub list - to be iterated over later.
+     */
+    private void cacheWorlds() {
+        PocketUser user = plugin.getDataSource().getConnection().getDAO().getPocketUser(player.getUniqueId());
+        Set<UUID> worldIds = user.getWorlds();
+        worldIds.forEach(id -> {
+            PocketWorld world = plugin.getWorldCache().get(id);
+
+            if (world != null) {
+                worlds.add(world);
+            }
+        });
     }
 
     @Override
@@ -98,10 +123,10 @@ public class PocketWorldMainMenu extends PocketMenu {
             WorldCreationMainMenu worldCreationMainMenu = new WorldCreationMainMenu(player, plugin, this);
             worldCreationMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-management-icon")) {
-            WorldManagementListMenu managementMainMenu = new WorldManagementListMenu(player, plugin, this);
+            WorldManagementListMenu managementMainMenu = new WorldManagementListMenu(player, plugin, worlds, this);
             managementMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-teleportation-icon")) {
-            WorldTeleportMainMenu teleportMainMenu = new WorldTeleportMainMenu(player, plugin, this);
+            WorldTeleportMainMenu teleportMainMenu = new WorldTeleportMainMenu(player, plugin, worlds, this);
             teleportMainMenu.open();
         }
     }
