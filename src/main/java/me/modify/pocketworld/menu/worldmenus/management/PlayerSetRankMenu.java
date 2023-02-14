@@ -2,6 +2,7 @@ package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;
+import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
@@ -19,11 +20,11 @@ import java.util.UUID;
 public class PlayerSetRankMenu extends PocketMenu {
 
     private PocketWorld world;
-    private UUID userToSetRank;
+    private PocketUser userToSetRank;
     private ManagePlayerMenu previousMenu;
 
     public PlayerSetRankMenu(Player player, PocketWorldPlugin plugin, PocketWorld world,
-                             UUID userToSetRank, ManagePlayerMenu previousMenu) {
+                             PocketUser userToSetRank, ManagePlayerMenu previousMenu) {
         super(player, plugin);
         this.world = world;
         this.userToSetRank = userToSetRank;
@@ -44,8 +45,8 @@ public class PlayerSetRankMenu extends PocketMenu {
     public void setMenuItems() {
         Inventory inventory = getInventory();
 
-        String name = Bukkit.getPlayer(userToSetRank).getName();
-        WorldRank rank = world.getUsers().get(userToSetRank);
+        String name = userToSetRank.getName();
+        WorldRank rank = world.getUsers().get(userToSetRank.getId());
 
         ItemStack userIcon = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
@@ -110,8 +111,8 @@ public class PlayerSetRankMenu extends PocketMenu {
             return;
         }
 
-        WorldRank rank = world.getUsers().get(userToSetRank);
-        String name = Bukkit.getPlayer(userToSetRank).getName();
+        WorldRank rank = world.getUsers().get(userToSetRank.getId());
+        String name = userToSetRank.getName();
 
         //TODO: Announce rank updates to online world members
 
@@ -123,7 +124,7 @@ public class PlayerSetRankMenu extends PocketMenu {
             }
             player.closeInventory();
 
-            world.getUsers().put(userToSetRank, WorldRank.MEMBER);
+            world.getUsers().put(userToSetRank.getId(), WorldRank.MEMBER);
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MEMBER"));
         } else if (tag.equalsIgnoreCase("set-rank-mod")) {
             if (rank == WorldRank.MOD) {
@@ -133,11 +134,11 @@ public class PlayerSetRankMenu extends PocketMenu {
 
             player.closeInventory();
 
-            world.getUsers().put(userToSetRank, WorldRank.MOD);
+            world.getUsers().put(userToSetRank.getId(), WorldRank.MOD);
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MOD"));
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
             player.closeInventory();
-            world.getUsers().put(userToSetRank, WorldRank.OWNER);
+            world.getUsers().put(userToSetRank.getId(), WorldRank.OWNER);
             world.getUsers().put(player.getUniqueId(), WorldRank.MOD);
 
             player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aWorld owner transferred to '" + name + "'"));

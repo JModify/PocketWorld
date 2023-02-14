@@ -1,7 +1,10 @@
 package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketPaginatedMenu;
+import me.modify.pocketworld.user.PocketUser;
+import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
@@ -118,8 +121,17 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
                 return;
             }
 
+            UUID id = userId.get();
+            if (id.equals(player.getUniqueId())) {
+                player.sendMessage(ColorFormat.format("&4&lERROR &r&cCannot manage yourself."));
+                return;
+            }
+
+            DAO dao = plugin.getDataSource().getConnection().getDAO();
+            PocketUser userToManage = dao.getPocketUser(userId.get());
+
             ManagePlayerMenu nextMenu = new ManagePlayerMenu(player, plugin, world,
-                    userId.get(), this);
+                    userToManage, this);
             nextMenu.open();
 
         }

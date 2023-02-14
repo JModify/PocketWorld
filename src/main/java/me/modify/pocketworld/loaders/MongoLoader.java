@@ -18,15 +18,13 @@ import com.mongodb.client.result.UpdateResult;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.mongo.MongoConnection;
 import me.modify.pocketworld.data.mongo.MongoConstant;
+import me.modify.pocketworld.world.PocketWorldCache;
 import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -143,20 +141,17 @@ public class MongoLoader implements SlimeLoader {
 
             MongoCollection<Document> mongoCollection = database.getCollection(MongoConstant.worldCollection);
 
-            // If the world is null, there is a problem
             Document worldDoc = mongoCollection.find(Filters.eq("_id", worldId)).first();
 
             long lockMillis = lock ? System.currentTimeMillis() : 0L;
             if (worldDoc == null) {
-                return;
-            }
-/*
-            if (worldDoc == null) {
+                // World is assumed to already be in the cache if the document has not yet been saved in data source.
+                PocketWorldCache cache = plugin.getWorldCache();
                 plugin.getDataSource().getConnection().getDAO()
-                        .registerPocketWorld(LoadedWorldRegistry.getInstance().getWorld(UUID.fromString(worldId)));
-            } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {*/
+                        .registerPocketWorld(cache.get(UUID.fromString(worldId)));
+            } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {
                 updateLock(worldId, true);
-            //}
+            }
         } catch (MongoException ex) {
             throw new IOException(ex);
         }

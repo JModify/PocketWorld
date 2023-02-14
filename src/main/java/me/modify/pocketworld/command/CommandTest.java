@@ -1,7 +1,7 @@
 package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.user.UserInventory;
+import me.modify.pocketworld.user.PocketUserInventory;
 import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
@@ -10,7 +10,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.UUID;
 
 public class CommandTest extends BukkitCommand {
 
@@ -32,9 +31,9 @@ public class CommandTest extends BukkitCommand {
 
         if (length > 0) {
             if (args[0].equalsIgnoreCase("save")) {
-                UserInventory.saveUserInventory(plugin, player);
+                PocketUserInventory.saveUserInventory(plugin, player);
             } else if (args[0].equalsIgnoreCase("load")) {
-                UserInventory.restoreUserInventory(plugin, player);
+                PocketUserInventory.restoreUserInventory(plugin, player);
             } /*else if (args[0].equalsIgnoreCase("get-spawn")) {
                 UUID id = UUID.fromString(args[1]);
 

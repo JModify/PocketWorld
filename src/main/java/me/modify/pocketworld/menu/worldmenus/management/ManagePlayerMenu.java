@@ -2,6 +2,7 @@ package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.menu.PocketMenu;
+import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
@@ -18,11 +19,11 @@ import java.util.stream.Collectors;
 
 public class ManagePlayerMenu extends PocketMenu {
 
-    private UUID userToManage;
+    private PocketUser userToManage;
     private PocketWorld world;
     private PlayerManagementListMenu previousMenu;
 
-    public ManagePlayerMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, UUID userToManage,
+    public ManagePlayerMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, PocketUser userToManage,
                             PlayerManagementListMenu previousMenu) {
         super(player, plugin);
         this.world = world;
@@ -33,7 +34,7 @@ public class ManagePlayerMenu extends PocketMenu {
     @Override
     public String getMenuName() {
         // TODO: Create real getName() method to get names of offline players
-        return "&4&lManage " + Bukkit.getPlayer(userToManage).getName();
+        return "&4&lManage " + userToManage.getName();
     }
 
     @Override
@@ -56,8 +57,8 @@ public class ManagePlayerMenu extends PocketMenu {
                         "&7Size: " + getWorldSizeFormatted(world.getWorldSize()), " ", "&8" + world.getId().toString()))
                 .build().getAsSkull("BlockminersTV");
 
-        String name = Bukkit.getPlayer(userToManage).getName();
-        WorldRank rank = world.getUsers().get(userToManage);
+        String name = userToManage.getName();
+        WorldRank rank = world.getUsers().get(userToManage.getId());
         ItemStack userIcon = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .displayName("&a" + name)

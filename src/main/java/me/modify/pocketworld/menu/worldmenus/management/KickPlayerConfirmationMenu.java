@@ -1,7 +1,6 @@
 package me.modify.pocketworld.menu.worldmenus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.menu.PocketMenu;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
@@ -16,15 +15,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.UUID;
 
 public class KickPlayerConfirmationMenu extends PocketMenu {
 
     private PocketWorld world;
-    private UUID userToKick;
+    private PocketUser userToKick;
     private ManagePlayerMenu previousMenu;
 
-    public KickPlayerConfirmationMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, UUID userToKick,
+    public KickPlayerConfirmationMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, PocketUser userToKick,
                                       ManagePlayerMenu previousMenu) {
         super(player, plugin);
         this.world = world;
@@ -49,7 +47,7 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
         ItemStack confirm = new PocketItem.Builder(plugin)
                 .material(Material.LIME_WOOL)
                 .displayName("&a&lConfirm")
-                .lore(List.of("&aClick to confirm kick of player '" + Bukkit.getPlayer(userToKick).getName() + "'"))
+                .lore(List.of("&aClick to confirm kick of player '" + userToKick.getName() + "'"))
                 .tag("player-confirm-kick")
                 .build().get();
 
@@ -87,21 +85,19 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("player-cancel-kick")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("player-confirm-kick")) {
-            world.getUsers().remove(userToKick);
+            world.getUsers().remove(userToKick.getId());
 
-            DAO dao = plugin.getDataSource().getConnection().getDAO();
-            PocketUser user = dao.getPocketUser(userToKick);
-            user.removeWorld(world.getId());
-            user.update(plugin);
+            userToKick.removeWorld(world.getId());
+            userToKick.update(plugin);
 
-            if (user.isInPocketWorld(plugin, world.getId())) {
+            if (userToKick.isInPocketWorld(plugin, world.getId())) {
                 World defaultWorld = Bukkit.getWorlds().get(0);
 
                 // Player is never null, checked in user.isInPocketWorld method.
-                Bukkit.getPlayer(userToKick).teleport(defaultWorld.getSpawnLocation());
+                Bukkit.getPlayer(userToKick.getId()).teleport(defaultWorld.getSpawnLocation());
             }
 
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPlayer '" + Bukkit.getPlayer(userToKick).getName() +
+            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPlayer '" + userToKick.getName() +
                     "' kicked from the world."));
             player.closeInventory();
 

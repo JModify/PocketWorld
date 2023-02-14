@@ -10,17 +10,19 @@ import lombok.Getter;
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
+import me.modify.pocketworld.data.DataSource;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.*;
 import org.bukkit.entity.*;
+import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
 import java.util.*;
 
-public class PocketWorld {
+public class PocketWorld implements Listener {
 
     /** ID of this PocketWorld */
     @Getter private UUID id;
@@ -109,9 +111,10 @@ public class PocketWorld {
     }
 
     public void load(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify) {
+
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = getPropertyMap();
-        SlimeLoader mongoLoader = slime.getLoader("mongo");
+        SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
 
         // Asynchronously load the world
         new BukkitRunnable() {
@@ -167,9 +170,11 @@ public class PocketWorld {
 
     public static void createWorldFromTheme(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme,
                                             UUID creatorId) {
+        plugin.getWorldCache().add(world);
+
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = world.getPropertyMap();
-        SlimeLoader mongoLoader = slime.getLoader("mongo");
+        SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
         // Asynchronously clone and load world.
         new BukkitRunnable() {
             @Override
@@ -216,6 +221,7 @@ public class PocketWorld {
                                 }, 20L);
                             }
                         }
+
                         world.setLoaded(true);
                         plugin.getLogger().info("Successfully created pocket world " + world.getId().toString()
                                 + " in " + time + "ms!");
@@ -233,10 +239,10 @@ public class PocketWorld {
         unload(plugin, false);
 
         // If the world was loaded remove from loaded worlds registry.
-        plugin.getWorldCache().delete(id);
+        plugin.getWorldCache().remove(id);
 
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimeLoader loader = slime.getLoader("mongo");
+        SlimeLoader loader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
         try {
             loader.deleteWorld(id.toString());
         } catch (UnknownWorldException | IOException e) {
@@ -257,7 +263,7 @@ public class PocketWorld {
         if (!loaded) return;
 
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimeLoader loader = slime.getLoader("mongo");
+        SlimeLoader loader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
 
         World bWorld = Bukkit.getWorld(id.toString());
         if (bWorld == null) {

@@ -32,6 +32,14 @@ public class MongoDAO implements DAO {
         this.connection = connection;
     }
 
+
+    @Override
+    public void registerPocketWorld(PocketWorld world) {
+        if (world == null) return;
+        connection.getMongoDatabase().getCollection(MongoConstant.worldCollection)
+                .insertOne(MongoAdapter.pocketWorldToDocument(world));
+    }
+
     @Override
     public PocketWorld getPocketWorld(UUID worldId) {
         MongoCollection<Document> worldCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
@@ -44,6 +52,22 @@ public class MongoDAO implements DAO {
         MongoCollection<Document> worldCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
         Document replacement = MongoAdapter.pocketWorldToDocument(world);
         worldCollection.replaceOne(Filters.eq("_id", world.getId().toString()), replacement);
+    }
+
+    @Override
+    public boolean registerPocketUser(UUID userId, String username) {
+        MongoCollection<Document> userCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.userCollection);
+
+        Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
+        if (userDoc == null) {
+            PocketUser user = new PocketUser(userId, username, new HashSet<>());
+            connection.getMongoDatabase().getCollection(MongoConstant.userCollection)
+                    .insertOne(MongoAdapter.pocketUserToDocument(user));
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -67,16 +91,16 @@ public class MongoDAO implements DAO {
     }
 
     @Override
-    public String getUserName(UUID userId) {
-        //TODO: Implement this
-        return null;
-    }
-
-    @Override
     public PocketTheme getPocketTheme(UUID themeId) {
         MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
         Document themeDocument = themeCollection.find(Filters.eq("_id", themeId.toString())).first();
         return themeDocument != null ? MongoAdapter.pocketThemeFromDocument(themeDocument) : null;
+    }
+
+    @Override
+    public void registerPocketTheme(PocketTheme theme) {
+        connection.getMongoDatabase().getCollection(MongoConstant.themeCollection)
+                .insertOne(MongoAdapter.pocketThemeToDocument(theme));
     }
 
     @Override
@@ -100,120 +124,8 @@ public class MongoDAO implements DAO {
     }
 
     @Override
-    public List<PocketWorld> getPocketWorlds(UUID userId) {
-        PocketUser user = getPocketUser(userId);
-        Set<UUID> worldIds = user.getWorlds();
-
-        List<PocketWorld> worlds = new ArrayList<>();
-        for (UUID worldId : worldIds) {
-            PocketWorld world = getPocketWorld(worldId);
-            worlds.add(world);
-        }
-
-        return worlds;
+    public void deleteTheme(UUID themeId) {
+        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
+        themeCollection.deleteOne(Filters.eq("_id", themeId.toString()));
     }
-
-    @Override
-    public int countPocketWorlds(UUID userId) {
-        PocketUser user = getPocketUser(userId);
-        Set<UUID> worldIds = user.getWorlds();
-        return worldIds.size();
-    }
-
-    @Override
-    public boolean registerPocketUser(UUID userId, String username) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase()
-                .getCollection(MongoConstant.userCollection);
-
-        Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
-        if (userDoc == null) {
-            PocketUser user = new PocketUser(userId, username, new HashSet<>());
-            connection.getMongoDatabase().getCollection(MongoConstant.userCollection)
-                    .insertOne(MongoAdapter.pocketUserToDocument(user));
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
-    public void registerPocketWorld(PocketWorld world) {
-        if (world == null) return;
-        connection.getMongoDatabase().getCollection(MongoConstant.worldCollection)
-                .insertOne(MongoAdapter.pocketWorldToDocument(world));
-    }
-
-    @Override
-    public void registerPocketTheme(PocketTheme theme) {
-        connection.getMongoDatabase().getCollection(MongoConstant.themeCollection)
-                .insertOne(MongoAdapter.pocketThemeToDocument(theme));
-    }
-
-/*    @Override
-    public void saveUserInventory(UUID userId, Inventory inventory) {
-        ItemStack[] items = inventory.getContents();
-        try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            BukkitObjectOutputStream bukkitObjectOutputStream = new BukkitObjectOutputStream(byteArrayOutputStream);
-
-            bukkitObjectOutputStream.writeInt(items.length);
-
-            for (ItemStack item : items) {
-                bukkitObjectOutputStream.writeObject(item);
-            }
-            bukkitObjectOutputStream.flush();
-
-            byte[] rawData = byteArrayOutputStream.toByteArray();
-            String encodedInventory = Base64.getEncoder().encodeToString(rawData);
-
-            bukkitObjectOutputStream.close();
-            byteArrayOutputStream.close();
-
-            connection.getMongoDatabase().getCollection(MongoConstant.userCollection).findOneAndUpdate(
-                    Filters.eq("_id", userId.toString()), Updates.set("inventory", encodedInventory));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public ItemStack[] retrieveUserInventory(UUID userId) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
-        Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
-
-        if (userDoc == null) {
-            return null;
-        }
-
-        String encodedInventory = userDoc.getString("inventory");
-
-        if (encodedInventory == null || encodedInventory.isEmpty() || encodedInventory.isBlank()) {
-            return null;
-        }
-
-        byte[] rawData = Base64.getDecoder().decode(encodedInventory);
-
-        try {
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(rawData);
-            BukkitObjectInputStream bukkitObjectInputStream = new BukkitObjectInputStream(byteArrayInputStream);
-
-            int itemsCount = bukkitObjectInputStream.readInt();
-            ItemStack[] items = new ItemStack[itemsCount];
-
-            for (int i = 0; i < itemsCount; i++) {
-                items[i] = (ItemStack) bukkitObjectInputStream.readObject();
-            }
-
-            bukkitObjectInputStream.close();
-            byteArrayInputStream.close();
-
-            userDoc.replace("inventory", null);
-            userCollection.replaceOne(Filters.eq("_id", userId.toString()), userDoc);
-            return items;
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }*/
 }

@@ -18,8 +18,7 @@ public class DataSource {
     /**
      * Represents the connection to this data source.
      */
-    @Getter
-    private Connection connection;
+    @Getter private Connection connection;
 
     /**
      * Constructs a new data source.
@@ -56,5 +55,9 @@ public class DataSource {
      */
     public void shutdown() {
         connection.close();
+    }
+
+    public String getSlimeLoaderName() {
+        return connection instanceof MongoConnection ? "mongo" : "sql";
     }
 }

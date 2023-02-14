@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.theme.PocketTheme;
-import me.modify.pocketworld.user.UserInventory;
+import me.modify.pocketworld.user.PocketUserInventory;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.PocketItem;
 import org.bukkit.Bukkit;
@@ -99,7 +99,7 @@ public class ThemeCreationController {
         }
 
         // Add NBT data to player flagging them as having an inventory which needs to be restored.
-        UserInventory.saveUserInventory(plugin, player);
+        PocketUserInventory.saveUserInventory(plugin, player);
 
         player.getInventory().clear();
         player.getInventory().setItem(4, nameEntry.get());
@@ -303,7 +303,7 @@ public class ThemeCreationController {
         // Restore inventory if player is online, else inventory is to be restored on next login.
         Player player = Bukkit.getPlayer(userId);
         if (player != null) {
-            UserInventory.restoreUserInventory(plugin, player);
+            PocketUserInventory.restoreUserInventory(plugin, player);
         }
 
         if (state == ThemeCreationState.GENERATING_WORLD) {
@@ -343,7 +343,7 @@ public class ThemeCreationController {
             World defaultWorld = plugin.getServer().getWorlds().get(0);
             player.teleport(defaultWorld.getSpawnLocation());
 
-            UserInventory.restoreUserInventory(plugin, player);
+            PocketUserInventory.restoreUserInventory(plugin, player);
         }
 
         // Unlock the world so that it can be saved

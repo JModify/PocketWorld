@@ -68,7 +68,7 @@ public class PocketWorldMainMenu extends PocketMenu {
                 .tag("world-creation-icon")
                 .build().get();
 
-        int worldCount = plugin.getDataSource().getConnection().getDAO().countPocketWorlds(player.getUniqueId());
+        int worldCount = worlds.size();
         ItemStack worldManagement = new PocketItem.Builder(plugin)
                 .material(Material.ANVIL)
                 .displayName("&aWorld Management")
@@ -112,7 +112,7 @@ public class PocketWorldMainMenu extends PocketMenu {
 
         if (tag.equalsIgnoreCase("world-creation-icon")) {
             int maxWorlds = plugin.getConfigFile().getYaml().getInt("general.max-worlds", 5);
-            int worldCount = plugin.getDataSource().getConnection().getDAO().countPocketWorlds(player.getUniqueId());
+            int worldCount = worlds.size();
 
             if (worldCount >= maxWorlds) {
                 player.sendMessage("&4&lERROR &r&cMaximum PocketWorld's reached.");

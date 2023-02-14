@@ -75,15 +75,6 @@ public interface DAO {
     void updatePocketUser(UUID userId, Bson update);
 
     /**
-     * Retrieves the user name of the specified user.
-     * <p>
-     * Name stored in database is updated upon joining the server.
-     * @param userId id of user to retrieve username
-     * @return username of target user.
-     */
-    String getUserName(UUID userId);
-
-    /**
      * Registers a pocket theme with the data source.
      * This method should follow newly created pocket themes.
      * @param theme
@@ -105,38 +96,5 @@ public interface DAO {
      */
     Set<PocketTheme> getAllPocketThemes();
 
-    /**
-     * Retrieves all pocket worlds stored in the data source which are associated to a user.
-     * A user is "associated" to a pocket world if they are a member, mod or owner.
-     * @param userId id of user to retrieve worlds.
-     * @return an ArrayList of all pocket worlds the user is associated too.
-     */
-    List<PocketWorld> getPocketWorlds(UUID userId);
-
-    /**
-     * Returns a count of pocket worlds the user is associated with.
-     * @param userId id of user to retrieve this count.
-     * @return an integer representing the number of pocket worlds a user is associated with.
-     */
-    int countPocketWorlds(UUID userId);
-
-    /**
-     * Saves the current state of a user's inventory to the data source.
-     * User inventories are encoded into a single string using Base64 through this method.
-     * @param userId id of user to save inventory.
-     * @param inventory inventory to save.
-     */
-    //void saveUserInventory(UUID userId, Inventory inventory);
-
-    /**
-     * Retrieves a users inventory from the data source.
-     * User inventories are decoded from Base64 then added to a ItemStack array through this method.
-     * <p>
-     * This method does NOT actually restore a user's inventory to them, it only retrieves the data.
-     * Inventory.setContents() should follow this method to avoid data loss.
-     * @param userId id of user to retrieve inventory.
-     * @return ItemStack array of the user's inventory.
-     */
-    //ItemStack[] retrieveUserInventory(UUID userId);
-
+    void deleteTheme(UUID themeId);
 }

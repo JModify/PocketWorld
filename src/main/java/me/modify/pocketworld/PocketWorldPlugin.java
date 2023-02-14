@@ -9,6 +9,7 @@ import me.modify.pocketworld.command.CommandUtil;
 import me.modify.pocketworld.data.DataSource;
 import me.modify.pocketworld.data.config.ConfigFile;
 import me.modify.pocketworld.data.mongo.MongoConnection;
+import me.modify.pocketworld.data.mysql.MySQLConnection;
 import me.modify.pocketworld.exceptions.DataSourceConnectionException;
 import me.modify.pocketworld.hooks.SlimeHook;
 import me.modify.pocketworld.listener.InventoryListener;
@@ -98,6 +99,8 @@ public class PocketWorldPlugin extends JavaPlugin {
 
         if (dataSource.getConnection() instanceof MongoConnection mongoConnection) {
             slime.registerLoader("mongo", new MongoLoader(this, mongoConnection));
+        } else if (dataSource.getConnection() instanceof MySQLConnection mySQLConnection) {
+            //slime.registerLoader("sql", new SQLLoader(this, mySQLlConnection));
         }
     }
 

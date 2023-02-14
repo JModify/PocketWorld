@@ -25,7 +25,7 @@ public class PocketWorldCache {
      * @param worldId id to check if cache contains this world.
      * @return true if cache contains, else false.
      */
-    private boolean contains(UUID worldId) {
+    public boolean contains(UUID worldId) {
         return worlds.containsKey(worldId);
     }
 
@@ -46,15 +46,6 @@ public class PocketWorldCache {
         }
 
         return pull(worldId);
-    }
-
-    public boolean isLoaded(UUID worldId) {
-        if (!contains(worldId)) {
-            return false;
-        }
-
-        PocketWorld world = worlds.get(worldId);
-        return world.isLoaded();
     }
 
     /**
@@ -86,15 +77,28 @@ public class PocketWorldCache {
 
         DAO dao = plugin.getDataSource().getConnection().getDAO();
         dao.updatePocketWorld(world);
-        delete(worldId);
+        remove(worldId);
+    }
+
+    public void pushAll() {
+
     }
 
     /**
-     * Deletes a world from this cache if it contains it.
-     * Does NOT delete a world from data source, that should be done directly through the data access object.
+     * Adds a world into this cache.
+     * Does NOT add a world to the data source, that should be done directly via DAO.
+     * @param world
+     */
+    public void add(PocketWorld world) {
+        worlds.put(world.getId(), world);
+    }
+
+    /**
+     * Removes a world from this cache if it contains it.
+     * Does NOT delete a world from data source, that should be done directly via DAO.
      * @param worldId id of world to delete from cache.
      */
-    public void delete(UUID worldId) {
+    public void remove(UUID worldId) {
         worlds.remove(worldId);
     }
 

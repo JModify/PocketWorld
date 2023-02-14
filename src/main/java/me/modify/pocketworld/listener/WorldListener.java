@@ -1,6 +1,7 @@
 package me.modify.pocketworld.listener;
 
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.util.PocketUtils;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.PocketWorldCache;
 import org.bukkit.World;
@@ -26,7 +27,7 @@ public class WorldListener implements Listener {
         World world = event.getEntity().getWorld();
         String name = world.getName();
 
-        if (isUUID(name)) {
+        if (PocketUtils.isUUID(name)) {
 
             PocketWorldCache cache = plugin.getWorldCache();
             UUID uuid = UUID.fromString(name);
@@ -53,15 +54,5 @@ public class WorldListener implements Listener {
                 }
             }
         }
-    }
-
-    private boolean isUUID(String uuid) {
-        String regex = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[34][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
-        Pattern pattern = Pattern.compile(regex);
-
-        if (pattern.matcher(uuid).matches()) {
-            return true;
-        }
-        return false;
     }
 }

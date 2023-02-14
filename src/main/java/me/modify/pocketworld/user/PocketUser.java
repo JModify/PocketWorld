@@ -3,6 +3,7 @@ package me.modify.pocketworld.user;
 import lombok.Getter;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
+import me.modify.pocketworld.util.PocketUtils;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -26,20 +27,38 @@ public class PocketUser {
     /** Invitations to pocket worlds */
     @Getter private Set<UUID> invitations;
 
+    /**
+     * Create a new Pocket user using the given parameters.
+     * @param id uuid of the user.
+     * @param name username of the user.
+     * @param worlds reference list of the user's associated worlds (member, mod, owner)
+     */
     public PocketUser(UUID id, String name, Set<UUID> worlds) {
         this.id = id;
         this.name = name;
         this.worlds = worlds;
     }
 
+    /**
+     * Add a world to the user's world reference list.
+     * @param id id of world to add.
+     */
     public void addWorld(UUID id) {
         worlds.add(id);
     }
 
+    /**
+     * Remove a world from the user's world reference list.
+     * @param id id of world to remove.
+     */
     public void removeWorld(UUID id) {
         worlds.remove(id);
     }
 
+    /**
+     * Update pocket user in the data source
+     * @param plugin pocket world plugin instance
+     */
     public void update(PocketWorldPlugin plugin) {
         DAO dao = plugin.getDataSource().getConnection().getDAO();
         dao.updatePocketUser(this);
@@ -51,23 +70,30 @@ public class PocketUser {
             return false;
         }
 
+        // If the player's world is null or not a uuid, they are not in a pocket world.
+        World playerWorld = player.getLocation().getWorld();
+        if (playerWorld == null || !PocketUtils.isUUID(playerWorld.getName())) {
+            return false;
+        }
+
         // If the world pocket world cannot be pulled using the cache get() method. It does not exist.
         PocketWorld world = plugin.getWorldCache().get(worldId);
         if (world == null) {
             return false;
         }
 
+        // If the world is not loaded, player cannot be inside of it.
         if (!world.isLoaded()) {
             return false;
         }
 
         // If it exists, attempt to get it as a bukkit world. This will indicate whether it is loaded or not.
-        World playerWorld = player.getLocation().getWorld();
         World pocketWorld = Bukkit.getWorld(worldId.toString());
-        if (pocketWorld == null || playerWorld == null) {
+        if (pocketWorld == null) {
             return false;
         }
 
+        // If world is loaded, and player's world equals this world, then player is in that pocket world.
         return playerWorld.getName().equals(pocketWorld.getName());
     }
 }

@@ -1,11 +1,6 @@
 package me.modify.pocketworld.user;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.mongo.MongoConstant;
-import org.bson.Document;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -19,9 +14,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
-import java.util.UUID;
 
-public class UserInventory {
+public class PocketUserInventory {
 
     public static void saveUserInventory(PocketWorldPlugin plugin, Player player) {
         Inventory inventory = player.getInventory();
