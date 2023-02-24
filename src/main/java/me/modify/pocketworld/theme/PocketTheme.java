@@ -1,6 +1,9 @@
 package me.modify.pocketworld.theme;
 
 import lombok.Getter;
+import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.data.config.PluginFile;
+import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.Material;
 
 import java.util.UUID;
@@ -41,5 +44,21 @@ public class PocketTheme {
         this.icon = icon;
         this.description = description;
         this.spawnPoint = spawnPoint;
+    }
+
+    public void delete(PocketWorldPlugin plugin) {
+        // Delete theme from data source
+        plugin.getDataSource().getConnection().getDAO().deleteTheme(id);
+
+        // Remove theme from theme registry.
+        plugin.getThemeRegistry().delete(id);
+
+        // Delete world file associated to theme.
+        String path = plugin.getDataFolder().getPath() + "/themes/";
+        String fileName = id + ".slime";
+        if (PluginFile.deleteFile(path, fileName)) {
+            plugin.getLogger().severe("&4&lERROR &r&cFailed to delete theme world file " + path
+                    + fileName + ". Manual deletion of the file may be required.");
+        }
     }
 }

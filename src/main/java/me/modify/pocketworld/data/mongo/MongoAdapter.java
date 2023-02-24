@@ -52,13 +52,16 @@ public class MongoAdapter {
      * @return document to adapt
      */
     public static Document pocketUserToDocument(PocketUser pocketUser) {
-        Set<UUID> worlds = pocketUser.getWorlds();
+        Set<UUID> worldIds = pocketUser.getWorlds();
+        Set<UUID> invitationWorldIds = pocketUser.getInvitations();
         UUID userId = pocketUser.getId();
 
         Document document = new Document("_id", userId.toString());
         document.append("name", pocketUser.getName());
-        List<Document> worldReferences = worlds.stream().map(id -> new Document("id", id.toString())).toList();
-        document.append("worlds", worldReferences);
+        List<Document> invitations = invitationWorldIds.stream().map(id -> new Document("id", id.toString())).toList();
+        document.append("invitations", invitations);
+        List<Document> worlds = worldIds.stream().map(id -> new Document("id", id.toString())).toList();
+        document.append("worlds", worlds);
         return document;
     }
 
@@ -70,6 +73,8 @@ public class MongoAdapter {
     public static PocketUser pocketUserFromDocument(Document document) {
         UUID userId = UUID.fromString(document.getString("_id"));
         String name = document.getString("name");
+
+        @SuppressWarnings("unchecked")
         List<Document> referencesRaw = document.get("worlds", List.class);
 
         Set<UUID> worlds = new HashSet<>();
@@ -77,7 +82,15 @@ public class MongoAdapter {
             worlds.add(UUID.fromString(reference.getString("id")));
         }
 
-        return new PocketUser(userId, name, worlds);
+        @SuppressWarnings("unchecked")
+        List<Document> invitationsRaw = document.get("invitations", List.class);
+
+        Set<UUID> invitations = new HashSet<>();
+        for (Document invitation : invitationsRaw) {
+            invitations.add(UUID.fromString(invitation.getString("id")));
+        }
+
+        return new PocketUser(userId, name, invitations, worlds);
     }
 
     public static Document pocketWorldToDocument(PocketWorld pocketWorld) {
@@ -86,6 +99,7 @@ public class MongoAdapter {
         document.append("icon", pocketWorld.getIcon().name());
         document.append("biome", pocketWorld.getBiome());
         document.append("users", memberMapToDocumentList(pocketWorld.getUsers()));
+        document.append("invitations", invitationsMapToDocumentList(pocketWorld.getInvitations()));
         document.append("world-size", pocketWorld.getWorldSize());
         document.append("world-spawn", pocketWorld.getWorldSpawn().toString());
         document.append("allow-animals", pocketWorld.isAllowAnimals());
@@ -104,12 +118,21 @@ public class MongoAdapter {
         @SuppressWarnings("unchecked")
         List<Document> usersRaw = document.get("users", List.class);
 
-
         Map<UUID, WorldRank> users = new HashMap<>();
         for (Document entry : usersRaw) {
             UUID uuid = UUID.fromString(entry.getString("uuid"));
             WorldRank rank = WorldRank.valueOf(entry.getString("worldrank").toUpperCase());
             users.put(uuid, rank);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Document> invitationsRaw = document.get("invitations", List.class);
+
+        Map<UUID, UUID> invitations = new HashMap<>();
+        for (Document entry : invitationsRaw) {
+            UUID sender = UUID.fromString(entry.getString("sender"));
+            UUID recipient = UUID.fromString(entry.getString("recipient"));
+            invitations.put(sender, recipient);
         }
 
         int worldSize = document.getInteger("world-size");
@@ -119,14 +142,14 @@ public class MongoAdapter {
         boolean pvp = document.getBoolean("pvp");
         long locked = document.getLong("locked");
 
-        return new PocketWorld(id, worldName, icon, locked, users, biome, worldSize, worldSpawn,
+        return new PocketWorld(id, worldName, icon, locked, users, invitations, biome, worldSize, worldSpawn,
                 allowAnimals, allowMonsters, pvp, false);
     }
 
-    public static List<Document> memberMapToDocumentList(Map<UUID, WorldRank> map) {
+    public static List<Document> memberMapToDocumentList(Map<UUID, WorldRank> users) {
         List<Document> documents = new ArrayList<>();
 
-        for (Map.Entry<UUID, WorldRank> entry : map.entrySet()) {
+        for (Map.Entry<UUID, WorldRank> entry : users.entrySet()) {
             UUID id = entry.getKey();
             WorldRank rank = entry.getValue();
 
@@ -134,6 +157,22 @@ public class MongoAdapter {
             member.append("worldrank", rank.toString());
 
             documents.add(member);
+        }
+
+        return documents;
+    }
+
+    public static List<Document> invitationsMapToDocumentList(Map<UUID, UUID> invitations) {
+        List<Document> documents = new ArrayList<>();
+
+        for (Map.Entry<UUID, UUID> entry : invitations.entrySet()) {
+            UUID sender = entry.getKey();
+            UUID recipient = entry.getValue();
+
+            Document invitation = new Document();
+            invitation.append("sender", sender.toString());
+            invitation.append("recipient", recipient.toString());
+            documents.add(invitation);
         }
 
         return documents;

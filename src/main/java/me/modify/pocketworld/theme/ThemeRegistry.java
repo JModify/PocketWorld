@@ -31,6 +31,11 @@ public class ThemeRegistry {
         load();
     }
 
+    public void delete(UUID id) {
+        Optional<PocketTheme> theme = registry.stream().filter(t -> t.getId().equals(id)).findFirst();
+        theme.ifPresent(pocketTheme -> registry.remove(pocketTheme));
+    }
+
     public List<PocketTheme> getThemes() {
         return new ArrayList<>(registry);
     }

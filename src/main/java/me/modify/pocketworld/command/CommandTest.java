@@ -3,6 +3,9 @@ package me.modify.pocketworld.command;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.user.PocketUserInventory;
 import me.modify.pocketworld.util.ColorFormat;
+import me.modify.pocketworld.util.InteractiveText;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
@@ -34,19 +37,7 @@ public class CommandTest extends BukkitCommand {
                 PocketUserInventory.saveUserInventory(plugin, player);
             } else if (args[0].equalsIgnoreCase("load")) {
                 PocketUserInventory.restoreUserInventory(plugin, player);
-            } /*else if (args[0].equalsIgnoreCase("get-spawn")) {
-                UUID id = UUID.fromString(args[1]);
-
-                LoadedWorldRegistry registry = LoadedWorldRegistry.getInstance();
-                PocketWorld worldInRegistry = registry.getWorld(id);
-                PocketWorld worldInData = plugin.getDataSource().getConnection().getDAO().getPocketWorld(id);
-
-                player.sendMessage(id.toString());
-                player.sendMessage(worldInRegistry != null ? "registry - "
-                        + worldInRegistry.getWorldSpawn().toString() : "null");
-                player.sendMessage("datasource - " + worldInData.getWorldSpawn().toString());
-
-            } */ else if (args[0].equalsIgnoreCase("rename")) {
+            } else if (args[0].equalsIgnoreCase("rename")) {
 
                 if (length < 2) {
                     return true;
@@ -67,8 +58,24 @@ public class CommandTest extends BukkitCommand {
 
                 player.getInventory().getItemInMainHand().setItemMeta(meta);
                 return true;
-            }
+            } else if (args[0].equalsIgnoreCase("send")) {
 
+                StringBuilder builder = new StringBuilder();
+                for (int i = 1; i < args.length; i++) {
+                    builder.append(args[i]).append(" ");
+                }
+
+                player.sendMessage(ColorFormat.format(builder.toString().trim()));
+            } else if (args[0].equalsIgnoreCase("clickable")) {
+
+                InteractiveText interactiveText = new InteractiveText.Builder("Click me please!")
+                        .color(ChatColor.LIGHT_PURPLE)
+                        .italic(true)
+                        .clickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/gamemode survival"))
+                        .hoverText("I am hovering!", ChatColor.RED, true, false)
+                        .build();
+                player.spigot().sendMessage(interactiveText.getMessage());
+            }
         }
 
         return false;

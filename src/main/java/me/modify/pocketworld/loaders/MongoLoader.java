@@ -18,7 +18,7 @@ import com.mongodb.client.result.UpdateResult;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.mongo.MongoConnection;
 import me.modify.pocketworld.data.mongo.MongoConstant;
-import me.modify.pocketworld.world.PocketWorldCache;
+import me.modify.pocketworld.cache.WorldCache;
 import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
@@ -146,9 +146,9 @@ public class MongoLoader implements SlimeLoader {
             long lockMillis = lock ? System.currentTimeMillis() : 0L;
             if (worldDoc == null) {
                 // World is assumed to already be in the cache if the document has not yet been saved in data source.
-                PocketWorldCache cache = plugin.getWorldCache();
+                WorldCache cache = plugin.getWorldCache();
                 plugin.getDataSource().getConnection().getDAO()
-                        .registerPocketWorld(cache.get(UUID.fromString(worldId)));
+                        .registerPocketWorld(cache.readThrough(UUID.fromString(worldId)));
             } else if (System.currentTimeMillis() - worldDoc.getLong("locked") > MAX_LOCK_TIME && lock) {
                 updateLock(worldId, true);
             }

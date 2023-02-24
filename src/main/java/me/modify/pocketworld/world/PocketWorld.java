@@ -9,9 +9,6 @@ import com.grinderwolf.swm.api.world.properties.SlimePropertyMap;
 import lombok.Getter;
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.DAO;
-import me.modify.pocketworld.data.DataSource;
-import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.*;
@@ -21,6 +18,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PocketWorld implements Listener {
 
@@ -56,14 +54,15 @@ public class PocketWorld implements Listener {
 
     @Getter @Setter private boolean loaded;
 
-    //TODO: Implement this - invitations of users to the pocket world. key = sender, value = recipient
     @Getter private Map<UUID, UUID> invitations;
 
-    public PocketWorld(UUID id, String worldName, Material icon, long locked, Map<UUID, WorldRank> users, String biome, int worldSize,
-                       WorldSpawn worldSpawn, boolean allowAnimals, boolean allowMonsters, boolean pvp, boolean loaded) {
+    public PocketWorld(UUID id, String worldName, Material icon, long locked, Map<UUID, WorldRank> users,
+                       Map<UUID, UUID> invitations, String biome, int worldSize, WorldSpawn worldSpawn,
+                       boolean allowAnimals, boolean allowMonsters, boolean pvp, boolean loaded) {
         this.id = id;
         this.locked = locked;
         this.users = users;
+        this.invitations = invitations;
         this.worldSize = worldSize;
         this.biome = biome;
         this.worldSpawn = worldSpawn;
@@ -75,23 +74,11 @@ public class PocketWorld implements Listener {
         this.loaded = loaded;
     }
 
-    public static PocketWorld create(PocketWorldPlugin plugin, UUID creatorId, String worldName, UUID themeId) {
-        // Set the default spawn point for this pocket world based on theme setup.
-        PocketTheme theme = plugin.themeRegistry.getThemeByID(themeId);
-        String[] parts = theme.getSpawnPoint().split(":");
-        double x = Double.parseDouble(parts[0]);
-        double y = Double.parseDouble(parts[1]);
-        double z = Double.parseDouble(parts[2]);
-        float yaw = Float.parseFloat(parts[3]);
-        float pitch = Float.parseFloat(parts[4]);
-
-        PocketWorld world = new PocketWorld(UUID.randomUUID(), worldName, theme.getIcon(), 0, new HashMap<>(),
-                theme.getBiome(), 100, new WorldSpawn(x, y, z, yaw, pitch), true, true, true, false);
-        world.getUsers().put(creatorId, WorldRank.OWNER);
-        return world;
-    }
-
-    private SlimePropertyMap getPropertyMap() {
+    /**
+     * Retrieve the Slime property map related to this world.
+     * @return slime property map of this world's properties.
+     */
+    public SlimePropertyMap getPropertyMap() {
         SlimePropertyMap propertyMap = new SlimePropertyMap();
 
         propertyMap.setValue(SlimeProperties.SPAWN_X, (int) worldSpawn.getX());
@@ -110,8 +97,15 @@ public class PocketWorld implements Listener {
         return propertyMap;
     }
 
+    /**
+     * Load this world on the server. Should not be used for creating/generating a new world, that should be done
+     * through the PocketWorldCreator object.
+     * @param plugin main plugin instance
+     * @param loaderId id of user loading the world
+     * @param shouldTeleport should the user should be teleported upon load completion.
+     * @param shouldNotify should the user should be notified that the world has been loaded (and time it took).
+     */
     public void load(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify) {
-
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimePropertyMap properties = getPropertyMap();
         SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
@@ -144,12 +138,10 @@ public class PocketWorld implements Listener {
                             World bukkitWorld = Bukkit.getWorld(id.toString());
                             if (bukkitWorld != null) {
                                 // Perform post load actions.
-                                setWorldBorder(bukkitWorld);
-                                setSpawnPoint(worldSpawn.getBukkitLocation(bukkitWorld));
+                                setWorldBorder();
+                                setWorldSpawn(worldSpawn.getBukkitLocation(bukkitWorld));
                                 if (shouldTeleport) {
-                                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                                        loader.teleport(worldSpawn.getBukkitLocation(bukkitWorld));
-                                    }, 20L);
+                                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> teleport(loader), 20L);
                                 }
                             }
                         }
@@ -168,79 +160,18 @@ public class PocketWorld implements Listener {
         }.runTaskAsynchronously(plugin);
     }
 
-    public static void createWorldFromTheme(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme,
-                                            UUID creatorId) {
-        plugin.getWorldCache().add(world);
-
-        SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimePropertyMap properties = world.getPropertyMap();
-        SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
-        // Asynchronously clone and load world.
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try {
-                    long start = System.currentTimeMillis();
-                    UUID worldId = world.getId();
-
-                    // Check if the world already exists, if it does, return
-                    if (mongoLoader.worldExists(worldId.toString())) {
-                        plugin.getLogger().severe("Attempted world creation for " + worldId +
-                                " but this world already exists!");
-                        return;
-                    }
-
-                    // Clone this new world from the theme world.
-                    SlimeLoader templateLoader = slime.getLoader("theme");
-                    SlimeWorld original = slime.loadWorld(templateLoader, theme.getId().toString(),
-                            false, properties);
-                    SlimeWorld slimeWorld  = original.clone(worldId.toString(), mongoLoader);
-
-                    // Synchronously generate the world and perform post creation actions.
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        slime.generateWorld(slimeWorld);
-                        long time = System.currentTimeMillis() - start;
-
-                        // Check if the creator of the world is online.
-                        Player creator = Bukkit.getPlayer(creatorId);
-                        if (creator != null) {
-                            creator.sendMessage(ColorFormat.format("&aWorld successfully created in " + time + "ms"));
-
-                            // Grab the bukkit world, should never be null since load and generation passed.
-                            World bWorld = Bukkit.getWorld(worldId.toString());
-                            if (bWorld != null) {
-
-                                // Perform post load actions.
-                                world.setWorldBorder(bWorld);
-                                bWorld.setSpawnLocation(world.getWorldSpawn().getBukkitLocation(bWorld));
-
-                                // Wait 1 second then teleport player to world (not doing this would teleport
-                                // player to some other world spawn for some reason)
-                                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                                    creator.teleport(world.getWorldSpawn().getBukkitLocation(bWorld));
-                                }, 20L);
-                            }
-                        }
-
-                        world.setLoaded(true);
-                        plugin.getLogger().info("Successfully created pocket world " + world.getId().toString()
-                                + " in " + time + "ms!");
-                    });
-                } catch (IOException | CorruptedWorldException | WorldInUseException
-                         | NewerFormatException | UnknownWorldException | WorldAlreadyExistsException e) {
-                    plugin.getLogger().info("Failed to create pocket world " + world.getId().toString() + ".");
-                    e.printStackTrace();
-                }
-            }
-        }.runTaskAsynchronously(plugin);
-    }
-
+    /**
+     * Delete this world
+     * @param plugin
+     */
     public void delete(PocketWorldPlugin plugin) {
+        // Unload the world without saving.
         unload(plugin, false);
 
-        // If the world was loaded remove from loaded worlds registry.
+        // Remove this world from the world cache.
         plugin.getWorldCache().remove(id);
 
+        // Delete this world from the data source/
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
         SlimeLoader loader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
         try {
@@ -250,51 +181,86 @@ public class PocketWorld implements Listener {
         }
 
         // Update all users apart of the world so that they no longer have a reference to this world.
-        DAO dao = plugin.getDataSource().getConnection().getDAO();
+        // TODO: remove reference upon user join?
         for (UUID memberId : users.keySet()) {
-            PocketUser user = dao.getPocketUser(memberId);
+            PocketUser user = plugin.getUserCache().readThrough(memberId);
             user.removeWorld(id);
-            user.update(plugin);
         }
     }
 
     public void unload(PocketWorldPlugin plugin, boolean save) {
         // If the world is not loaded, return.
-        if (!loaded) return;
-
-        SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimeLoader loader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
+        if (!loaded) {
+            plugin.getDebugger().warning("Failed to unload world, world is not loaded?");
+            return;
+        }
 
         World bWorld = Bukkit.getWorld(id.toString());
         if (bWorld == null) {
-            plugin.getLogger().severe("Failed to unload world " + id.toString() + ". World is not loaded?");
+            plugin.getDebugger().severe("Failed to unload world " + id.toString() + ". " +
+                    "Bukkit world for this world does not exist, world might be unloaded?");
             return;
         }
+
         // TODO: Make entity killing on world unload configurable.
         killEntities();
 
         // TODO: Make default world configurable
         // Teleport players who might be in this world to main world spawn.
         World defaultWorld = Bukkit.getWorlds().get(0);
-        bWorld.getPlayers().forEach(p -> p.teleport(defaultWorld.getSpawnLocation()));
-        try {
-            loader.unlockWorld(id.toString());
-        } catch (UnknownWorldException | IOException e) {
-            plugin.getLogger().severe("Failed to unload pocket world: " + id.toString());
-            e.printStackTrace();
+        for (Player player : bWorld.getPlayers()) {
+            player.teleport(defaultWorld.getSpawnLocation());
         }
+
+        unlock(plugin);
         Bukkit.unloadWorld(bWorld, save);
+
         setLoaded(false);
     }
 
-    public void teleport(World world, Player player) {
+    private void unlock(PocketWorldPlugin plugin) {
+        SlimeLoader loader = plugin.getSlimeHook().getAPI().getLoader(plugin.getDataSource().getSlimeLoaderName());
+        try {
+            if (loader != null && loader.isWorldLocked(id.toString())) {
+                loader.unlockWorld(id.toString());
+                plugin.getDebugger().severe("World is locked, unlocking...");
+            }
+        } catch (UnknownWorldException | IOException e) {
+            throw new RuntimeException(e);
+        }
+        plugin.getDebugger().severe("Successfully unlocked world " + id.toString());
+    }
+
+    public void teleport(Player player) {
+        World world = Bukkit.getWorld(id.toString());
+        if (world == null) {
+            return;
+        }
+
         player.teleport(worldSpawn.getBukkitLocation(world));
     }
 
-    private void setWorldBorder(World world) {
-        WorldBorder border = world.getWorldBorder();
-        border.setCenter(0.0, 0.0);
-        border.setSize(worldSize);
+    public void announce(String message) {
+        Set<UUID> userIds = users.keySet();
+        for (UUID id : userIds) {
+            Player player = Bukkit.getPlayer(id);
+
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+
+            player.sendMessage(ColorFormat.format(message));
+        }
+    }
+
+    public String getMembersFormatted(String delimiter) {
+        return users.keySet().stream()
+                .map(uuid -> Bukkit.getOfflinePlayer(uuid).getName())
+                .collect(Collectors.joining(delimiter));
+    }
+
+    public String getWorldSizeFormatted() {
+        return worldSize + "x" + worldSize;
     }
 
     public void setAllowAnimals(boolean state) {
@@ -329,20 +295,36 @@ public class PocketWorld implements Listener {
         world.setPVP(state);
     }
 
-    public void setSpawnPoint(Location location) {
+    /**
+     * Sets the world border to the world size of this pocket world.
+     */
+    public void setWorldBorder() {
+        World world = Bukkit.getWorld(id.toString());
+        if (world == null) {
+            return;
+        }
+
+        WorldBorder border = world.getWorldBorder();
+        border.setCenter(0.0, 0.0);
+        border.setSize(worldSize);
+    }
+
+    /**
+     * Set the Bukkit-World spawn location to the PocketWorld spawn location.
+     * @param location location to set world spawn.
+     */
+    public void setWorldSpawn(Location location) {
         worldSpawn.setX(location.getX());
         worldSpawn.setY(location.getY());
         worldSpawn.setZ(location.getZ());
         worldSpawn.setYaw(location.getYaw());
         worldSpawn.setPitch(location.getPitch());
-
-        World world = Bukkit.getWorld(id.toString());
-        if (world == null) {
-            return;
-        }
-        world.setSpawnLocation(location);
+        location.getWorld().setSpawnLocation(location);
     }
 
+    /**
+     * Kills all entities in the pocket world excluding players and armor stands.
+     */
     private void killEntities() {
         World world = Bukkit.getWorld(id.toString());
         if (world == null) {

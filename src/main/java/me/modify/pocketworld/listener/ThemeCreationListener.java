@@ -1,13 +1,13 @@
 package me.modify.pocketworld.listener;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.menu.thememenus.EnterThemeNameMenu;
-import me.modify.pocketworld.menu.thememenus.SelectBiomeMenu;
-import me.modify.pocketworld.menu.thememenus.SelectIconMenu;
+import me.modify.pocketworld.ui.theme_menus.EnterThemeNameMenu;
+import me.modify.pocketworld.ui.theme_menus.SelectBiomeMenu;
+import me.modify.pocketworld.ui.theme_menus.SelectIconMenu;
 import me.modify.pocketworld.theme.creation.ThemeCreationController;
 import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
 import me.modify.pocketworld.util.ColorFormat;
-import me.modify.pocketworld.util.PocketItem;
+import me.modify.pocketworld.ui.PocketItem;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

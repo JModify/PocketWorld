@@ -4,22 +4,16 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.io.BukkitObjectInputStream;
-import org.bukkit.util.io.BukkitObjectOutputStream;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Mongo Data Access Object
@@ -27,11 +21,10 @@ import java.util.*;
  */
 public class MongoDAO implements DAO {
 
-    private MongoConnection connection;
+    private final MongoConnection connection;
     public MongoDAO(MongoConnection connection) {
         this.connection = connection;
     }
-
 
     @Override
     public void registerPocketWorld(PocketWorld world) {
@@ -61,7 +54,7 @@ public class MongoDAO implements DAO {
 
         Document userDoc = userCollection.find(Filters.eq("_id", userId.toString())).first();
         if (userDoc == null) {
-            PocketUser user = new PocketUser(userId, username, new HashSet<>());
+            PocketUser user = new PocketUser(userId, username, new HashSet<>(), new HashSet<>());
             connection.getMongoDatabase().getCollection(MongoConstant.userCollection)
                     .insertOne(MongoAdapter.pocketUserToDocument(user));
             return false;

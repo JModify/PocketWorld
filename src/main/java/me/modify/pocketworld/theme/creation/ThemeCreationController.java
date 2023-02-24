@@ -13,7 +13,7 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUserInventory;
 import me.modify.pocketworld.util.ColorFormat;
-import me.modify.pocketworld.util.PocketItem;
+import me.modify.pocketworld.ui.PocketItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -207,6 +207,8 @@ public class ThemeCreationController {
                 player.getInventory().setHeldItemSlot(4);
                 this.state = ThemeCreationState.SET_SPAWN;
             }
+            //TODO: Should not be a state, spawn setting should only be something you do during building state and
+            // can be used multiple times
             case SET_SPAWN -> {
                 PocketItem completeItem = new PocketItem.Builder(plugin)
                         .material(Material.LIME_WOOL)
@@ -218,7 +220,7 @@ public class ThemeCreationController {
                 player.getInventory().clear();
                 player.getInventory().setItem(7, completeItem.get());
                 player.getInventory().setItem(8, cancel);
-                player.getInventory().setHeldItemSlot(7);
+                player.getInventory().setHeldItemSlot(1);
                 this.state = ThemeCreationState.BUILDING;
             }
             case BUILDING -> completeCreation();
@@ -363,7 +365,6 @@ public class ThemeCreationController {
             return;
         }
 
-        //TODO: Maybe some restrictions later down the road for theme descriptions. i.e. length
         setDescription(message);
         nextState();
     }

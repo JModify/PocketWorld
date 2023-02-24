@@ -1,14 +1,10 @@
 package me.modify.pocketworld.data;
 
-import com.mongodb.client.model.Updates;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bson.conversions.Bson;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 

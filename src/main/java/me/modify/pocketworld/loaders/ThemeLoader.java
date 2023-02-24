@@ -38,7 +38,7 @@ public class ThemeLoader implements SlimeLoader {
 
         RandomAccessFile file = templateFiles.computeIfAbsent(worldName, (world) -> {
            try {
-               debugger.sendDebugInfo("Created random access file " + templateDir.getName() + " during world load.");
+               debugger.info("Created random access file " + templateDir.getName() + " during world load.");
                return new RandomAccessFile(new File(templateDir, worldName + ".slime"), "rw");
            } catch (FileNotFoundException ex) {
                return null;
@@ -47,7 +47,7 @@ public class ThemeLoader implements SlimeLoader {
 
         if (!readOnly) {
             if (file != null && file.getChannel().isOpen()) {
-                debugger.sendDebugInfo("World  " + worldName + " unlocked.");
+                debugger.info("World  " + worldName + " unlocked.");
             }
         }
 
@@ -60,7 +60,7 @@ public class ThemeLoader implements SlimeLoader {
             serializedWorld = new byte[(int) file.length()];
             file.seek(0);
             file.readFully(serializedWorld);
-            debugger.sendDebugInfo("World " + worldName + " serialized properly");
+            debugger.info("World " + worldName + " serialized properly");
         }
 
         return serializedWorld;
@@ -122,7 +122,7 @@ public class ThemeLoader implements SlimeLoader {
             FileChannel channel = file.getChannel();
             if(channel.isOpen()) {
                 file.close();
-                debugger.sendDebugInfo("World  " + worldName + " successfully unlocked.");
+                debugger.info("World  " + worldName + " successfully unlocked.");
             }
         }
     }
@@ -149,12 +149,12 @@ public class ThemeLoader implements SlimeLoader {
             throw new UnknownWorldException(worldName);
         }else {
             try (RandomAccessFile randomAccessFile = templateFiles.get(worldName)) {
-                debugger.sendDebugInfo("Deleting world.. " + worldName + ".");
+                debugger.info("Deleting world.. " + worldName + ".");
                 unlockWorld(worldName);
 
                 FileUtils.forceDelete(new File(templateDir, worldName + ".slime"));
                 if(randomAccessFile != null) {
-                    debugger.sendDebugInfo("Attempting to delete worldData  " + worldName + ".");
+                    debugger.info("Attempting to delete worldData  " + worldName + ".");
 
                     randomAccessFile.seek(0); // Make sure we're at the start of the file
                     randomAccessFile.setLength(0); // Delete old data
@@ -163,7 +163,7 @@ public class ThemeLoader implements SlimeLoader {
 
                     templateFiles.remove(worldName);
                 }
-                debugger.sendDebugInfo("World " + worldName + " deleted.");
+                debugger.info("World " + worldName + " deleted.");
             } catch(IOException e) {
                 e.printStackTrace();
             }

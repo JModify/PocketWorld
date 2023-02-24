@@ -1,7 +1,7 @@
 package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.menu.worldmenus.PocketWorldMainMenu;
+import me.modify.pocketworld.ui.world_menus.PocketWorldMainMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;

@@ -6,10 +6,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
+import java.util.UUID;
+
 public class WorldSpawn {
 
-    @Getter @Setter double x;
-    @Getter @Setter double y;
+    @Getter @Setter private double x;
+    @Getter @Setter private double y;
     @Getter @Setter double z;
 
     @Getter @Setter float yaw;
@@ -47,7 +49,7 @@ public class WorldSpawn {
         return new WorldSpawn(x, y, z, yaw, pitch);
     }
 
-    public Location getBukkitLocation(World world) {
-        return new Location(world, x, y, z, yaw, pitch);
+    public Location getBukkitLocation(World bukkitWorld) {
+        return new Location(bukkitWorld, x, y, z, yaw, pitch);
     }
 }

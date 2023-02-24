@@ -17,6 +17,13 @@ import java.util.Base64;
 
 public class PocketUserInventory {
 
+    /**
+     * Saves an inventory to the player's persistent data container.
+     * This method will encode the contents of a player's inventory into a single string then add that string
+     * to the player's persistent data container.
+     * @param plugin main plugin instance.
+     * @param player player to save.
+     */
     public static void saveUserInventory(PocketWorldPlugin plugin, Player player) {
         Inventory inventory = player.getInventory();
         ItemStack[] items = inventory.getContents();
@@ -45,6 +52,14 @@ public class PocketUserInventory {
         }
     }
 
+    /**
+     * Restores a user inventory to the player.
+     * This method will decode a previously encoded inventory into an array of ItemStacks then set the player's
+     * inventory contents to those ItemStacks.
+     * If the player has no persistent data under the expected namespace key, nothing will be restored.
+     * @param plugin main plugin instance.
+     * @param player player to attempt inventory restore.
+     */
     public static void restoreUserInventory(PocketWorldPlugin plugin, Player player) {
         NamespacedKey namespacedKey = new NamespacedKey(plugin, "pw-user-inventory");
 

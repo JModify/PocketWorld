@@ -1,8 +1,8 @@
 package me.modify.pocketworld.user;
 
 import lombok.Getter;
+import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.util.PocketUtils;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Bukkit;
@@ -21,10 +21,10 @@ public class PocketUser {
     @Getter private Set<UUID> worlds;
 
     /** Username the user currently goes by */
-    @Getter private String name;
+    @Getter @Setter private String name;
 
     //TODO: Implement this. value = id of pocket world invited too
-    /** Invitations to pocket worlds */
+    /** IDs of PocketWorld's a user is invited too. */
     @Getter private Set<UUID> invitations;
 
     /**
@@ -33,9 +33,10 @@ public class PocketUser {
      * @param name username of the user.
      * @param worlds reference list of the user's associated worlds (member, mod, owner)
      */
-    public PocketUser(UUID id, String name, Set<UUID> worlds) {
+    public PocketUser(UUID id, String name, Set<UUID> invitations, Set<UUID> worlds) {
         this.id = id;
         this.name = name;
+        this.invitations = invitations;
         this.worlds = worlds;
     }
 
@@ -56,14 +57,11 @@ public class PocketUser {
     }
 
     /**
-     * Update pocket user in the data source
-     * @param plugin pocket world plugin instance
+     * Determines if a player is currently inside a pocket world under the given ID.
+     * @param plugin plugin instance
+     * @param worldId id of pocket world to check if player is inside of.
+     * @return true if player is in this pocket world, else false.
      */
-    public void update(PocketWorldPlugin plugin) {
-        DAO dao = plugin.getDataSource().getConnection().getDAO();
-        dao.updatePocketUser(this);
-    }
-
     public boolean isInPocketWorld(PocketWorldPlugin plugin, UUID worldId) {
         Player player = Bukkit.getPlayer(id);
         if (player == null) {
@@ -77,7 +75,7 @@ public class PocketUser {
         }
 
         // If the world pocket world cannot be pulled using the cache get() method. It does not exist.
-        PocketWorld world = plugin.getWorldCache().get(worldId);
+        PocketWorld world = plugin.getWorldCache().readThrough(worldId);
         if (world == null) {
             return false;
         }

@@ -1,8 +1,8 @@
 package me.modify.pocketworld.listener;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.menu.PocketMenu;
-import me.modify.pocketworld.menu.thememenus.SelectIconMenu;
+import me.modify.pocketworld.ui.PocketMenu;
+import me.modify.pocketworld.ui.theme_menus.SelectIconMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

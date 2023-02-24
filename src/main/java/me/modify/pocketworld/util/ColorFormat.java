@@ -46,6 +46,11 @@ public class ColorFormat {
         return result;
     }
 
+    /**
+     * Strips all color from a given list of strings.
+     * @param listToStrip list to strip
+     * @return the de-colorized list of strings.
+     */
     public static List<String> stripListColor(List<String> listToStrip) {
         List<String> result = new ArrayList<>();
         for (String s : listToStrip) {

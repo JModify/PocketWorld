@@ -2,6 +2,8 @@ package me.modify.pocketworld;
 
 import com.grinderwolf.swm.api.SlimePlugin;
 import lombok.Getter;
+import me.modify.pocketworld.cache.UserCache;
+import me.modify.pocketworld.cache.WorldCache;
 import me.modify.pocketworld.command.CommandPocketWorld;
 import me.modify.pocketworld.command.CommandTest;
 import me.modify.pocketworld.command.CommandTheme;
@@ -20,39 +22,35 @@ import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
 import me.modify.pocketworld.theme.ThemeRegistry;
 import me.modify.pocketworld.util.PocketDebugger;
-import me.modify.pocketworld.world.PocketWorldCache;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PocketWorldPlugin extends JavaPlugin {
 
-    @Getter
-    public DataSource dataSource;
+    @Getter private DataSource dataSource;
+    @Getter private ConfigFile configFile;
 
-    @Getter
-    public ConfigFile configFile;
+    @Getter private SlimeHook slimeHook;
 
-    @Getter
-    public SlimeHook slimeHook;
+    @Getter private PocketDebugger debugger;
 
-    @Getter
-    public PocketDebugger debugger;
+    @Getter private ThemeRegistry themeRegistry;
 
-    @Getter
-    public ThemeRegistry themeRegistry;
-
-    @Getter
-    private PocketWorldCache worldCache;
+    @Getter private WorldCache worldCache;
+    @Getter private UserCache userCache;
 
     @Override
     public void onEnable() {
         debugger = new PocketDebugger(this);
+        debugger.setDebugMode(true);
+
         slimeHook = new SlimeHook(this);
         slimeHook.hook();
 
         configFile = new ConfigFile(this);
-        worldCache = new PocketWorldCache(this);
+        userCache = new UserCache(this);
+        worldCache = new WorldCache(this);
 
         connectToDataSource();
         registerCommands();
@@ -65,7 +63,8 @@ public class PocketWorldPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        worldCache.shutdown();
+        worldCache.flush();
+        userCache.flush();
         dataSource.shutdown();
     }
 
@@ -103,5 +102,17 @@ public class PocketWorldPlugin extends JavaPlugin {
             //slime.registerLoader("sql", new SQLLoader(this, mySQLlConnection));
         }
     }
+
+/*    private void disableSlime() {
+        PluginManager pluginManager = getServer().getPluginManager();
+        Plugin plugin = pluginManager.getPlugin("SlimeWorldManager");
+
+        if (plugin == null) {
+            plugin.getLogger().severe("Failed to disable slime. Plugin is null?");
+            return;
+        }
+
+        pluginManager.disablePlugin(plugin);
+    }*/
 
 }

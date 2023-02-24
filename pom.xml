@@ -63,12 +63,24 @@
                   <shadedPattern>lib.apache.commons</shadedPattern>
                 </relocation>
                 <relocation>
+                  <pattern>org.apache.logging</pattern>
+                  <shadedPattern>lib.apache.logging</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>org.bson</pattern>
                   <shadedPattern>lib.mongo.bson</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>net.wesjd.anvilgui</pattern>
                   <shadedPattern>lib.anvilgui</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>ch.qos.logback</pattern>
+                  <shadedPattern>lib.logback</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.slf4j</pattern>
+                  <shadedPattern>lib.slf4j</shadedPattern>
                 </relocation>
               </relocations>
               <filters>
@@ -91,8 +103,8 @@
 
   <repositories>
     <repository>
-      <id>spigot-repo</id>
-      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+      <id>papermc</id>
+      <url>https://repo.papermc.io/repository/maven-public/</url>
     </repository>
     <repository>
       <id>rapture-snapshots</id>
@@ -115,8 +127,8 @@
       <version>1.5.3-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot-api</artifactId>
+      <groupId>io.papermc.paper</groupId>
+      <artifactId>paper-api</artifactId>
       <version>${minecraft.version}-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>

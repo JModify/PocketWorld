@@ -1,6 +1,7 @@
 package me.modify.pocketworld.data.config;
 
 import me.modify.pocketworld.PocketWorldPlugin;
+import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -9,10 +10,10 @@ import java.io.IOException;
 
 public abstract class PluginFile {
 
-    private String name;
+    private final String name;
     private FileConfiguration yaml;
     private File file;
-    private PocketWorldPlugin plugin;
+    private final PocketWorldPlugin plugin;
 
 
     public PluginFile(PocketWorldPlugin plugin, String name) {
@@ -46,6 +47,7 @@ public abstract class PluginFile {
         return yaml;
     }
 
+    @Deprecated // not required for this plugin
     public boolean save() {
         if (file == null || yaml == null)
             reload();
@@ -64,6 +66,15 @@ public abstract class PluginFile {
     private void createIfNotExists() {
         if (!file.exists())
             plugin.saveResource(getFileName(), false);
+    }
+
+    public static boolean deleteFile(String path, String fileName) {
+        File file = new File(path + fileName);
+        if (!file.exists()) {
+            return false;
+        }
+
+        return file.delete();
     }
 
 
