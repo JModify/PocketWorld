@@ -43,18 +43,9 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.getServer().getPluginManager().callEvent(new PlayerDisconnectEvent(event.getPlayer()));
+        plugin.getDebugger().severe("PlayerQuitEvent Called!");
+        plugin.getUserCache().handleDisconnection(event.getPlayer());
     }
 
-    @EventHandler
-    public void onPlayerKick(PlayerKickEvent event) {
-        plugin.getServer().getPluginManager().callEvent(new PlayerDisconnectEvent(event.getPlayer()));
-    }
-
-    @EventHandler
-    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
-        Player player = event.getPlayer();
-        plugin.getUserCache().handleDisconnection(player);
-    }
 
 }

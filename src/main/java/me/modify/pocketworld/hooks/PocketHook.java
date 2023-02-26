@@ -35,7 +35,7 @@ public abstract class PocketHook {
             plugin.getLogger().info(name + " detected. Plugin successfully hooked.");
         } else {
             if (depends) {
-                plugin.getLogger().severe("Failed to hook into dependency " + name + ". Plugin shutting down.");
+                plugin.getLogger().severe("Failed to hook into dependant plugin " + name + ". Plugin shutting down.");
                 Bukkit.getServer().getPluginManager().disablePlugin(plugin);
             }
         }

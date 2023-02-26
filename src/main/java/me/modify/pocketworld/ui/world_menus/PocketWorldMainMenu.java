@@ -2,17 +2,21 @@ package me.modify.pocketworld.ui.world_menus;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketMenu;
+import me.modify.pocketworld.ui.world_menus.invitations.IncomingInvitationsMenu;
 import me.modify.pocketworld.ui.world_menus.teleport.WorldTeleportMainMenu;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.ui.world_menus.creation.WorldCreationMainMenu;
 import me.modify.pocketworld.ui.world_menus.management.WorldManagementListMenu;
+import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Consumer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,28 +25,11 @@ import java.util.UUID;
 
 public class PocketWorldMainMenu extends PocketMenu {
 
-    private List<PocketWorld> worlds;
-    public PocketWorldMainMenu(Player player, PocketWorldPlugin plugin) {
+    private final List<PocketWorld> worlds;
+    public PocketWorldMainMenu(Player player, PocketWorldPlugin plugin, List<PocketWorld> worlds) {
         super(player, plugin);
         this.plugin = plugin;
-        this.worlds = new ArrayList<>();
-        cacheWorlds();
-    }
-
-    /**
-     * Caches worlds which aren't already cached and adds all worlds a user is associated
-     * to a sub list - to be iterated over later.
-     */
-    private void cacheWorlds() {
-        PocketUser user = plugin.getUserCache().readThrough(player.getUniqueId());
-        Set<UUID> worldIds = user.getWorlds();
-        worldIds.forEach(id -> {
-            PocketWorld world = plugin.getWorldCache().readThrough(id);
-
-            if (world != null) {
-                worlds.add(world);
-            }
-        });
+        this.worlds = worlds;
     }
 
     @Override
@@ -82,9 +69,19 @@ public class PocketWorldMainMenu extends PocketMenu {
                 .tag("world-teleportation-icon")
                 .build().get();
 
+        int invitationsCount = plugin.getUserCache().readThrough(player.getUniqueId()).getInvitations().size();
+        ItemStack invitations = new PocketItem.Builder(plugin)
+                .material(Material.BOOK)
+                .glow(true)
+                .displayName("&aWorld Invitations")
+                .lore(List.of("&7Accept/decline world invitations.", "&8Pending Invitations: " + invitationsCount))
+                .tag("world-invitations-icon")
+                .build().get();
+
         inventory.setItem(11, worldCreation);
         inventory.setItem(13, worldManagement);
         inventory.setItem(15, worldTeleport);
+        inventory.setItem(22, invitations);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
                 .material(Material.BLACK_STAINED_GLASS_PANE)
@@ -114,7 +111,7 @@ public class PocketWorldMainMenu extends PocketMenu {
             int worldCount = worlds.size();
 
             if (worldCount >= maxWorlds) {
-                player.sendMessage("&4&lERROR &r&cMaximum PocketWorld's reached.");
+                player.sendMessage(ColorFormat.format("&4&lERROR &r&cMaximum PocketWorld's reached."));
                 player.closeInventory();
                 return;
             }
@@ -127,6 +124,44 @@ public class PocketWorldMainMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("world-teleportation-icon")) {
             WorldTeleportMainMenu teleportMainMenu = new WorldTeleportMainMenu(player, plugin, worlds, this);
             teleportMainMenu.open();
+        } else if (tag.equalsIgnoreCase("world-invitations-icon")) {
+
+            plugin.getUserCache().readThrough(player.getUniqueId()).getInvitations().forEach(u -> plugin.getDebugger().severe(u.toString()));
+
+            Consumer<List<PocketWorld>> invitedWorldsConsumer = incomingInvitations -> {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        plugin.getDebugger().severe("Called open IncomingInvitationsMenu");
+                        IncomingInvitationsMenu incomingInvitationsMenu = new IncomingInvitationsMenu(player, plugin,
+                                incomingInvitations, PocketWorldMainMenu.this);
+                        incomingInvitationsMenu.open();
+                    }
+                }.runTask(plugin);
+            };
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    List<PocketWorld> invitedWorlds = new ArrayList<>();
+                    PocketUser user = plugin.getUserCache().readThrough(player.getUniqueId());
+                    for (UUID worldInvited : user.getInvitations()) {
+                        PocketWorld world = plugin.getWorldCache().readThrough(worldInvited);
+                        // If the world is not null, add it to list of invited worlds
+                        if (world != null) {
+                            invitedWorlds.add(plugin.getWorldCache().readThrough(worldInvited));
+                        } else {
+                            // If it is null, it has been deleted and so user reference to it should be removed.
+                            // World is also not included in list f invited worlds.
+                            user.getInvitations().remove(worldInvited);
+                        }
+                    }
+
+                    invitedWorldsConsumer.accept(invitedWorlds);
+                    plugin.getDebugger().severe("Accepted consumer");
+                }
+            }.runTaskAsynchronously(plugin);
+
         }
     }
 }

@@ -2,7 +2,6 @@ package me.modify.pocketworld.ui.world_menus.creation;
 
 import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.ui.PocketMenu;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.ui.PocketItem;
@@ -22,16 +21,15 @@ public class WorldCreationMainMenu extends PocketMenu {
 
     @Setter
     private String worldName;
-
     @Setter
     private PocketTheme pocketTheme;
+    private final PocketWorldMainMenu previousMenu;
 
-    private PocketWorldMainMenu mainMenu;
     public WorldCreationMainMenu(Player player, PocketWorldPlugin plugin, PocketWorldMainMenu mainMenu) {
         super(player, plugin);
         this.pocketTheme = null;
         this.worldName = null;
-        this.mainMenu = mainMenu;
+        this.previousMenu = mainMenu;
     }
 
     @Override
@@ -97,7 +95,7 @@ public class WorldCreationMainMenu extends PocketMenu {
             WorldCreationThemeMenu themeSelect = new WorldCreationThemeMenu(player, plugin, this);
             themeSelect.open();
         }  else if (tag.equalsIgnoreCase("is-back-button")) {
-            mainMenu.open();
+            previousMenu.open();
         }else if (tag.equalsIgnoreCase("world-confirm-create") && (worldName != null && pocketTheme != null)) {
             player.closeInventory();
 

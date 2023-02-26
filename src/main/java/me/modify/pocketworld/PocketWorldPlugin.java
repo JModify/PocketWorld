@@ -99,6 +99,7 @@ public class PocketWorldPlugin extends JavaPlugin {
         if (dataSource.getConnection() instanceof MongoConnection mongoConnection) {
             slime.registerLoader("mongo", new MongoLoader(this, mongoConnection));
         } else if (dataSource.getConnection() instanceof MySQLConnection mySQLConnection) {
+            //TODO: Implement SQL data source
             //slime.registerLoader("sql", new SQLLoader(this, mySQLlConnection));
         }
     }

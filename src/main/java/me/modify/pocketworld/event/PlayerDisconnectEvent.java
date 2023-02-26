@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * PlayerDisconnectionEvent is the event of which a player actually disconnects from the server.
  * This could be either a forcible kick or when the player leaves themselves.
+ * May be called multiple times due to the nature of PlayerQuitEvent and PlayerKickEvents.
  */
 public class PlayerDisconnectEvent extends Event {
 

@@ -3,8 +3,8 @@ package me.modify.pocketworld.cache;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.user.PocketUser;
-import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 
@@ -18,7 +18,6 @@ public class UserCache extends PocketCache<PocketUser> {
     protected PocketUser get(UUID userId) {
         DAO dao = plugin.getDataSource().getConnection().getDAO();
         PocketUser user = dao.getPocketUser(userId);
-
         if (user == null) {
             return null;
         }
@@ -53,8 +52,13 @@ public class UserCache extends PocketCache<PocketUser> {
      * @param player player joining the server.
      */
     public void handleConnection(Player player) {
-        PocketUser user = readThrough(player.getUniqueId());
-        user.setName(player.getName());
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PocketUser user = readThrough(player.getUniqueId());
+                user.setName(player.getName());
+            }
+        }.runTaskAsynchronously(plugin);
     }
 
     /**
@@ -63,6 +67,11 @@ public class UserCache extends PocketCache<PocketUser> {
      * @param player player disconnecting from server.
      */
     public void handleDisconnection(Player player) {
-        flush(player.getUniqueId());
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                flush(player.getUniqueId());
+            }
+        }.runTaskAsynchronously(plugin);
     }
 }

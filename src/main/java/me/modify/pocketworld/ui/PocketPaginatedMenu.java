@@ -34,7 +34,7 @@ public abstract class PocketPaginatedMenu extends PocketMenu {
         PocketItem homePage = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .stackSize(1)
-                .displayName("&aMain Menu")
+                .displayName("&aPrevious")
                 .lore(List.of("&7Click to return to previous menu."))
                 .tag("is-home-button")
                 .build();

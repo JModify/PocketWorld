@@ -11,6 +11,7 @@ import me.modify.pocketworld.world.PocketWorld;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -35,14 +36,16 @@ public class MongoDAO implements DAO {
 
     @Override
     public PocketWorld getPocketWorld(UUID worldId) {
-        MongoCollection<Document> worldCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
+        MongoCollection<Document> worldCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.worldCollection);
         Document worldDocument = worldCollection.find(Filters.eq("_id", worldId.toString())).first();
         return worldDocument != null ? MongoAdapter.pocketWorldFromDocument(worldDocument) : null;
     }
 
     @Override
     public void updatePocketWorld(PocketWorld world) {
-        MongoCollection<Document> worldCollection = connection.getMongoDatabase().getCollection(MongoConstant.worldCollection);
+        MongoCollection<Document> worldCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.worldCollection);
         Document replacement = MongoAdapter.pocketWorldToDocument(world);
         worldCollection.replaceOne(Filters.eq("_id", world.getId().toString()), replacement);
     }
@@ -65,27 +68,31 @@ public class MongoDAO implements DAO {
 
     @Override
     public PocketUser getPocketUser(UUID userId) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
+        MongoCollection<Document> userCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.userCollection);
         Document userDocument = userCollection.find(Filters.eq("_id", userId.toString())).first();
         return userDocument != null ? MongoAdapter.pocketUserFromDocument(userDocument) : null;
     }
 
     @Override
     public void updatePocketUser(PocketUser user) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
+        MongoCollection<Document> userCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.userCollection);
         Document replacement = MongoAdapter.pocketUserToDocument(user);
         userCollection.replaceOne(Filters.eq("_id", user.getId().toString()), replacement);
     }
 
-    @Override
+    @Deprecated
     public void updatePocketUser(UUID userId, Bson update) {
-        MongoCollection<Document> userCollection = connection.getMongoDatabase().getCollection(MongoConstant.userCollection);
+        MongoCollection<Document> userCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.userCollection);
         userCollection.findOneAndUpdate(Filters.eq("_id", userId.toString()), update);
     }
 
     @Override
     public PocketTheme getPocketTheme(UUID themeId) {
-        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
+        MongoCollection<Document> themeCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.themeCollection);
         Document themeDocument = themeCollection.find(Filters.eq("_id", themeId.toString())).first();
         return themeDocument != null ? MongoAdapter.pocketThemeFromDocument(themeDocument) : null;
     }
@@ -98,7 +105,8 @@ public class MongoDAO implements DAO {
 
     @Override
     public Set<PocketTheme> getAllPocketThemes() {
-        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
+        MongoCollection<Document> themeCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.themeCollection);
         FindIterable<Document> documents = themeCollection.find();
         MongoCursor<Document> cursor = documents.cursor();
 
@@ -118,7 +126,8 @@ public class MongoDAO implements DAO {
 
     @Override
     public void deleteTheme(UUID themeId) {
-        MongoCollection<Document> themeCollection = connection.getMongoDatabase().getCollection(MongoConstant.themeCollection);
+        MongoCollection<Document> themeCollection = connection.getMongoDatabase()
+                .getCollection(MongoConstant.themeCollection);
         themeCollection.deleteOne(Filters.eq("_id", themeId.toString()));
     }
 }

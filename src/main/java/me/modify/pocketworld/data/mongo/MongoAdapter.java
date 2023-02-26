@@ -166,12 +166,12 @@ public class MongoAdapter {
         List<Document> documents = new ArrayList<>();
 
         for (Map.Entry<UUID, UUID> entry : invitations.entrySet()) {
-            UUID sender = entry.getKey();
-            UUID recipient = entry.getValue();
+            UUID recipient = entry.getKey();
+            UUID sender = entry.getValue();
 
             Document invitation = new Document();
-            invitation.append("sender", sender.toString());
             invitation.append("recipient", recipient.toString());
+            invitation.append("sender", sender.toString());
             documents.add(invitation);
         }
 

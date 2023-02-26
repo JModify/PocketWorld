@@ -58,8 +58,7 @@ public class WorldCache extends PocketCache<PocketWorld> {
         cache.clear();
     }
 
-    //TODO: Unloading worlds when last player leaves is way too server intensive. Find a better way to push and unload.
-  /*  *//**
+    /*
      * Handles the world cache upon a player disconnecting from a server.
      * This algorithm will determine when worlds in the world cache should be unloaded/saved from world cache
      * to data source.
@@ -68,7 +67,9 @@ public class WorldCache extends PocketCache<PocketWorld> {
      * world in the world cache, that world should be pushed from the world cache to
      * the data source and unloaded from the server (if it is loaded).
      * @param player disconnecting from server.
-     *//*
+     */
+    //TODO: Unloading worlds when last player leaves is way too server intensive. Find a better way to push and unload.
+    @Deprecated
     public void handleDisconnection(Player player) {
         PocketUser user = plugin.getUserCache().get(player.getUniqueId());
 
@@ -102,14 +103,12 @@ public class WorldCache extends PocketCache<PocketWorld> {
 
             // If the player disconnecting was the last member of this world online, push any changes made to the
             // world (via the world cache) to the data source.
-            plugin.getLogger().severe("Successfully pushed " + worldId.toString());
-            push(worldId);
+            flush(worldId);
 
             // If the world was loaded, unload and save it when unloading.
             if (world.isLoaded()) {
-                plugin.getLogger().severe("Successfully unloaded " + worldId);
                 world.unload(plugin, true);
             }
         }
-    }*/
+    }
 }

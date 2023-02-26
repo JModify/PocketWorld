@@ -2,6 +2,7 @@ package me.modify.pocketworld.ui.world_menus.management.user_manage;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketPaginatedMenu;
+import me.modify.pocketworld.ui.world_menus.invitations.InvitationsSendOrManageMenu;
 import me.modify.pocketworld.ui.world_menus.management.ManageWorldMenu;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
@@ -102,8 +103,8 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
         if (tag.equalsIgnoreCase("is-home-button")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("is-invitations-menu")) {
-            PlayerInvitationsMenu playerInvitationsMenu = new PlayerInvitationsMenu(player, plugin, world, this);
-            playerInvitationsMenu.open();
+            InvitationsSendOrManageMenu invitationsSendOrManageMenu = new InvitationsSendOrManageMenu(player, plugin, world, this);
+            invitationsSendOrManageMenu.open();
         }else if (tag.equalsIgnoreCase("is-page-next")) {
             if (!((index + 1) >= world.getUsers().size())) {
                 page = page + 1;

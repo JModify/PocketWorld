@@ -1,9 +1,12 @@
-package me.modify.pocketworld.ui.world_menus.management.user_manage;
+package me.modify.pocketworld.ui.world_menus.invitations;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.ui.PocketMenu;
+import me.modify.pocketworld.ui.world_menus.management.user_manage.PlayerManagementListMenu;
+import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.world.PocketWorld;
+import me.modify.pocketworld.world.WorldRank;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -12,12 +15,12 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
 
-public class PlayerInvitationsMenu extends PocketMenu {
+public class InvitationsSendOrManageMenu extends PocketMenu {
 
     private PocketWorld world;
     private PlayerManagementListMenu previousMenu;
-    public PlayerInvitationsMenu(Player player, PocketWorldPlugin plugin, PocketWorld world,
-                                 PlayerManagementListMenu previousMenu) {
+    public InvitationsSendOrManageMenu(Player player, PocketWorldPlugin plugin, PocketWorld world,
+                                       PlayerManagementListMenu previousMenu) {
         super(player, plugin);
         this.world = world;
         this.previousMenu = previousMenu;
@@ -54,10 +57,11 @@ public class PlayerInvitationsMenu extends PocketMenu {
         inventory.setItem(20, sendInvite);
 
         ItemStack manageInvites = new PocketItem.Builder(plugin)
-                .material(Material.WRITTEN_BOOK)
+                .material(Material.BOOK)
                 .displayName("&aView/Manage Invitations")
                 .lore(List.of("&7View all sent invitations, or revoke invites here."))
                 .tag("is-manage-invites")
+                .glow(true)
                 .build().get();
         inventory.setItem(24, manageInvites);
 
@@ -70,7 +74,7 @@ public class PlayerInvitationsMenu extends PocketMenu {
         inventory.setItem(27, backButton);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.BLUE_STAINED_GLASS_PANE)
+                .material(Material.LIGHT_BLUE_STAINED_GLASS_PANE)
                 .displayName(" ")
                 .build().get();
         addFillerBorder(fillerItem);
@@ -93,10 +97,18 @@ public class PlayerInvitationsMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("is-send-invite")) {
+            WorldRank playerRank = world.getUsers().get(player.getUniqueId());
+            if (playerRank != WorldRank.OWNER && playerRank != WorldRank.MOD) {
+                player.sendMessage(ColorFormat.format("&4&lERROR &cInsufficient world permissions."));
+                player.closeInventory();
+                return;
+            }
+
             SendInviteMenu sendInviteMenu = new SendInviteMenu(player, plugin, world);
             sendInviteMenu.open();
         } else if (tag.equalsIgnoreCase("is-manage-invites")) {
-
+            OutgoingInvitationsMenu manageInvitationsMenu = new OutgoingInvitationsMenu(player, plugin, world, this);
+            manageInvitationsMenu.open();
         }
 
     }

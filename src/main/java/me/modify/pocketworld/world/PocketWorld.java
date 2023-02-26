@@ -1,7 +1,10 @@
 package me.modify.pocketworld.world;
 
 import com.grinderwolf.swm.api.SlimePlugin;
-import com.grinderwolf.swm.api.exceptions.*;
+import com.grinderwolf.swm.api.exceptions.CorruptedWorldException;
+import com.grinderwolf.swm.api.exceptions.NewerFormatException;
+import com.grinderwolf.swm.api.exceptions.UnknownWorldException;
+import com.grinderwolf.swm.api.exceptions.WorldInUseException;
 import com.grinderwolf.swm.api.loaders.SlimeLoader;
 import com.grinderwolf.swm.api.world.SlimeWorld;
 import com.grinderwolf.swm.api.world.properties.SlimeProperties;
@@ -17,27 +20,31 @@ import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class PocketWorld implements Listener {
 
     /** ID of this PocketWorld */
-    @Getter private UUID id;
+    @Getter private final UUID id;
 
+    /* Lock status of this world. Handled by SlimeWorldManager */
     @Getter @Setter private long locked;
 
     /** Users a part of this pocket world */
-    @Getter private Map<UUID, WorldRank> users;
+    @Getter private final Map<UUID, WorldRank> users;
 
     /** World owner creates this when creating their pocket world */
-    @Getter private String worldName;
+    @Getter private final String worldName;
 
     /** Size of this pocket world. Determines where world border is set */
     @Getter @Setter private int worldSize;
 
     /** Spawn for this pocket world. Modifiable world owner */
-    @Getter private WorldSpawn worldSpawn;
+    @Getter private final WorldSpawn worldSpawn;
 
     /** Allow animals for this pocket world? Modifiable by world owner */
     @Getter private boolean allowAnimals;
@@ -48,13 +55,17 @@ public class PocketWorld implements Listener {
     /** Allow pvp for this pocket world? Modifiable by world owner */
     @Getter private boolean pvp;
 
-    @Getter private String biome;
+    /* Default biome for this world */
+    @Getter private final String biome;
 
-    @Getter private Material icon;
+    /* Icon used to represent this world in menus. Copied from theme icon on creation. */
+    @Getter private final Material icon;
 
+    /** Indicates if this world is loaded */
     @Getter @Setter private boolean loaded;
 
-    @Getter private Map<UUID, UUID> invitations;
+    /** Invitations to this pocket world. key = recipient, value = sender */
+    @Getter private final Map<UUID, UUID> invitations;
 
     public PocketWorld(UUID id, String worldName, Material icon, long locked, Map<UUID, WorldRank> users,
                        Map<UUID, UUID> invitations, String biome, int worldSize, WorldSpawn worldSpawn,
@@ -125,35 +136,40 @@ public class PocketWorld implements Listener {
                     SlimeWorld world = slime.loadWorld(mongoLoader, id.toString(), false, properties);
 
                     // Synchronously generate the world and perform post load actions.
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        slime.generateWorld(world);
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            slime.generateWorld(world);
 
-                        long time = System.currentTimeMillis() - start;
-                        Player loader = Bukkit.getPlayer(loaderId);
-                        if (loader != null) {
-                            if (shouldNotify) {
-                                loader.sendMessage(ColorFormat.format("&aWorld successfully loaded in " + time + "ms"));
-                            }
-                            // Grab the bukkit world, should never be null since load and generation passed.
-                            World bukkitWorld = Bukkit.getWorld(id.toString());
-                            if (bukkitWorld != null) {
-                                // Perform post load actions.
-                                setWorldBorder();
-                                setWorldSpawn(worldSpawn.getBukkitLocation(bukkitWorld));
-                                if (shouldTeleport) {
-                                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> teleport(loader), 20L);
+                            long time = System.currentTimeMillis() - start;
+                            Player loader = Bukkit.getPlayer(loaderId);
+                            if (loader != null) {
+                                if (shouldNotify) {
+                                    loader.sendMessage(ColorFormat.format("&aWorld successfully loaded in "
+                                            + time + "ms"));
+                                }
+                                // Grab the bukkit world, should never be null since load and generation passed.
+                                World bukkitWorld = Bukkit.getWorld(id.toString());
+                                if (bukkitWorld != null) {
+                                    // Perform post load actions.
+                                    setWorldBorder();
+                                    setWorldSpawn(worldSpawn.getBukkitLocation(bukkitWorld));
+                                    if (shouldTeleport) {
+                                        plugin.getServer().getScheduler()
+                                                .runTaskLater(plugin, () -> teleport(loader), 20L);
+                                    }
                                 }
                             }
+                            setLoaded(true);
+                            plugin.getLogger().info("Successfully loaded pocket world " + id + " in "
+                                    + time + "ms!");
                         }
 
-                        setLoaded(true);
-                        plugin.getLogger().info("Successfully loaded pocket world " + id.toString() + " in "
-                                + time + "ms!");
-                    });
+                    }.runTask(plugin);
 
                 } catch (IOException | CorruptedWorldException | WorldInUseException
                          | NewerFormatException | UnknownWorldException e) {
-                    plugin.getLogger().severe("Failed to load pocket world " + id.toString() + ".");
+                    plugin.getLogger().severe("Failed to load pocket world " + id + ".");
                     e.printStackTrace();
                 }
             }
@@ -161,8 +177,8 @@ public class PocketWorld implements Listener {
     }
 
     /**
-     * Delete this world
-     * @param plugin
+     * Delete this world from the cache and data source. Unloads the world first if it is loaded.
+     * @param plugin main plugin instance
      */
     public void delete(PocketWorldPlugin plugin) {
         // Unload the world without saving.
@@ -179,21 +195,21 @@ public class PocketWorld implements Listener {
         } catch (UnknownWorldException | IOException e) {
             throw new RuntimeException(e);
         }
-
-        // Update all users apart of the world so that they no longer have a reference to this world.
-        // TODO: remove reference upon user join?
-        for (UUID memberId : users.keySet()) {
-            PocketUser user = plugin.getUserCache().readThrough(memberId);
-            user.removeWorld(id);
-        }
     }
 
+    /**
+     * Unloads this world from the server. Upon world unloading the following actions are performed:
+     * - All entities in the world are killed excluding players and armorstands.
+     * - Players which are inside the world are teleported out.
+     * - The world is unlocked
+     * - The respective bukkit world is unloaded.
+     * - This world object is flagged as loaded being false.
+     * @param plugin main plugin instance
+     * @param save should the world be saved upon unloading.
+     */
     public void unload(PocketWorldPlugin plugin, boolean save) {
         // If the world is not loaded, return.
-        if (!loaded) {
-            plugin.getDebugger().warning("Failed to unload world, world is not loaded?");
-            return;
-        }
+        if (!loaded) return;
 
         World bWorld = Bukkit.getWorld(id.toString());
         if (bWorld == null) {
@@ -218,9 +234,15 @@ public class PocketWorld implements Listener {
         setLoaded(false);
     }
 
+    /**
+     * Unlocks the world. Necessary for a world to be saved.
+     * Unlocking a world essentially disables it's "readOnly" property
+     * @param plugin main plugin instance.
+     */
     private void unlock(PocketWorldPlugin plugin) {
         SlimeLoader loader = plugin.getSlimeHook().getAPI().getLoader(plugin.getDataSource().getSlimeLoaderName());
         try {
+            // Check that the loader under the given name exists and that the world is locked.
             if (loader != null && loader.isWorldLocked(id.toString())) {
                 loader.unlockWorld(id.toString());
                 plugin.getDebugger().severe("World is locked, unlocking...");
@@ -240,6 +262,24 @@ public class PocketWorld implements Listener {
         player.teleport(worldSpawn.getBukkitLocation(world));
     }
 
+    public void sendInvitation(PocketWorldPlugin plugin, Player target) {
+        invitations.put(target.getUniqueId(), target.getUniqueId());
+
+        PocketUser user = plugin.getUserCache().readThrough(target.getUniqueId());
+        user.getInvitations().add(id);
+
+        announce("&2&lPocketWorld &a" + target.getName() + " invited " + target.getName()
+                + " to world '" + worldName + "'.");
+
+        target.sendMessage(ColorFormat.format("&2&lPocketWorld &a" + target.getName() + " invited you to join "
+                + worldName + ". Use /pocketworld to accept or decline."));
+    }
+
+    /**
+     * Announces a message to all online members for this pocket world.
+     * Message is colorized using the ColorFormat class before sending.
+     * @param message message to send, color codes supported.
+     */
     public void announce(String message) {
         Set<UUID> userIds = users.keySet();
         for (UUID id : userIds) {
@@ -253,16 +293,33 @@ public class PocketWorld implements Listener {
         }
     }
 
+    /**
+     * Retrieves a (delimiter) separated list of the names of all members for this PocketWorld.
+     * @param delimiter delimiter separating the names of all members for the string.
+     * @return string of members names separated by the delimiter.
+     */
     public String getMembersFormatted(String delimiter) {
         return users.keySet().stream()
                 .map(uuid -> Bukkit.getOfflinePlayer(uuid).getName())
                 .collect(Collectors.joining(delimiter));
     }
 
+    /**
+     * Retrieves a string representing the world size for this PocketWorld.
+     * Eg. 100x100
+     * @return formatted string for the world size of this world.
+     */
     public String getWorldSizeFormatted() {
         return worldSize + "x" + worldSize;
     }
 
+    /**
+     * Sets whether animals can spawn in this world.
+     * <p>
+     * If state state is being set to FALSE:
+     * This method will purge all currently living animals which may exist in the world (if world is loaded)
+     * @param state whether animals can spawn
+     */
     public void setAllowAnimals(boolean state) {
         this.allowAnimals = state;
 
@@ -274,6 +331,13 @@ public class PocketWorld implements Listener {
         if (!state) world.getEntitiesByClass(Animals.class).forEach(Entity::remove);
     }
 
+    /**
+     * Sets whether monsters can spawn in this world.
+     * <p>
+     * If state state is being set to FALSE:
+     * This method will purge all currently living monsters which may exist in the world (if world is loaded)
+     * @param state whether monsters can spawn
+     */
     public void setAllowMonsters(boolean state) {
         this.allowMonsters = state;
 
@@ -285,6 +349,10 @@ public class PocketWorld implements Listener {
         if (!state) world.getEntitiesByClass(Monster.class).forEach(Entity::remove);
     }
 
+    /**
+     * Sets whether pvp can occur in this world.
+     * @param state whether pvp is allowed.
+     */
     public void setPvp(boolean state) {
         this.pvp = state;
 
@@ -330,6 +398,7 @@ public class PocketWorld implements Listener {
         if (world == null) {
             return;
         }
+
         // Kill all living entities with the exception of armor stands and players.
         List<LivingEntity> entities = world.getLivingEntities();
         for (LivingEntity entity : entities) {

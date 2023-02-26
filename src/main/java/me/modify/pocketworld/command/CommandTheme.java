@@ -1,22 +1,18 @@
 package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
-import me.modify.pocketworld.data.config.PluginFile;
 import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.InteractiveText;
 import me.modify.pocketworld.util.PocketUtils;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,8 +37,8 @@ public class CommandTheme extends BukkitCommand {
         if (length > 0) {
             if (args[0].equalsIgnoreCase("create")) {
                 ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId());
-            } else if (args[0].equalsIgnoreCase("manage")) {
-                printThemeList(player);
+            } else if (args[0].equalsIgnoreCase("manage") || args[0].equalsIgnoreCase("list")) {
+                printThemeManage(player);
             } else if (args[0].equalsIgnoreCase("import")) {
                 //TODO: Implement theme importing
                 return true;
@@ -55,7 +51,7 @@ public class CommandTheme extends BukkitCommand {
                 String idRaw = args[1];
                 if (!PocketUtils.isUUID(idRaw)) {
                     player.sendMessage(ColorFormat.format("&4&lERROR &r&cFailed to delete theme. " +
-                            "Theme ID is not a UUID. "));
+                            "Theme ID '" + idRaw + "' is not a UUID. "));
                     return true;
                 }
 
@@ -73,7 +69,7 @@ public class CommandTheme extends BukkitCommand {
         return false;
     }
 
-    private void printThemeList(Player player) {
+    private void printThemeManage(Player player) {
         List<PocketTheme> themes = plugin.getThemeRegistry().getThemes();
 
         player.sendMessage(ColorFormat.format("&8&m------------------------------"));

@@ -64,13 +64,6 @@ public interface DAO {
     void updatePocketUser(PocketUser user);
 
     /**
-     * Updates a user in the data source using the given MongoDB update.
-     * @param userId id of user to update
-     * @param update update to apply
-     */
-    void updatePocketUser(UUID userId, Bson update);
-
-    /**
      * Registers a pocket theme with the data source.
      * This method should follow newly created pocket themes.
      * @param theme
@@ -92,5 +85,9 @@ public interface DAO {
      */
     Set<PocketTheme> getAllPocketThemes();
 
+    /**
+     * Deletes a theme from data source.
+     * @param themeId id of theme to delete
+     */
     void deleteTheme(UUID themeId);
 }

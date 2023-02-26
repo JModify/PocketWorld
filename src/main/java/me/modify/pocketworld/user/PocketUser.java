@@ -23,7 +23,6 @@ public class PocketUser {
     /** Username the user currently goes by */
     @Getter @Setter private String name;
 
-    //TODO: Implement this. value = id of pocket world invited too
     /** IDs of PocketWorld's a user is invited too. */
     @Getter private Set<UUID> invitations;
 
