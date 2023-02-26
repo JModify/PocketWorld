@@ -41,6 +41,7 @@ public class CommandPocketWorldAdmin extends BukkitCommand {
             return true;
         }
 
+
         int length = args.length;
         if (length == 0) {
             List<String> menu = new ArrayList<>();
