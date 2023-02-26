@@ -5,8 +5,8 @@ import me.modify.pocketworld.ui.PocketPaginatedMenu;
 import me.modify.pocketworld.ui.world_menus.invitations.InvitationsSendOrManageMenu;
 import me.modify.pocketworld.ui.world_menus.management.ManageWorldMenu;
 import me.modify.pocketworld.user.PocketUser;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.ui.PocketItem;
+import me.modify.pocketworld.util.MessageReader;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
 import org.bukkit.Bukkit;
@@ -130,9 +130,16 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
                 return;
             }
 
+            MessageReader reader = plugin.getMessageReader();
             UUID id = userId.get();
             if (id.equals(player.getUniqueId())) {
-                player.sendMessage(ColorFormat.format("&4&lERROR &r&cCannot manage yourself."));
+                reader.send("world-manage-yourself", player);
+                player.closeInventory();
+                return;
+            }
+
+            if (users.get(id) == WorldRank.OWNER) {
+                reader.send("world-manage-higher-rank", player);
                 player.closeInventory();
                 return;
             }

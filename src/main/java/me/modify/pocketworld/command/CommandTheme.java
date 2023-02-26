@@ -5,7 +5,9 @@ import me.modify.pocketworld.theme.PocketTheme;
 import me.modify.pocketworld.theme.creation.ThemeCreationRegistry;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.util.InteractiveText;
+import me.modify.pocketworld.util.PocketPermission;
 import me.modify.pocketworld.util.PocketUtils;
+import me.modify.pocketworld.util.MessageReader;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
 import org.bukkit.command.CommandSender;
@@ -35,23 +37,43 @@ public class CommandTheme extends BukkitCommand {
         int length = args.length;
 
         if (length > 0) {
+            MessageReader reader = plugin.getMessageReader();
             if (args[0].equalsIgnoreCase("create")) {
+
+                // Check player has permission to create themes.
+                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_CREATE)) {
+                    reader.send("insufficient-permissions", player);
+                    return true;
+                }
+
                 ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId());
             } else if (args[0].equalsIgnoreCase("manage") || args[0].equalsIgnoreCase("list")) {
+
+                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_MANAGE)) {
+                    reader.send("insufficient-permissions", player);
+                    return true;
+                }
+
                 printThemeManage(player);
+                return true;
             } else if (args[0].equalsIgnoreCase("import")) {
                 //TODO: Implement theme importing
                 return true;
             } else if (args[0].equalsIgnoreCase("delete")) {
+
+                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_MANAGE)) {
+                    reader.send("insufficient-permissions", player);
+                    return true;
+                }
+
                 if (length != 2) {
-                    player.sendMessage(ColorFormat.format("&4&lERROR &r&cInvalid syntax. Usage: /theme delete <id>"));
+                    reader.send("invalid-usage", player, "{USAGE}:/theme delete <id>");
                     return true;
                 }
 
                 String idRaw = args[1];
                 if (!PocketUtils.isUUID(idRaw)) {
-                    player.sendMessage(ColorFormat.format("&4&lERROR &r&cFailed to delete theme. " +
-                            "Theme ID '" + idRaw + "' is not a UUID. "));
+                    reader.send("theme-delete-not-uuid", player, "{ID}:" + idRaw);
                     return true;
                 }
 
@@ -66,17 +88,18 @@ public class CommandTheme extends BukkitCommand {
 
         }
 
+        plugin.getMessageReader().send("invalid-usage", player, "{USAGE}:" + getUsage());
         return false;
     }
 
+    @SuppressWarnings("deprecation")
     private void printThemeManage(Player player) {
         List<PocketTheme> themes = plugin.getThemeRegistry().getThemes();
 
         player.sendMessage(ColorFormat.format("&8&m------------------------------"));
         player.sendMessage(ColorFormat.format("&6&lPocketThemes"));
         player.sendMessage(" ");
-        for (int i = 0; i < themes.size(); i++) {
-            PocketTheme theme = themes.get(i);
+        for (PocketTheme theme : themes) {
             InteractiveText interactiveText = new InteractiveText.Builder(theme.getName())
                     .color(ChatColor.YELLOW)
                     .hoverText(theme.getId().toString(), ChatColor.GRAY, false, true)
@@ -94,7 +117,7 @@ public class CommandTheme extends BukkitCommand {
                     .hoverText("Click to edit theme.", ChatColor.GRAY, false, false)
                     .build();
 
-
+            // Send player a message with the appended delete button and edit button onto original theme name text.
             player.spigot().sendMessage(interactiveText.append(deleteButton, editButton));
         }
 

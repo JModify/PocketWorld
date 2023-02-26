@@ -43,7 +43,9 @@ public class SendInviteMenu extends PocketAnvilMenu {
                         return AnvilGUI.Response.text("Already Invited!");
                     }
 
-                    world.sendInvitation(plugin, target);
+
+
+                    world.sendInvitation(plugin, player, target);
                     player.closeInventory();
                     return AnvilGUI.Response.close();
                 })

@@ -2,7 +2,6 @@ package me.modify.pocketworld.ui.world_menus.management;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketMenu;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Material;
@@ -42,7 +41,7 @@ public class DeleteWorldConfirmationMenu extends PocketMenu {
                 .material(Material.LIME_WOOL)
                 .displayName("&a&lConfirm")
                 .lore(List.of("&aClick to confirm deletion of this PocketWorld", " ",
-                        "&7Note: Deleting a PocketWorld is permanent and", "&7the world cannot be recovered &7All ",
+                        "&7Note: Deleting a PocketWorld is permanent and", "&7the world cannot be recovered. &7All ",
                         "&7members of this world will be unable ", "&7to access it indefinitely."))
                 .tag("world-confirm-delete")
                 .build().get();
@@ -81,9 +80,10 @@ public class DeleteWorldConfirmationMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("world-cancel-delete")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("world-confirm-delete")) {
+            world.announce(plugin.getMessageReader().read("world-deleted",
+                    "{PLAYER}:" + player.getName(),
+                    "{WORLD_NAME}:" + world.getWorldName()));
             world.delete(plugin);
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPocketWorld '" + world.getWorldName()
-                    + "' deleted."));
             player.closeInventory();
         }
 

@@ -73,7 +73,7 @@ public class ThemeCreationListener implements Listener {
             ThemeCreationController controller = registry.getController(player.getUniqueId());
             controller.setSpawnPoint(formattedLocation);
 
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aDefault spawn point for this theme has been set"));
+            plugin.getMessageReader().send("theme-spawn-set", player);
             controller.nextState();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-cancel-theme")) {
             ThemeCreationRegistry registry = ThemeCreationRegistry.getInstance();

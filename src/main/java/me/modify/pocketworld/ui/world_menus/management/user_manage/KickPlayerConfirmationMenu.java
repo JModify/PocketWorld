@@ -4,7 +4,6 @@ import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.ui.PocketMenu;
 import me.modify.pocketworld.user.PocketUser;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -85,19 +84,21 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("player-cancel-kick")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("player-confirm-kick")) {
-            world.getUsers().remove(userToKick.getId());
 
+            world.announce(plugin.getMessageReader().read("world-kick-player",
+                    "{PLAYER}:" + player.getName(),
+                    "{TARGET}:" + Bukkit.getOfflinePlayer(userToKick.getId()).getName(),
+                    "{WORLD_NAME}:" + world.getWorldName()));
+
+            world.getUsers().remove(userToKick.getId());
             userToKick.removeWorld(world.getId());
 
             if (userToKick.isInPocketWorld(plugin, world.getId())) {
                 World defaultWorld = Bukkit.getWorlds().get(0);
-
                 // Player is never null, checked in user.isInPocketWorld method.
                 Bukkit.getPlayer(userToKick.getId()).teleport(defaultWorld.getSpawnLocation());
             }
 
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPlayer '" + userToKick.getName() +
-                    "' kicked from the world."));
             player.closeInventory();
         }
 

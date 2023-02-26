@@ -5,8 +5,10 @@ import me.modify.pocketworld.ui.PocketMenu;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.ui.PocketItem;
+import me.modify.pocketworld.util.MessageReader;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -111,8 +113,7 @@ public class PlayerSetRankMenu extends PocketMenu {
         WorldRank rank = world.getUsers().get(userToSetRank.getId());
         String name = userToSetRank.getName();
 
-        //TODO: Announce rank updates to online world members
-
+        MessageReader reader = plugin.getMessageReader();
         if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("set-rank-member")) {
@@ -122,7 +123,11 @@ public class PlayerSetRankMenu extends PocketMenu {
             player.closeInventory();
 
             world.getUsers().put(userToSetRank.getId(), WorldRank.MEMBER);
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MEMBER"));
+            world.announce(reader.read("world-rank-set",
+                    "{PLAYER}:" + player.getName(),
+                    "{TARGET}:" + Bukkit.getOfflinePlayer(userToSetRank.getId()).getName(),
+                    "{RANK}:" + WorldRank.MEMBER.name(),
+                    "{WORLD_NAME}:" + world.getWorldName()));
         } else if (tag.equalsIgnoreCase("set-rank-mod")) {
             if (rank == WorldRank.MOD) {
                 player.sendMessage(ColorFormat.format("&4&lERROR &r&cUser is already a MOD"));
@@ -132,13 +137,21 @@ public class PlayerSetRankMenu extends PocketMenu {
             player.closeInventory();
 
             world.getUsers().put(userToSetRank.getId(), WorldRank.MOD);
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aRank of user '" + name + "' set to MOD"));
+            world.announce(reader.read("world-rank-set",
+                    "{PLAYER}:" + player.getName(),
+                    "{TARGET}:" + Bukkit.getOfflinePlayer(userToSetRank.getId()).getName(),
+                    "{RANK}:" + WorldRank.MOD.name(),
+                    "{WORLD_NAME}:" + world.getWorldName()));
+
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
             player.closeInventory();
             world.getUsers().put(userToSetRank.getId(), WorldRank.OWNER);
             world.getUsers().put(player.getUniqueId(), WorldRank.MOD);
 
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aWorld owner transferred to '" + name + "'"));
+            world.announce(reader.read("world-leadership-transfer",
+                    "{PLAYER}:" + player.getName(),
+                    "{WORLD_NAME}:" + world.getWorldName(),
+                    "{TARGET}:" + Bukkit.getOfflinePlayer(userToSetRank.getId()).getName()));
         }
     }
 }

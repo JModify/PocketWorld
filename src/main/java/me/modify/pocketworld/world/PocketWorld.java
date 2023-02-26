@@ -14,6 +14,7 @@ import lombok.Setter;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.ColorFormat;
+import me.modify.pocketworld.util.MessageReader;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.Listener;
@@ -145,8 +146,8 @@ public class PocketWorld implements Listener {
                             Player loader = Bukkit.getPlayer(loaderId);
                             if (loader != null) {
                                 if (shouldNotify) {
-                                    loader.sendMessage(ColorFormat.format("&aWorld successfully loaded in "
-                                            + time + "ms"));
+                                    plugin.getMessageReader().send("world-load-success", loader,
+                                            "{TIME}:" + time);
                                 }
                                 // Grab the bukkit world, should never be null since load and generation passed.
                                 World bukkitWorld = Bukkit.getWorld(id.toString());
@@ -262,17 +263,24 @@ public class PocketWorld implements Listener {
         player.teleport(worldSpawn.getBukkitLocation(world));
     }
 
-    public void sendInvitation(PocketWorldPlugin plugin, Player target) {
-        invitations.put(target.getUniqueId(), target.getUniqueId());
+    public void sendInvitation(PocketWorldPlugin plugin, Player sender, Player target) {
+        invitations.put(target.getUniqueId(), sender.getUniqueId());
 
         PocketUser user = plugin.getUserCache().readThrough(target.getUniqueId());
         user.getInvitations().add(id);
 
-        announce("&2&lPocketWorld &a" + target.getName() + " invited " + target.getName()
-                + " to world '" + worldName + "'.");
+        MessageReader reader = plugin.getMessageReader();
 
-        target.sendMessage(ColorFormat.format("&2&lPocketWorld &a" + target.getName() + " invited you to join "
-                + worldName + ". Use /pocketworld to accept or decline."));
+        // Announce to pocket world a new invitation.
+        announce(reader.read("world-invite-sent", "{PLAYER}:" + sender.getName(),
+                "{TARGET}:" + target.getName(), "{WORLD_NAME}:" + worldName));
+
+        // Send invite receive message to target
+        reader.send("world-invite-received", target, "{WORLD_NAME}:" + worldName);
+    }
+
+    public void revokeInvitation(UUID targetId) {
+        invitations.remove(targetId);
     }
 
     /**

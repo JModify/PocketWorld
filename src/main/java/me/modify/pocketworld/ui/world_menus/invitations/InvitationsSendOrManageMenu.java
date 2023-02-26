@@ -99,7 +99,7 @@ public class InvitationsSendOrManageMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("is-send-invite")) {
             WorldRank playerRank = world.getUsers().get(player.getUniqueId());
             if (playerRank != WorldRank.OWNER && playerRank != WorldRank.MOD) {
-                player.sendMessage(ColorFormat.format("&4&lERROR &cInsufficient world permissions."));
+                plugin.getMessageReader().send("insufficient-world-rank", player);
                 player.closeInventory();
                 return;
             }

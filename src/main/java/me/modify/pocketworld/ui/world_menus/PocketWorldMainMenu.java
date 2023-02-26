@@ -74,7 +74,7 @@ public class PocketWorldMainMenu extends PocketMenu {
                 .material(Material.BOOK)
                 .glow(true)
                 .displayName("&aWorld Invitations")
-                .lore(List.of("&7Accept/decline world invitations.", "&8Pending Invitations: " + invitationsCount))
+                .lore(List.of("&7Accept/decline world invitations.", " ", "&8Pending Invitations: " + invitationsCount))
                 .tag("world-invitations-icon")
                 .build().get();
 
@@ -111,7 +111,7 @@ public class PocketWorldMainMenu extends PocketMenu {
             int worldCount = worlds.size();
 
             if (worldCount >= maxWorlds) {
-                player.sendMessage(ColorFormat.format("&4&lERROR &r&cMaximum PocketWorld's reached."));
+                plugin.getMessageReader().send("world-creation-max-worlds", player);
                 player.closeInventory();
                 return;
             }
@@ -132,7 +132,6 @@ public class PocketWorldMainMenu extends PocketMenu {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        plugin.getDebugger().severe("Called open IncomingInvitationsMenu");
                         IncomingInvitationsMenu incomingInvitationsMenu = new IncomingInvitationsMenu(player, plugin,
                                 incomingInvitations, PocketWorldMainMenu.this);
                         incomingInvitationsMenu.open();
@@ -158,7 +157,6 @@ public class PocketWorldMainMenu extends PocketMenu {
                     }
 
                     invitedWorldsConsumer.accept(invitedWorlds);
-                    plugin.getDebugger().severe("Accepted consumer");
                 }
             }.runTaskAsynchronously(plugin);
 

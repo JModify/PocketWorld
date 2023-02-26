@@ -1,14 +1,14 @@
 package me.modify.pocketworld.listener;
 
-import com.mongodb.client.model.Updates;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
-import me.modify.pocketworld.event.PlayerDisconnectEvent;
 import me.modify.pocketworld.user.PocketUserInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.*;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.UUID;
 
@@ -43,7 +43,6 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.getDebugger().severe("PlayerQuitEvent Called!");
         plugin.getUserCache().handleDisconnection(event.getPlayer());
     }
 

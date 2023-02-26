@@ -3,6 +3,7 @@ package me.modify.pocketworld.command;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.world_menus.PocketWorldMainMenu;
 import me.modify.pocketworld.user.PocketUser;
+import me.modify.pocketworld.util.PocketPermission;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
@@ -22,6 +23,7 @@ public class CommandPocketWorld extends BukkitCommand {
     public CommandPocketWorld(PocketWorldPlugin plugin) {
         super("pocketworld");
         setAliases(List.of("pw"));
+        setUsage("/pocketworld");
         this.plugin = plugin;
     }
 
@@ -29,12 +31,19 @@ public class CommandPocketWorld extends BukkitCommand {
     public boolean execute(@NotNull CommandSender sender, @NotNull String label, @NotNull String[] args) {
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Must be a player to execute this command.");
+            plugin.getMessageReader().send("must-be-player", sender);
             return true;
         }
 
         int length = args.length;
         if (length == 0) {
+
+            // Check player has permission to use PocketWorld.
+            if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_DEFAULT)) {
+                plugin.getMessageReader().send("insufficient-permissions", player);
+                return true;
+            }
+
             // After retrieving all worlds the user is associated too, open the menu synchronously using this list.
             Consumer<List<PocketWorld>> worldsConsumer = worlds -> {
                 new BukkitRunnable() {
@@ -69,12 +78,11 @@ public class CommandPocketWorld extends BukkitCommand {
                     worldsConsumer.accept(worlds);
                 }
             }.runTaskAsynchronously(plugin);
-        } else {
 
-            String argument = args[0];
-
+            return true;
         }
 
+        plugin.getMessageReader().send("invalid-usage", player, "{USAGE}:" + getUsage());
         return false;
     }
 }

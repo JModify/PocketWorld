@@ -3,8 +3,8 @@ package me.modify.pocketworld.ui.world_menus.management;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.ui.PocketMenu;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.ui.PocketItem;
+import me.modify.pocketworld.util.MessageReader;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -111,15 +111,15 @@ public class WorldPropertiesMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("property-spawn-point")) {
             Location playerLoc = player.getLocation();
 
+            MessageReader reader = plugin.getMessageReader();
             if (playerLoc.getWorld() == null || !playerLoc.getWorld().getName().equals(world.getId().toString())) {
-                player.sendMessage(ColorFormat.format("&4&lERROR &r&cFailed to set world spawn point. " +
-                        "You are not currently inside this pocket world!"));
+                reader.send("world-set-spawn-outside", player);
                 return;
             }
 
             world.setWorldSpawn(playerLoc);
             player.closeInventory();
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aPocket world spawn set to your location."));
+            reader.send("world-set-spawn-success", player);
         } else if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         }

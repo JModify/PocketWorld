@@ -3,7 +3,6 @@ package me.modify.pocketworld.ui.world_menus.management;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.PocketMenu;
 import me.modify.pocketworld.user.PocketUser;
-import me.modify.pocketworld.util.ColorFormat;
 import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.world.PocketWorld;
 import org.bukkit.Material;
@@ -81,13 +80,15 @@ public class LeaveWorldConfirmationMenu extends PocketMenu {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("world-confirm-leave")) {
 
+            world.announce(plugin.getMessageReader().read("world-player-leave",
+                    "{PLAYER}:" + player.getName(),
+                    "{WORLD_NAME}:" + world.getWorldName()));
+
             // Remove user from world then update the world
             world.getUsers().remove(player.getUniqueId());
 
             PocketUser user = plugin.getUserCache().readThrough(player.getUniqueId());
             user.removeWorld(world.getId());
-
-            player.sendMessage(ColorFormat.format("&2&lSUCCESS &r&aYou left PocketWorld " + world.getWorldName()));
             player.closeInventory();
         }
 

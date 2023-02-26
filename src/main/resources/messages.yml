@@ -1,0 +1,114 @@
+prefixes:
+  error: "&#fb0000&lE&#fc1313&lR&#fc2727&lR&#fd3a3a&lO&#fd4d4d&lR &7&l➤ "
+  success: "&#05fb00&lS&#1efb18&lU&#36fc30&lC&#4ffc48&lC&#67fc5f&lE&#80fd77&lS&#98fd8f&lS &7&l➤ "
+  general: "&#084cfb&lP&#195dfb&lo&#296dfb&lc&#3a7efc&lk&#4a8ffc&le&#5ba0fc&lt&#6bb0fc&lW&#7cc1fc&lo&#8cd2fd&lr&#9de2fd&ll&#adf3fd&ld &7&l➤ "
+
+messages:
+  # ----------------- GENERAL PLUGIN MESSAGES -----------------
+  #
+  # Sent when a command sender attempts to send a player ONLY command.
+  must-be-player:
+    type: "error"
+    message: "&cYou must be a player to execute this command."
+  # Sent when a user attempts to run a command/perform an action they dont have the permission node for.
+  insufficient-permissions:
+    type: "error"
+    message: "&cInsufficient Permissions!"
+  # Sent when a user attempts to perform a world management action which their rank doesn't permit.
+  insufficient-world-rank:
+    type: "error"
+    message: "&cInsufficient world rank."
+  # Sent when a user sends a command in the wrong syntax/usage.
+  invalid-usage:
+    type: "error"
+    message: "&cInvalid syntax. Usage: {USAGE}"
+  plugin-reloaded:
+    type: "success"
+    message: "&aReloaded all configuration files."
+  # ----------------- THEME RELATED MESSAGES -----------------
+  #
+  # Sent when a user attempts to run the /theme delete <ID> command but the ID is not a UUID
+  theme-delete-not-uuid:
+    type: "error"
+    message: "&cFailed to delete theme. Theme ID '{ID}' is not a UUID."
+  # Sent when a user successfully generates an editor world for a theme they are creating
+  theme-editor-world-generated:
+    type: "raw"
+    message: "&aSuccessfully generated editor world in {TIME}ms."
+  # Sent when a user successfully sets the spawn point for a theme they are creating/editing.
+  theme-spawn-set:
+    type: "success"
+    message: "&aDefault spawn point for this theme has been set to your location."
+  # Sent when a user successfully finishes the creation process for a theme
+  theme-creation-complete:
+    type: "success"
+    message: "&aTheme {NAME} successfully created. Use /theme manage for further management."
+  # ----------------- WORLD RELATED MESSAGES -----------------
+  #
+  world-load-success:
+    type: "success"
+    message: "&aWorld loaded in {TIME}ms"
+  world-creation-max-worlds:
+    type: "error"
+    message: "&cMaximum PocketWorld's reached."
+  # Sent when a user is creating a new world and the world finished generating.
+  world-creation-complete:
+    type: "success"
+    message: "&aWorld created in {TIME}ms."
+  # Sent to a user when they attempt to manage themselves using "player management" sub menu.
+  world-manage-yourself:
+    type: "error"
+    message: "&cYou cannot manage yourself."
+  # Sent to a user when they attempt to manage another user of a higher world rank using "player management" sub menu.
+  world-manage-higher-rank:
+    type: "error"
+    message: "&cThis user is of a higher world rank and cannot be managed."
+  # Sent as a world announcement when a user is invited to the world.
+  world-invite-sent:
+    type: "general"
+    message: "&b{PLAYER} invited {TARGET} to world '{WORLD_NAME}'!"
+  # Sent to a user when they receive a new world invitation.
+  world-invite-received:
+    type: "general"
+    message: "&bYou received a world invite to '{WORLD_NAME}'. Use /pw to respond."
+  # Sent to the player when they decline a world invitation.
+  world-invite-decline:
+    type: "general"
+    message: "&bDeclined world invitation from world '{WORLD_NAME}'."
+  # Sent as a world announcement when a user declines a world invitation.
+  world-announce-invite-decline:
+    type: "general"
+    message: "&b{PLAYER} declined an invite to world '{WORLD_NAME}'."
+  # Sent as a world announcement when a user accepts a world invitation.
+  world-announce-invite-accept:
+    type: "general"
+    message: "&b{PLAYER} joined the world '{WORLD_NAME}'."
+  # Sent as a world announcement when a player kicks another player from the world.
+  world-kick-player:
+    type: "general"
+    message: "&b{PLAYER} kicked {TARGET} from world '{WORLD_NAME}'!"
+  # Sent as a world announcement when a player sets the rank of another player.
+  world-rank-set:
+    type: "general"
+    message: "&b{PLAYER} set the rank of {TARGET} to {RANK} in world '{WORLD_NAME}'."
+  # Sent as a world announcement when a world mod/owner sets the rank of another user.
+  world-leadership-transfer:
+    type: "general"
+    message: "&b{PLAYER} transferred leadership of world '{WORLD_NAME}' to {TARGET}."
+  # Sent as a world announcement when the world owner deletes a pocket world.
+  world-deleted:
+    type: "general"
+    message: "&b{PLAYER} deleted world '{WORLD_NAME}'."
+  # Sent as a world announcement when a player leaves a pocket world.
+  world-player-leave:
+    type: "general"
+    message: "&b{PLAYER} left the world '{WORLD_NAME}'."
+  # Sent to a user upon successful spawn point set.
+  world-set-spawn-success:
+    type: "success"
+    message: "&aPocket world spawn set to your location."
+  # Sent to a user when they attempt to set a pocket world spawn when they are not inside that world.
+  world-set-spawn-outside:
+    type: "error"
+    message: "&cFailed to set world spawn point. You are not currently inside this PocketWorld!"
+

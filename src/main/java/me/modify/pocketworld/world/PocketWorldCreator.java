@@ -7,7 +7,6 @@ import com.grinderwolf.swm.api.world.SlimeWorld;
 import com.grinderwolf.swm.api.world.properties.SlimePropertyMap;
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.theme.PocketTheme;
-import me.modify.pocketworld.util.ColorFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -80,7 +79,8 @@ public class PocketWorldCreator {
                         // Check if the creator of the world is online.
                         Player creator = Bukkit.getPlayer(creatorId);
                         if (creator != null) {
-                            creator.sendMessage(ColorFormat.format("&aWorld successfully created in " + time + "ms"));
+                            plugin.getMessageReader().send("world-creation-complete",
+                                    creator, "{TIME}:" + time);
 
                             // Grab the bukkit world, should never be null since load and generation passed.
                             World bWorld = Bukkit.getWorld(worldId.toString());

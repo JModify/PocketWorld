@@ -5,10 +5,9 @@ import me.modify.pocketworld.ui.PocketItem;
 import me.modify.pocketworld.ui.PocketPaginatedMenu;
 import me.modify.pocketworld.ui.world_menus.PocketWorldMainMenu;
 import me.modify.pocketworld.user.PocketUser;
-import me.modify.pocketworld.util.ColorFormat;
+import me.modify.pocketworld.util.MessageReader;
 import me.modify.pocketworld.world.PocketWorld;
 import me.modify.pocketworld.world.WorldRank;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -101,18 +100,33 @@ public class IncomingInvitationsMenu extends PocketPaginatedMenu {
                 return;
             }
 
+            MessageReader reader = plugin.getMessageReader();
+
             PocketWorld world = optionalWorld.get();
             PocketUser user = plugin.getUserCache().readThrough(player.getUniqueId());
             if (e.getClick() == ClickType.RIGHT) {
                 // User declines invitation
                 world.getInvitations().remove(player.getUniqueId());
                 user.getInvitations().remove(world.getId());
+
+                // Send announcement to player saying that they declined invitation.
+                reader.send("world-invite-decline", player, "{WORLD_NAME}:" + world.getWorldName());
+
+                // Send announcement to world saying the user declined invitation.
+                world.announce(reader.read("world-announce-invite-decline",
+                        "{PLAYER}:" + player.getName(),
+                        "{WORLD_NAME}:" + world.getWorldName()));
             } else if (e.getClick() == ClickType.LEFT) {
                 // Player accepts invitation
                 world.getInvitations().remove(player.getUniqueId());
                 world.getUsers().put(player.getUniqueId(), WorldRank.MEMBER);
                 user.getInvitations().remove(world.getId());
                 user.getWorlds().add(world.getId());
+
+                // Only need to send announcement to world since player is now a member of the world.
+                world.announce(reader.read("world-announce-invite-accept",
+                        "{PLAYER}:" + player.getName(),
+                        "{WORLD_NAME}:" + world.getWorldName()));
             }
 
             player.closeInventory();

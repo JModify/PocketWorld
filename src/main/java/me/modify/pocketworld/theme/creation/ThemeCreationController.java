@@ -223,7 +223,10 @@ public class ThemeCreationController {
                 player.getInventory().setHeldItemSlot(1);
                 this.state = ThemeCreationState.BUILDING;
             }
-            case BUILDING -> completeCreation();
+            case BUILDING -> {
+                plugin.getMessageReader().send("theme-creation-complete", player, "{NAME}:" + name);
+                completeCreation();
+            }
         }
 
     }
@@ -268,7 +271,8 @@ public class ThemeCreationController {
 
                 long time = System.currentTimeMillis() - startTime;
                 if (player != null) {
-                    player.sendMessage(ColorFormat.format("&aSuccessfully generated editor world in " + time + "ms"));
+                    plugin.getMessageReader().send("theme-editor-world-generated",
+                            player, "{TIME}:" + time);
                     player.teleport(new Location(world, 0, 66, 0));
                 }
                 nextState();

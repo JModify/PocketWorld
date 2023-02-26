@@ -4,12 +4,10 @@ import com.grinderwolf.swm.api.SlimePlugin;
 import lombok.Getter;
 import me.modify.pocketworld.cache.UserCache;
 import me.modify.pocketworld.cache.WorldCache;
-import me.modify.pocketworld.command.CommandPocketWorld;
-import me.modify.pocketworld.command.CommandTest;
-import me.modify.pocketworld.command.CommandTheme;
-import me.modify.pocketworld.command.CommandUtil;
+import me.modify.pocketworld.command.*;
 import me.modify.pocketworld.data.DataSource;
 import me.modify.pocketworld.data.config.ConfigFile;
+import me.modify.pocketworld.data.config.MessageFile;
 import me.modify.pocketworld.data.mongo.MongoConnection;
 import me.modify.pocketworld.data.mysql.MySQLConnection;
 import me.modify.pocketworld.exceptions.DataSourceConnectionException;
@@ -22,6 +20,7 @@ import me.modify.pocketworld.loaders.MongoLoader;
 import me.modify.pocketworld.loaders.ThemeLoader;
 import me.modify.pocketworld.theme.ThemeRegistry;
 import me.modify.pocketworld.util.PocketDebugger;
+import me.modify.pocketworld.util.MessageReader;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -29,7 +28,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class PocketWorldPlugin extends JavaPlugin {
 
     @Getter private DataSource dataSource;
+
+    /** File containing all configurations for the plugin */
     @Getter private ConfigFile configFile;
+
+    /** File containing all messages sent to user from the plugin */
+    @Getter private MessageFile messageFile;
+
+    @Getter private MessageReader messageReader;
 
     @Getter private SlimeHook slimeHook;
 
@@ -49,6 +55,9 @@ public class PocketWorldPlugin extends JavaPlugin {
         slimeHook.hook();
 
         configFile = new ConfigFile(this);
+        messageFile = new MessageFile(this);
+        messageReader = new MessageReader(this, messageFile);
+
         userCache = new UserCache(this);
         worldCache = new WorldCache(this);
 
@@ -72,6 +81,7 @@ public class PocketWorldPlugin extends JavaPlugin {
         CommandUtil.registerCommand(new CommandTest(this));
         CommandUtil.registerCommand(new CommandTheme(this));
         CommandUtil.registerCommand(new CommandPocketWorld(this));
+        CommandUtil.registerCommand(new CommandPocketWorldAdmin(this));
     }
 
     private void registerListeners() {
