@@ -2,6 +2,7 @@ package me.modify.pocketworld.command;
 
 import me.modify.pocketworld.PocketWorldPlugin;
 import me.modify.pocketworld.ui.world_menus.PocketWorldMainMenu;
+import me.modify.pocketworld.ui.world_menus.invitations.IncomingInvitationsMenu;
 import me.modify.pocketworld.user.PocketUser;
 import me.modify.pocketworld.util.PocketPermission;
 import me.modify.pocketworld.world.PocketWorld;
@@ -45,15 +46,8 @@ public class CommandPocketWorld extends BukkitCommand {
             }
 
             // After retrieving all worlds the user is associated too, open the menu synchronously using this list.
-            Consumer<List<PocketWorld>> worldsConsumer = worlds -> {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        PocketWorldMainMenu menu = new PocketWorldMainMenu(player, plugin, worlds);
-                        menu.open();
-                    }
-                }.runTask(plugin);
-            };
+            Consumer<List<PocketWorld>> worldsConsumer = worlds -> plugin.getServer().getScheduler().runTask(plugin,
+                    () -> new PocketWorldMainMenu(player, plugin, worlds).open());
 
             // Asynchronously retrieve all worlds the user is associated too.
             // Accept consumer with that list of worlds when done.

@@ -34,7 +34,7 @@ public abstract class PocketCache<T> {
     }
 
     /**
-     * Adopts reach through strategy to return data from the cache if it exists,
+     * Adopts reach through caching strategy to return data from the cache if it exists,
      * otherwise queries the data source for the item under the given ID, returns it then stores in cache
      * on the way back.
      * @param itemId id of item to get

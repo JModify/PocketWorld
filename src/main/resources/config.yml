@@ -18,6 +18,8 @@ mysql:
 general:
   # Maximum amount of worlds a player can be a part of.
   max-worlds: 5
+  # Difficulty all pocket worlds are set too.
+  world-difficulty: "normal"
 
 
 

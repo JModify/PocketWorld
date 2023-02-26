@@ -67,6 +67,9 @@ messages:
   world-invite-sent:
     type: "general"
     message: "&b{PLAYER} invited {TARGET} to world '{WORLD_NAME}'!"
+  world-invite-revoke:
+    type: "general"
+    message: "&b{PLAYER} revoked invitation to {TARGET} from world '{WORLD_NAME}'!"
   # Sent to a user when they receive a new world invitation.
   world-invite-received:
     type: "general"
@@ -74,7 +77,7 @@ messages:
   # Sent to the player when they decline a world invitation.
   world-invite-decline:
     type: "general"
-    message: "&bDeclined world invitation from world '{WORLD_NAME}'."
+    message: "&bYou declined the invitation for world '{WORLD_NAME}'."
   # Sent as a world announcement when a user declines a world invitation.
   world-announce-invite-decline:
     type: "general"

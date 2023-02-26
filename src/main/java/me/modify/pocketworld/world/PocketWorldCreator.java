@@ -47,7 +47,7 @@ public class PocketWorldCreator {
         plugin.getUserCache().readThrough(creatorId).addWorld(world.getId());
 
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimePropertyMap properties = world.getPropertyMap();
+        SlimePropertyMap properties = world.getPropertyMap(plugin);
         SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
 
         // Asynchronously clone and load world.

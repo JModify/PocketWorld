@@ -95,7 +95,6 @@ public class IncomingInvitationsMenu extends PocketPaginatedMenu {
 
             plugin.getDebugger().severe(String.valueOf(invitedWorlds.size()));
             Optional<PocketWorld> optionalWorld = invitedWorlds.stream().filter(w -> w.getId().equals(worldID)).findFirst();
-
             if (optionalWorld.isEmpty()) {
                 return;
             }

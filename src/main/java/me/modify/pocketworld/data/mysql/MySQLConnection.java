@@ -5,6 +5,7 @@ import me.modify.pocketworld.data.Connection;
 import me.modify.pocketworld.data.DAO;
 import me.modify.pocketworld.exceptions.DataSourceConnectionException;
 
+//TODO: Implement MySQL support.
 public class MySQLConnection implements Connection {
 
     private final PocketWorldPlugin plugin;

@@ -125,11 +125,7 @@ public class OutgoingInvitationsMenu extends PocketPaginatedMenu {
                 return;
             }
 
-            world.getInvitations().remove(recipientId);
-
-            PocketUser user = plugin.getUserCache().readThrough(recipientId);
-            user.getInvitations().remove(world.getId());
-
+            world.revokeInvitation(plugin, player, recipientId);
             open();
         }
     }

@@ -15,7 +15,6 @@ import java.util.logging.Level;
  * Represents the connection to MongoDB if MongoDB is used as a data source.
  */
 public class MongoConnection implements Connection {
-
     @Getter
     private MongoClient mongoClient;
 

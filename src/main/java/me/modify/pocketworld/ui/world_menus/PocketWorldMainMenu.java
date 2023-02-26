@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class PocketWorldMainMenu extends PocketMenu {
 
@@ -69,12 +70,11 @@ public class PocketWorldMainMenu extends PocketMenu {
                 .tag("world-teleportation-icon")
                 .build().get();
 
-        int invitationsCount = plugin.getUserCache().readThrough(player.getUniqueId()).getInvitations().size();
         ItemStack invitations = new PocketItem.Builder(plugin)
                 .material(Material.BOOK)
                 .glow(true)
                 .displayName("&aWorld Invitations")
-                .lore(List.of("&7Accept/decline world invitations.", " ", "&8Pending Invitations: " + invitationsCount))
+                .lore(List.of("&7Accept/decline world invitations."))
                 .tag("world-invitations-icon")
                 .build().get();
 
@@ -126,19 +126,11 @@ public class PocketWorldMainMenu extends PocketMenu {
             teleportMainMenu.open();
         } else if (tag.equalsIgnoreCase("world-invitations-icon")) {
 
-            plugin.getUserCache().readThrough(player.getUniqueId()).getInvitations().forEach(u -> plugin.getDebugger().severe(u.toString()));
+            // Once all worlds (the player is invited too) has been retrieved, open the IncomingInvitationsMenu sync.
+            Consumer<List<PocketWorld>> worldsConsumer = invites -> plugin.getServer().getScheduler().runTask(plugin,
+                    () -> new IncomingInvitationsMenu(player, plugin, invites, this).open());
 
-            Consumer<List<PocketWorld>> invitedWorldsConsumer = incomingInvitations -> {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        IncomingInvitationsMenu incomingInvitationsMenu = new IncomingInvitationsMenu(player, plugin,
-                                incomingInvitations, PocketWorldMainMenu.this);
-                        incomingInvitationsMenu.open();
-                    }
-                }.runTask(plugin);
-            };
-
+            // Asynchronously get all the worlds the user is invited too and accept consumer once compiled into a list.
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -150,13 +142,13 @@ public class PocketWorldMainMenu extends PocketMenu {
                         if (world != null) {
                             invitedWorlds.add(plugin.getWorldCache().readThrough(worldInvited));
                         } else {
-                            // If it is null, it has been deleted and so user reference to it should be removed.
-                            // World is also not included in list f invited worlds.
+                            // If it is null, it has been deleted/revoked and so user reference to it should be removed.
+                            // World is also not included in list of invited worlds.
                             user.getInvitations().remove(worldInvited);
                         }
                     }
 
-                    invitedWorldsConsumer.accept(invitedWorlds);
+                    worldsConsumer.accept(invitedWorlds);
                 }
             }.runTaskAsynchronously(plugin);
 

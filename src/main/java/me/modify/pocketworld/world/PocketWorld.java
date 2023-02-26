@@ -88,9 +88,10 @@ public class PocketWorld implements Listener {
 
     /**
      * Retrieve the Slime property map related to this world.
+     * @param plugin main plugin instance
      * @return slime property map of this world's properties.
      */
-    public SlimePropertyMap getPropertyMap() {
+    public SlimePropertyMap getPropertyMap(PocketWorldPlugin plugin) {
         SlimePropertyMap propertyMap = new SlimePropertyMap();
 
         propertyMap.setValue(SlimeProperties.SPAWN_X, (int) worldSpawn.getX());
@@ -104,8 +105,15 @@ public class PocketWorld implements Listener {
         propertyMap.setValue(SlimeProperties.DEFAULT_BIOME, biome);
         propertyMap.setValue(SlimeProperties.PVP, pvp);
 
-        // TODO: Make this configurable
-        propertyMap.setValue(SlimeProperties.DIFFICULTY, "normal");
+        String difficulty = plugin.getConfigFile().getYaml().getString("world-difficulty", "normal");
+        if (!difficulty.equalsIgnoreCase("hard") && !difficulty.equalsIgnoreCase("easy")
+                && !difficulty.equalsIgnoreCase("peaceful")) {
+            plugin.getDebugger().warning("Configuration value for PocketWorld difficulty is invalid. " +
+                    "Entry must be one of the following: peaceful, easy, normal, hard.");
+            difficulty = "normal";
+        }
+        propertyMap.setValue(SlimeProperties.DIFFICULTY, difficulty);
+
         return propertyMap;
     }
 
@@ -119,7 +127,7 @@ public class PocketWorld implements Listener {
      */
     public void load(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify) {
         SlimePlugin slime = plugin.getSlimeHook().getAPI();
-        SlimePropertyMap properties = getPropertyMap();
+        SlimePropertyMap properties = getPropertyMap(plugin);
         SlimeLoader mongoLoader = slime.getLoader(plugin.getDataSource().getSlimeLoaderName());
 
         // Asynchronously load the world
@@ -214,7 +222,7 @@ public class PocketWorld implements Listener {
 
         World bWorld = Bukkit.getWorld(id.toString());
         if (bWorld == null) {
-            plugin.getDebugger().severe("Failed to unload world " + id.toString() + ". " +
+            plugin.getDebugger().severe("Failed to unload world " + id + ". " +
                     "Bukkit world for this world does not exist, world might be unloaded?");
             return;
         }
@@ -254,7 +262,14 @@ public class PocketWorld implements Listener {
         plugin.getDebugger().severe("Successfully unlocked world " + id.toString());
     }
 
+    /**
+     * Teleports an online player to this pocket world.
+     * If the world is not loaded, nothing will be done.
+     * @param player
+     */
     public void teleport(Player player) {
+        if (!loaded) return;
+
         World world = Bukkit.getWorld(id.toString());
         if (world == null) {
             return;
@@ -263,6 +278,12 @@ public class PocketWorld implements Listener {
         player.teleport(worldSpawn.getBukkitLocation(world));
     }
 
+    /**
+     * Sends an invitation to join this pocket world to the target from the sender.
+     * @param plugin main plugin instance.
+     * @param sender player sending the invite.
+     * @param target target receiving the invite.
+     */
     public void sendInvitation(PocketWorldPlugin plugin, Player sender, Player target) {
         invitations.put(target.getUniqueId(), sender.getUniqueId());
 
@@ -279,8 +300,21 @@ public class PocketWorld implements Listener {
         reader.send("world-invite-received", target, "{WORLD_NAME}:" + worldName);
     }
 
-    public void revokeInvitation(UUID targetId) {
+    /**
+     * Revokes an invitation to this pocket world.
+     * @param plugin main plugin instance
+     * @param sender user revoking the invitation
+     * @param targetId target being revoked an invite.
+     */
+    public void revokeInvitation(PocketWorldPlugin plugin, Player sender, UUID targetId) {
         invitations.remove(targetId);
+
+        // Send revoke invitation message to all online world members.
+        MessageReader reader = plugin.getMessageReader();
+        announce(reader.read("world-invite-revoke",
+                "{PLAYER}:" + sender.getName(),
+                "{TARGET}:" + Bukkit.getOfflinePlayer(targetId).getName(),
+                "{WORLD_NAME}:" + worldName));
     }
 
     /**
