@@ -1,0 +1,60 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.pocketworld</groupId>
+  <artifactId>pocketworld-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>PocketWorld</name>
+  <description>Standalone Paper plugin implementing the Hypixel Slime Region Format for personal player worlds.</description>
+  <url>https://github.com/JModify/PocketWorld</url>
+
+  <modules>
+    <module>pocketworld-slime</module>
+    <module>pocketworld-plugin</module>
+  </modules>
+
+  <properties>
+    <!--
+      Bytecode target is 21, not 25: Paper 26.2 requires a Java 25 JVM to run, but Paper 1.21.x
+      (our other supported floor) only requires Java 21. A single plugin jar must run on both, and
+      newer JVMs can run older bytecode but not vice versa, so 21 is the compile target that works
+      everywhere we support. Build tooling itself may use any JDK >= 21.
+    -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <junit.version>5.11.4</junit.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

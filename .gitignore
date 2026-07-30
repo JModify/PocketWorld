@@ -1,0 +1,12 @@
+target/
+.idea/
+.claude/
+pocketworld-plugin/dependency-reduced-pom.xml
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.log
+run/
+server/

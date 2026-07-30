@@ -1,0 +1,51 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.pocketworld</groupId>
+    <artifactId>pocketworld-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>pocketworld-slime</artifactId>
+  <packaging>jar</packaging>
+
+  <name>PocketWorld Slime Engine</name>
+  <description>
+    Standalone Slime Region Format read/write, compression, Anvil import/export, and storage-backend
+    engine. Deliberately has no dependency on Bukkit/Paper/NMS so it can be built, tested, and reused
+    independently of the plugin runtime.
+  </description>
+
+  <dependencies>
+    <!-- NBT tree implementation: MIT licensed, not guaranteed present on every Paper build, so it is
+         shaded into the final plugin jar by pocketworld-plugin rather than assumed on the classpath. -->
+    <dependency>
+      <groupId>net.kyori</groupId>
+      <artifactId>adventure-nbt</artifactId>
+      <version>4.23.0</version>
+    </dependency>
+
+    <!-- Zstd compression, the codec the Slime format specifies. BSD-2-Clause. -->
+    <dependency>
+      <groupId>com.github.luben</groupId>
+      <artifactId>zstd-jni</artifactId>
+      <version>1.5.7-3</version>
+    </dependency>
+
+    <!-- Primitive-keyed maps for chunk-position lookups (avoids boxing millions of Long chunk keys). -->
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>8.5.16</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
