@@ -187,3 +187,43 @@ Each stage compiles, is tested, and is explained before moving on.
 - Each of stages 1–3 verified with `mvn test` in `pocketworld-slime` alone (no server needed).
 - Stage 4 onward verified by running a real Paper 26.2 server locally and exercising create/load/unload/clone/import through in-game commands.
 - Stages 6–7 additionally verified against a real Paper 1.21.x server instance, comparing world-load timing/behavior against the Anvil-shadow path to confirm the NMS bridge is actually faster and correct before recommending it as default for that version.
+
+## 14. Empirical Findings — Stage 4
+
+Several things below could not have been determined by reasoning about the documented Slime format
+or general Minecraft knowledge alone; they were only found by actually running a real Paper 26.2
+server, generating a world, and inspecting its files with the Stage 1/2 code itself. Recorded here
+because they're directly load-bearing for the Stage 7 NMS bridge, which will need to touch these
+same internals directly rather than go through `WorldCreator`.
+
+- **No explicit per-section Y field in the documented Slime format** - resolved by confirming real
+  vanilla sections carry an explicit `Y` byte tag as a sibling of `block_states`/`biomes`; the Slime
+  format's "block states nbt compound" field is understood to fold `Y` in alongside `block_states`
+  (`AnvilChunkConverter` implements this mapping).
+- **Entities live in a separate per-region file set** (`entities/*.mca`, keyed by
+  `Position`/`DataVersion`/`Entities`), not embedded in the main chunk - confirmed by summoning real
+  entities, forcing a save, and observing where they actually landed on disk (a transient `entities`
+  key briefly seen in an *un-generated* chunk was generation-pipeline scratch state, not the
+  persisted form - a wrong first guess corrected before it became a design decision).
+- **Minecraft 26.2 restructured on-disk world storage**: each dimension gets its own
+  `dimensions/<namespace>/<dimension>/{region,entities,data,paper-world.yml}` folder, and what used
+  to be one `level.dat` is now split across many small per-dimension `.dat` files (world-gen
+  settings, game rules, weather, raids, scheduled events, chunk tickets, world border) plus Paper's
+  own `data/paper/*.dat`. None of this is preserved or reconstructed by this plugin - `WorldCreator`'s
+  own parameters are relied on to synthesize sensible defaults, the same way chunk-level generation
+  bookkeeping (`Status`, `structures`, `PostProcessing`) is deliberately not preserved either.
+- **Secondary (non-default) worlds nest under the *primary* world's own `dimensions/` folder**,
+  keyed by the secondary world's name (`<primary>/dimensions/minecraft/<name>/`) - not their own
+  independent top-level folder the way classic Bukkit multi-world always worked. `AnvilShadowBridge`
+  does not try to predict or construct this path: it writes the classic `<container>/<name>/region`
+  layout and lets Paper's own `LegacyCraftBukkitWorldMigration` relocate it, which was confirmed (by
+  running it, not assumed) to fully relocate the data with no leftover. Reading a *live* world back
+  out uses `World#getWorldFolder()` directly, which reliably resolves to wherever the data actually
+  lives regardless of internal layout - Bukkit already abstracts this away once the world exists;
+  the only genuinely hard part is predicting a path *before* the world exists, which is exactly what
+  relying on the migration path sidesteps.
+- **Shading `zstd-jni` breaks it.** Its native library's exported JNI symbols are hardcoded to the
+  `com.github.luben.zstd` class names, so relocating the Java package causes `UnsatisfiedLinkError`
+  at the first native call - only surfaced by actually running the shaded jar on a real server, not
+  by anything `mvn package` checks. `zstd-jni` is deliberately excluded from `pocketworld-plugin`'s
+  shade relocations.

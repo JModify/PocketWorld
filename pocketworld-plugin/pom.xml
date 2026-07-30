@@ -76,10 +76,11 @@
                   <pattern>net.kyori.adventure.nbt</pattern>
                   <shadedPattern>com.pocketworld.libs.adventure.nbt</shadedPattern>
                 </relocation>
-                <relocation>
-                  <pattern>com.github.luben.zstd</pattern>
-                  <shadedPattern>com.pocketworld.libs.zstd</shadedPattern>
-                </relocation>
+                <!-- zstd-jni is deliberately NOT relocated: its native library's exported JNI symbols
+                     are hardcoded to the com.github.luben.zstd class names, so relocating the Java
+                     package breaks native method binding (UnsatisfiedLinkError) - confirmed by
+                     actually running the shaded jar, not assumed. This is a known limitation of
+                     shading JNI-based libraries in general, not something particular to our build. -->
                 <relocation>
                   <pattern>com.zaxxer.hikari</pattern>
                   <shadedPattern>com.pocketworld.libs.hikari</shadedPattern>

@@ -5,3 +5,8 @@ description: Personal player worlds, backed by a standalone Slime Region Format 
 author: Modify
 website: https://github.com/JModify/PocketWorld
 api-version: '1.21'
+commands:
+  pwtest:
+    description: "TEMPORARY Stage 4 smoke-test command, removed in Stage 5."
+    usage: "/<command> <import|create|load|unload|export> ..."
+
