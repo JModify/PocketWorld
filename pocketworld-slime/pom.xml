@@ -35,16 +35,51 @@
       <version>1.5.7-3</version>
     </dependency>
 
-    <!-- Primitive-keyed maps for chunk-position lookups (avoids boxing millions of Long chunk keys). -->
+    <!-- MySQL world-blob storage backend. -->
     <dependency>
-      <groupId>it.unimi.dsi</groupId>
-      <artifactId>fastutil</artifactId>
-      <version>8.5.16</version>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+      <version>6.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <version>9.3.0</version>
+    </dependency>
+
+    <!-- MongoDB world-blob storage backend (GridFS, so world size isn't bounded by the 16MB BSON
+         document limit). -->
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver-sync</artifactId>
+      <version>5.5.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Spins up real, ephemeral MySQL/MongoDB containers for the storage-backend contract tests,
+         so those tests exercise the real wire protocol/SQL dialect rather than an in-memory stand-in.
+         Requires a local Docker daemon; tests skip (not fail) when one isn't available. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>1.21.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mysql</artifactId>
+      <version>1.21.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mongodb</artifactId>
+      <version>1.21.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

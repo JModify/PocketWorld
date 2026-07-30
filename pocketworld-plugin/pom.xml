@@ -81,10 +81,28 @@
                   <shadedPattern>com.pocketworld.libs.zstd</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>it.unimi.dsi.fastutil</pattern>
-                  <shadedPattern>com.pocketworld.libs.fastutil</shadedPattern>
+                  <pattern>com.zaxxer.hikari</pattern>
+                  <shadedPattern>com.pocketworld.libs.hikari</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.mysql</pattern>
+                  <shadedPattern>com.pocketworld.libs.mysql</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.mongodb</pattern>
+                  <shadedPattern>com.pocketworld.libs.mongodb</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.bson</pattern>
+                  <shadedPattern>com.pocketworld.libs.bson</shadedPattern>
                 </relocation>
               </relocations>
+              <!-- MySQL's driver auto-registers via META-INF/services/java.sql.Driver; this transformer
+                   rewrites that file's contents to the relocated class name so ServiceLoader-based
+                   discovery still works after shading. -->
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+              </transformers>
               <filters>
                 <filter>
                   <artifact>*:*</artifact>
