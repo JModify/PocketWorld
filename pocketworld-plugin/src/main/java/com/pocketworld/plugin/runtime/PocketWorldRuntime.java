@@ -30,6 +30,12 @@ import java.util.Map;
  * for the whole world lifecycle. This is the one class the rest of the plugin (commands, menus,
  * listeners) should ever need to call to create, load, unload, clone, import, or export a world -
  * everything about the format and the runtime bridge is an implementation detail behind it.
+ * <p>
+ * Methods are explicitly documented as either pure I/O (safe to call from an async task) or
+ * main-thread-only (touch live Bukkit world state). Callers are expected to do their own
+ * async-then-sync scheduling around these - {@code PocketWorldRuntime} itself doesn't own a
+ * scheduler, so it stays easy to use from contexts that already manage their own threading (a
+ * domain object mid-way through its own async load sequence, a command handler, a test).
  */
 public final class PocketWorldRuntime {
 
@@ -41,32 +47,65 @@ public final class PocketWorldRuntime {
         this.bridge = bridge;
     }
 
-    /** Clones {@code templateWorldId} to {@code newWorldId} in storage, then loads the copy. */
-    public World create(String templateWorldId, String newWorldId, WorldProperties properties) throws IOException {
-        storage.cloneWorld(templateWorldId, storage, newWorldId);
-        return load(newWorldId, properties);
-    }
-
-    public World load(String worldId, WorldProperties properties) throws IOException {
-        SlimeWorldData data = SlimeReader.read(new ByteArrayInputStream(storage.read(worldId)));
-        return bridge.materialize(data, worldId, properties);
-    }
-
-    public void unload(World world, String worldId, boolean save) throws IOException {
-        Path worldFolder = world.getWorldFolder().toPath(); // capture before unloading - see WorldRuntimeBridge#discard
-        if (save) {
-            SlimeWorldData data = bridge.extract(world);
-            storage.write(worldId, encode(data));
-        }
-        Bukkit.unloadWorld(world, false);
-        bridge.discard(worldId, worldFolder);
-    }
-
+    /** Pure I/O - safe off the main thread. */
     public void cloneWorld(String sourceWorldId, String targetWorldId) throws IOException {
         storage.cloneWorld(sourceWorldId, storage, targetWorldId);
     }
 
-    /** Imports a real, on-disk vanilla-format world folder (a {@code region/}+{@code entities/} pair) into storage. */
+    /**
+     * Clones a world out of THIS runtime's storage into a different runtime's storage under a new
+     * id - e.g. cloning a theme's stored world into the world runtime's storage when a player
+     * creates a new PocketWorld from that theme. Pure I/O - safe off the main thread.
+     */
+    public void cloneInto(String sourceWorldId, PocketWorldRuntime targetRuntime, String targetWorldId) throws IOException {
+        storage.cloneWorld(sourceWorldId, targetRuntime.storage, targetWorldId);
+    }
+
+    /** Deletes a world's stored bytes outright, without touching any live Bukkit world. Pure I/O. */
+    public void deleteStored(String worldId) throws IOException {
+        storage.delete(worldId);
+    }
+
+    public boolean exists(String worldId) throws IOException {
+        return storage.exists(worldId);
+    }
+
+    /**
+     * Reads and decodes a stored world, then writes whatever on-disk state the runtime bridge
+     * needs to bring it live. Pure I/O - safe off the main thread. Call {@link #activate} next.
+     *
+     * @return the decoded world's Minecraft data version, needed by {@link #activate}.
+     */
+    public int prepareLoad(String worldId) throws IOException {
+        SlimeWorldData data = decode(worldId);
+        bridge.prepare(data, worldId);
+        return data.dataVersion();
+    }
+
+    /** Must run on the main thread. {@link #prepareLoad} must have already completed for this id. */
+    public World activate(String worldId, int dataVersion, WorldProperties properties) throws IOException {
+        return bridge.activate(worldId, dataVersion, properties);
+    }
+
+    /**
+     * Extracts the world's live state (if {@code save}), unloads it, and cleans up the bridge's
+     * on-disk state. Must run on the main thread. Does NOT write the extracted data to storage -
+     * pass the result to {@link #persist} to do that off the main thread.
+     */
+    public SlimeWorldData unloadSync(World world, String worldId, boolean save) throws IOException {
+        SlimeWorldData data = save ? bridge.extract(world) : null;
+        Path worldFolder = world.getWorldFolder().toPath();
+        Bukkit.unloadWorld(world, false);
+        bridge.discard(worldId, worldFolder);
+        return data;
+    }
+
+    /** Pure I/O - safe off the main thread. */
+    public void persist(String worldId, SlimeWorldData data) throws IOException {
+        storage.write(worldId, encode(data));
+    }
+
+    /** Imports a real, on-disk vanilla-format world folder (a {@code region/}+{@code entities/} pair) into storage. Pure I/O. */
     public void importWorld(Path anvilWorldFolder, String worldId, int dataVersion) throws IOException {
         Map<ChunkPos, CompoundBinaryTag> region = AnvilWorldReader.readAll(anvilWorldFolder.resolve("region"));
         Map<ChunkPos, CompoundBinaryTag> entities = AnvilWorldReader.readAll(anvilWorldFolder.resolve("entities"));
@@ -82,9 +121,9 @@ public final class PocketWorldRuntime {
         storage.write(worldId, encode(data));
     }
 
-    /** Exports a stored world as a real, on-disk vanilla-format world folder. */
+    /** Exports a stored world as a real, on-disk vanilla-format world folder. Pure I/O. */
     public void exportWorld(String worldId, Path targetFolder) throws IOException {
-        SlimeWorldData data = SlimeReader.read(new ByteArrayInputStream(storage.read(worldId)));
+        SlimeWorldData data = decode(worldId);
 
         Map<ChunkPos, CompoundBinaryTag> region = new LinkedHashMap<>();
         Map<ChunkPos, CompoundBinaryTag> entities = new LinkedHashMap<>();
@@ -97,6 +136,10 @@ public final class PocketWorldRuntime {
 
         AnvilWorldWriter.writeAll(targetFolder.resolve("region"), region);
         AnvilWorldWriter.writeAll(targetFolder.resolve("entities"), entities);
+    }
+
+    private SlimeWorldData decode(String worldId) throws IOException {
+        return SlimeReader.read(new ByteArrayInputStream(storage.read(worldId)));
     }
 
     private static byte[] encode(SlimeWorldData data) throws IOException {

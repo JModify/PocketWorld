@@ -56,7 +56,7 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
     }
 
     @Override
-    public World materialize(SlimeWorldData data, String worldName, WorldProperties properties) throws IOException {
+    public void prepare(SlimeWorldData data, String worldName) throws IOException {
         Path worldFolder = Bukkit.getWorldContainer().toPath().resolve(worldName);
         Files.createDirectories(worldFolder);
 
@@ -71,8 +71,12 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
         AnvilWorldWriter.writeAll(worldFolder.resolve("region"), regionChunks);
         AnvilWorldWriter.writeAll(worldFolder.resolve("entities"), entityChunks);
+    }
 
-        LevelDatWriter.write(worldFolder, worldName, data.dataVersion(), properties);
+    @Override
+    public World activate(String worldName, int dataVersion, WorldProperties properties) throws IOException {
+        Path worldFolder = Bukkit.getWorldContainer().toPath().resolve(worldName);
+        LevelDatWriter.write(worldFolder, worldName, dataVersion, properties);
 
         WorldCreator creator = new WorldCreator(worldName)
                 .environment(World.Environment.NORMAL)

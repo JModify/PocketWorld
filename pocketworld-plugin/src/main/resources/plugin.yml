@@ -5,8 +5,30 @@ description: Personal player worlds, backed by a standalone Slime Region Format 
 author: Modify
 website: https://github.com/JModify/PocketWorld
 api-version: '1.21'
-commands:
-  pwtest:
-    description: "TEMPORARY Stage 4 smoke-test command, removed in Stage 5."
-    usage: "/<command> <import|create|load|unload|export> ..."
 
+commands:
+  pocketworld:
+    aliases: [pw]
+    description: Open the PocketWorld menu.
+    usage: /pocketworld
+  pocketworldadmin:
+    aliases: [pwa]
+    description: PocketWorld administrative commands.
+    usage: /pocketworldadmin <reload>
+  theme:
+    description: Manage PocketWorld themes.
+    usage: /theme <create|manage|delete>
+
+permissions:
+  pocketworld.command.default:
+    description: Allows use of /pocketworld.
+    default: true
+  pocketworld.command.admin:
+    description: Allows use of /pocketworldadmin.
+    default: op
+  pocketworld.theme.create:
+    description: Allows creating PocketWorld themes.
+    default: op
+  pocketworld.theme.manage:
+    description: Allows managing (listing/deleting) PocketWorld themes.
+    default: op

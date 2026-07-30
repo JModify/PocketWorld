@@ -1,0 +1,31 @@
+# PocketWorld configuration.
+
+# Enables verbose diagnostic logging (world load/unload timings, bridge selection details, etc).
+debug: false
+
+general:
+  # Maximum number of pocket worlds a single player may own.
+  max-worlds: 5
+  # How long (in seconds) an empty, loaded pocket world waits before being automatically unloaded.
+  # A world is only unloaded if it's STILL empty once this delay elapses - a member rejoining (or
+  # another member logging in) before then cancels the pending unload.
+  auto-unload-delay-seconds: 60
+
+# Difficulty applied to pocket worlds. One of: peaceful, easy, normal, hard.
+world-difficulty: normal
+
+# Metadata storage (users/worlds/themes) - independent of the Slime world-blob storage, which is
+# always file-based in this version. Exactly one of mongodb.use / mysql.use MUST be set to true
+# before starting the server, or the plugin will disable itself with an error explaining why.
+mongodb:
+  use: false
+  uri: "mongodb://localhost:27017"
+  database: pocketworld
+
+mysql:
+  use: false
+  host: localhost
+  port: 3306
+  database: pocketworld
+  username: root
+  password: ""

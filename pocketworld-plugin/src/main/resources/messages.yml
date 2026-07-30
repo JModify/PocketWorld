@@ -1,0 +1,97 @@
+# PocketWorld messages. Each entry has a "message" (color codes with '&' supported) and an
+# optional "type", which prepends the matching prefix below. "type: raw" (or omitted) sends the
+# message with no prefix.
+
+prefixes:
+  info: "&8[&bPocketWorld&8] &r"
+  error: "&8[&bPocketWorld&8] &r"
+  success: "&8[&bPocketWorld&8] &r"
+
+messages:
+  must-be-player:
+    type: error
+    message: "&cYou must be a player to use this command."
+  insufficient-permissions:
+    type: error
+    message: "&cYou do not have permission to do that."
+  insufficient-world-rank:
+    type: error
+    message: "&cYou do not have a high enough rank in this world to do that."
+  invalid-usage:
+    type: error
+    message: "&cInvalid usage. &7{USAGE}"
+  plugin-reloaded:
+    type: success
+    message: "&aConfiguration reloaded."
+  theme-delete-not-uuid:
+    type: error
+    message: "&c\"{ID}\" is not a valid theme id."
+  theme-not-found:
+    type: error
+    message: "&cNo theme exists with id \"{ID}\"."
+
+  world-creation-max-worlds:
+    type: error
+    message: "&cYou have reached your maximum number of pocket worlds."
+  world-creation-complete:
+    type: success
+    message: "&aYour pocket world was created in {TIME}ms!"
+  world-load-success:
+    type: success
+    message: "&aYour pocket world loaded in {TIME}ms!"
+  world-set-spawn-outside:
+    type: error
+    message: "&cYou must be standing in your pocket world to set its spawn point."
+  world-set-spawn-success:
+    type: success
+    message: "&aWorld spawn point updated."
+  world-manage-yourself:
+    type: error
+    message: "&cYou cannot manage yourself."
+  world-manage-higher-rank:
+    type: error
+    message: "&cYou cannot manage a player with an equal or higher rank than you."
+
+  world-invite-sent:
+    type: raw
+    message: "&e{PLAYER} invited {TARGET} to join {WORLD_NAME}."
+  world-invite-received:
+    type: info
+    message: "&eYou were invited to join the pocket world \"{WORLD_NAME}\". Use /pocketworld to respond."
+  world-invite-revoke:
+    type: raw
+    message: "&e{PLAYER} revoked {TARGET}'s invitation to {WORLD_NAME}."
+  world-invite-decline:
+    type: info
+    message: "&cYou declined the invitation to join {WORLD_NAME}."
+  world-announce-invite-decline:
+    type: raw
+    message: "&e{PLAYER} declined their invitation to {WORLD_NAME}."
+  world-announce-invite-accept:
+    type: raw
+    message: "&e{PLAYER} accepted their invitation and joined {WORLD_NAME}."
+  world-player-leave:
+    type: raw
+    message: "&e{PLAYER} left {WORLD_NAME}."
+  world-deleted:
+    type: raw
+    message: "&e{PLAYER} deleted the pocket world {WORLD_NAME}."
+  world-rank-set:
+    type: raw
+    message: "&e{PLAYER} set {TARGET}'s rank to {RANK} in {WORLD_NAME}."
+  world-leadership-transfer:
+    type: raw
+    message: "&e{PLAYER} transferred ownership of {WORLD_NAME} to {TARGET}."
+  world-kick-player:
+    type: raw
+    message: "&e{PLAYER} kicked {TARGET} from {WORLD_NAME}."
+
+  theme-creation-complete:
+    type: success
+    message: "&aTheme \"{NAME}\" created successfully!"
+  theme-editor-world-generated:
+    type: success
+    message: "&aEditor world generated in {TIME}ms."
+  theme-spawn-set:
+    type: success
+    message: "&aTheme spawn point set."
