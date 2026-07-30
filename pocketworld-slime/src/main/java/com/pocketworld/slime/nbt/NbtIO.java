@@ -24,7 +24,10 @@ public final class NbtIO {
     private NbtIO() {}
 
     public static CompoundBinaryTag read(DataInput in) throws IOException {
-        return BinaryTagIO.reader().read(in);
+        // BinaryTagIO.reader() caps compound size (~128KB) - too small for real chunk/entity NBT,
+        // which is legitimately larger. This is trusted local disk data, not untrusted network input,
+        // so there's no reason to keep that cap.
+        return BinaryTagIO.unlimitedReader().read(in);
     }
 
     public static void write(DataOutput out, CompoundBinaryTag tag) throws IOException {
