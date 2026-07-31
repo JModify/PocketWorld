@@ -31,7 +31,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design a
 mvn -pl pocketworld-slime,pocketworld-plugin -am package
 ```
 
-The final plugin jar is produced at `pocketworld-plugin/target/pocketworld-plugin-<version>.jar`.
+The final, shaded plugin jar is produced at `pocketworld-plugin/target/PocketWorld-<version>.jar`.
 
 ## Status
 
