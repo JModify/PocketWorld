@@ -156,12 +156,9 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
     }
 
     @Override
-    public SlimeWorldData extract(World world) throws IOException {
-        world.save();
-
-        Path dimensionRoot = world.getWorldFolder().toPath();
-        Map<ChunkPos, CompoundBinaryTag> regionChunks = AnvilWorldReader.readAll(dimensionRoot.resolve("region"));
-        Map<ChunkPos, CompoundBinaryTag> entityChunks = AnvilWorldReader.readAll(dimensionRoot.resolve("entities"));
+    public SlimeWorldData extractUnloaded(Path worldFolder) throws IOException {
+        Map<ChunkPos, CompoundBinaryTag> regionChunks = AnvilWorldReader.readAll(worldFolder.resolve("region"));
+        Map<ChunkPos, CompoundBinaryTag> entityChunks = AnvilWorldReader.readAll(worldFolder.resolve("entities"));
 
         List<SlimeChunkData> chunks = new ArrayList<>();
         for (Map.Entry<ChunkPos, CompoundBinaryTag> entry : regionChunks.entrySet()) {

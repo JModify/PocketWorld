@@ -294,6 +294,14 @@ public class ThemeCreationController {
         World editorWorld = Bukkit.getWorld(themeId.toString());
         Player player = Bukkit.getPlayer(userId);
 
+        // Must happen before unloadSync(): Bukkit.unloadWorld() refuses (and this whole extraction
+        // fails) if the world still has a player standing in it.
+        if (player != null) {
+            World defaultWorld = plugin.getServer().getWorlds().get(0);
+            player.teleport(defaultWorld.getSpawnLocation());
+            PocketUserInventory.restoreUserInventory(plugin, player);
+        }
+
         SlimeWorldData data = null;
         if (editorWorld != null) {
             try {
@@ -322,12 +330,6 @@ public class ThemeCreationController {
         });
 
         ThemeCreationRegistry.getInstance().removeByController(this);
-
-        if (player != null) {
-            World defaultWorld = plugin.getServer().getWorlds().get(0);
-            player.teleport(defaultWorld.getSpawnLocation());
-            PocketUserInventory.restoreUserInventory(plugin, player);
-        }
     }
 
     public void handleChatInput(String message) {

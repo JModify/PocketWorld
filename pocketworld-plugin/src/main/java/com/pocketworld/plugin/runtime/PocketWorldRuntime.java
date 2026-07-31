@@ -102,15 +102,26 @@ public final class PocketWorldRuntime {
     }
 
     /**
-     * Extracts the world's live state (if {@code save}), unloads it, and lets the bridge either
-     * retain or clean up whatever on-disk state it created (see {@link WorldRuntimeBridge#afterUnload}).
-     * Must run on the main thread. Does NOT write the extracted data to storage - pass the result to
+     * Unloads the world (which must already have no players left in it - see {@link World#getPlayers()}
+     * on {@code world} before calling this, or {@code Bukkit.unloadWorld} will simply refuse and return
+     * false), then, if {@code save}, reads its now-final on-disk state back out as Slime data. Must
+     * run on the main thread. Does NOT write the extracted data to storage - pass the result to
      * {@link #persist} to do that off the main thread.
+     * <p>
+     * Deliberately unloads (and lets {@code Bukkit.unloadWorld(world, save)} do its own save) before
+     * reading anything back, rather than reading while the world is still live: Paper's own async
+     * chunk-saving I/O does not necessarily finish writing every chunk to disk synchronously within a
+     * plain {@code World.save()} call, which {@code Bukkit.unloadWorld}'s own save path is trusted
+     * ecosystem-wide not to have this problem with.
      */
     public SlimeWorldData unloadSync(World world, String worldId, boolean save) throws IOException {
-        SlimeWorldData data = save ? bridge.extract(world) : null;
         Path worldFolder = world.getWorldFolder().toPath();
-        Bukkit.unloadWorld(world, false);
+
+        if (!Bukkit.unloadWorld(world, save)) {
+            throw new IOException("Bukkit refused to unload world \"" + worldId + "\" - a player may still be in it");
+        }
+
+        SlimeWorldData data = save ? bridge.extractUnloaded(worldFolder) : null;
         bridge.afterUnload(worldId, worldFolder, data != null, data != null ? data.dataVersion() : -1);
         return data;
     }

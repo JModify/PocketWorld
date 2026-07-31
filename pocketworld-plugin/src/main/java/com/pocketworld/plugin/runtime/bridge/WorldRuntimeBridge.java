@@ -58,8 +58,19 @@ public interface WorldRuntimeBridge {
      */
     World activate(String worldName, int dataVersion, WorldProperties properties) throws IOException;
 
-    /** Reads a currently-loaded world's live state back out as Slime data. Does not unload it. Main-thread only. */
-    SlimeWorldData extract(World world) throws IOException;
+    /**
+     * Reads a just-unloaded world's on-disk state back out as Slime data. {@code worldFolder} must
+     * be the exact folder the live world reported via {@code getWorldFolder()} before it was
+     * unloaded. Deliberately takes a folder, not a live {@link World}: reading while the world is
+     * still live risks racing Paper's own async chunk-saving I/O, which does not necessarily finish
+     * writing every chunk to disk synchronously within a plain {@code World.save()} call - confirmed
+     * by a real in-game report of exactly that (one chunk out of several built moments apart came
+     * back empty after creating a world from a theme, non-deterministically). {@code
+     * Bukkit.unloadWorld(world, true)} is the one operation the whole Bukkit ecosystem already
+     * depends on to guarantee a world's data is fully flushed before it's considered gone, so callers
+     * unload first and only read the folder afterward - see {@link com.pocketworld.plugin.runtime.PocketWorldRuntime#unloadSync}.
+     */
+    SlimeWorldData extractUnloaded(Path worldFolder) throws IOException;
 
     /**
      * Called after a world has been unloaded. {@code worldFolder} is the live world's own
