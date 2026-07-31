@@ -1,6 +1,7 @@
 package com.pocketworld.plugin.data;
 
 import com.pocketworld.plugin.PocketWorldPlugin;
+import com.pocketworld.plugin.data.file.FileConnection;
 import com.pocketworld.plugin.data.mongo.MongoConnection;
 import com.pocketworld.plugin.data.mysql.MysqlConnection;
 import com.pocketworld.plugin.exceptions.DataSourceConnectionException;
@@ -9,7 +10,9 @@ import org.bukkit.Bukkit;
 /**
  * The metadata data source used by this plugin (users/worlds/themes). Independent of the Slime
  * world-blob storage layer ({@link com.pocketworld.slime.storage.WorldLoader}) - a server can, for
- * instance, keep world files on disk while storing metadata in MySQL, or vice versa.
+ * instance, keep world files on disk while storing metadata in MySQL, or vice versa. Defaults to
+ * local YAML files ({@link FileConnection}) when neither {@code mongodb.use} nor {@code mysql.use}
+ * is enabled, so the plugin runs standalone with zero external services out of the box.
  */
 public class DataSource {
 
@@ -31,15 +34,16 @@ public class DataSource {
 
         if (useMongoDB && useMySQL) {
             Bukkit.getServer().getPluginManager().disablePlugin(plugin);
-            throw new DataSourceConnectionException("Too many databases in use!");
+            throw new DataSourceConnectionException("Too many databases in use! Enable at most one of mongodb.use / mysql.use.");
         }
 
-        if (!useMongoDB && !useMySQL) {
-            Bukkit.getServer().getPluginManager().disablePlugin(plugin);
-            throw new DataSourceConnectionException("No databases in use.");
+        if (useMySQL) {
+            connection = new MysqlConnection(plugin);
+        } else if (useMongoDB) {
+            connection = new MongoConnection(plugin);
+        } else {
+            connection = new FileConnection(plugin);
         }
-
-        connection = useMySQL ? new MysqlConnection(plugin) : new MongoConnection(plugin);
         connection.connect();
     }
 

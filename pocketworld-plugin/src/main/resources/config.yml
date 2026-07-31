@@ -15,8 +15,9 @@ general:
 world-difficulty: normal
 
 # Metadata storage (users/worlds/themes) - independent of the Slime world-blob storage, which is
-# always file-based in this version. Exactly one of mongodb.use / mysql.use MUST be set to true
-# before starting the server, or the plugin will disable itself with an error explaining why.
+# always file-based in this version. If neither mongodb.use nor mysql.use is enabled, PocketWorld
+# stores this metadata as local YAML files under plugins/PocketWorld/data/ instead - no external
+# database required. Enabling both at once is an error.
 mongodb:
   use: false
   uri: "mongodb://localhost:27017"
