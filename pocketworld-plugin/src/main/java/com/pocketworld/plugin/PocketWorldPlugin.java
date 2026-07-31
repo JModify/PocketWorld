@@ -10,6 +10,7 @@ import com.pocketworld.plugin.data.DataSource;
 import com.pocketworld.plugin.data.config.ConfigFile;
 import com.pocketworld.plugin.data.config.MessageFile;
 import com.pocketworld.plugin.exceptions.DataSourceConnectionException;
+import com.pocketworld.plugin.listener.ChatInputListener;
 import com.pocketworld.plugin.listener.InventoryListener;
 import com.pocketworld.plugin.listener.PlayerListener;
 import com.pocketworld.plugin.listener.ThemeCreationListener;
@@ -87,6 +88,7 @@ public final class PocketWorldPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this, autoUnloadTracker), this);
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
         getServer().getPluginManager().registerEvents(new InventoryListener(), this);
+        getServer().getPluginManager().registerEvents(new ChatInputListener(this), this);
 
         getCommand("pocketworld").setExecutor(new CommandPocketWorld(this));
         getCommand("pocketworldadmin").setExecutor(new CommandPocketWorldAdmin(this));
