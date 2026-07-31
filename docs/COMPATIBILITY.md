@@ -15,7 +15,9 @@
 ## One runtime bridge, not one per version
 
 Earlier planning called for a dedicated, reflection-based runtime bridge per version floor. That
-was investigated properly (see `docs/ARCHITECTURE.md` §2, §11, §15) and concluded not to be safely
+was investigated properly, against real patched server jars for both version floors separately
+rather than assuming one result carries over to the other (see `docs/ARCHITECTURE.md` §2, §11, §15,
+§17), and concluded not to be safely
 buildable without forking the server — a live custom-chunk-storage bridge needs to be present
 *during* `ServerLevel`'s own constructor, which only subclassing (a fork) allows; reflecting into an
 already-constructed world is too late, since everything downstream has already wired itself to the

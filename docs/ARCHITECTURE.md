@@ -6,7 +6,7 @@ PocketWorld is an existing personal/instanced-world plugin (`me.modify.pocketwor
 
 Goal: rebuild PocketWorld as a fully standalone plugin that implements the Hypixel **Slime Region Format (SRF)** itself — no ASP, no SWM, no server fork — while preserving PocketWorld's product intent (personal worlds, themes/templates, invitations, ranks) and fixing the real bugs found in the original implementation.
 
-This required research before any design was possible, because the central question — *"can a plugin alone do what ASP's fork does?"* — has a hard, verifiable answer, not a matter of opinion. That question was investigated twice over the course of this project (§2 at the outset, §11 partway through, once a real implementation existed to test against) and got the same answer both times, the second time with much harder evidence.
+This required research before any design was possible, because the central question — *"can a plugin alone do what ASP's fork does?"* — has a hard, verifiable answer, not a matter of opinion. That question was investigated three times over the course of this project (§2 at the outset; §15 once a real implementation existed to test against, against Paper 1.21.x; §17 again directly against Paper 26.2, rather than assuming the first result carried over) and got the same answer every time, with progressively harder evidence.
 
 ## 2. Research Findings (condensed)
 
@@ -229,7 +229,7 @@ Each stage compiled, was tested, and was explained before moving on. Kept here a
 4. **Runtime skeleton + Anvil-shadow bridge**: `PocketWorldRuntime`, `WorldRuntimeBridge`, `AnvilShadowBridge`, `BridgeSelector`. Made the plugin fully functional end-to-end (create/load/unload/clone/import/export) with zero NMS code — the real, shippable milestone the rest of the project builds on. ✅
 5. **PocketWorld domain/API/UI port**: domain model, `data/` (bug-fixed DAO, real MySQL), theme system, UI/command/listener port, new public `api/` package + events, bug fixes (invitations, auto-unload, permissions, remove debug command, AnvilGUI removal). Followed by a standalone addition: `data/file/` zero-dependency metadata storage. ✅
 6. **NMS bridge spike — 1.21.x**: originally planned as "build a reflection-based bridge if viable." Actual outcome: inspected the real patched 1.21.11 server jar's bytecode plus ASP's own Access Transformer, concluded a live bridge needs to be present during `ServerLevel` construction (fork-only, not reflection-reachable after the fact) — see §11. Pivoted to a warm-cache redesign of `AnvilShadowBridge` instead, which does deliver a real, measured speedup on this floor (§14/§15/§16). Also fixed a level.dat gap this same testing surfaced, blocking 1.21.x world activation outright. ✅
-7. **NMS bridge spike — 26.2**: not separately re-investigated with the same bytecode-level rigor as Stage 6 - the underlying Moonrise chunk-system architecture that made Stage 6's conclusion firm is present on 26.2 too (if anything more so, being the newer version), so the same conclusion is expected to hold, but this has not been independently confirmed against 26.2's own bytecode the way 1.21.11's was. Treated as an open item, not assumed.
+7. **NMS bridge spike — 26.2**: re-investigated with the same bytecode-level rigor as Stage 6 rather than assumed from it. Same conclusion, now directly confirmed against 26.2's own patched server jar rather than inferred from 1.21.11's — see §17. ✅
 8. **Polish**: corruption/repair tooling, format migration command, compatibility docs finalized, permission defaults review. Not yet started.
 
 ## 13. Verification Approach
@@ -345,3 +345,27 @@ via a temporary throwaway admin command, never committed):
   expected win is real: second `prepareLoad()` dropped from **418ms to 0ms**, with the region
   folder's mtime **unchanged**, confirming a genuine cache hit rather than a coincidentally-fast
   rebuild.
+
+## 17. Empirical Findings — Stage 7, NMS Bridge Spike (Paper 26.2)
+
+Stage 6's conclusion (§15) was reached against Paper 1.21.11 specifically. Rather than assume it
+carries over to 26.2 just because both run on Moonrise, Stage 7 repeated the same bytecode-level
+inspection directly against 26.2's own patched server jar (the same one already used for every other
+piece of empirical verification in this project).
+
+**Same conclusion, now directly confirmed rather than inferred**: `SimpleRegionStorage` implements
+`ChunkSystemSimpleRegionStorage` and `RegionFileStorage` implements `ChunkSystemRegionFileStorage` -
+the identical Moonrise-patched interfaces found on 1.21.11, wrapping the same private `storage`/
+`folder` fields. `ServerLevel` on 26.2 declares the exact three fields ASP's Access Transformer
+targets - `entityDataController`, `poiDataController`, `chunkTaskScheduler` - as `private final`,
+same as 1.21.11. (The ASP research clone itself targets Minecraft 26.1.2, not 26.2 exactly, so its
+AT file was corroborating evidence rather than proof for this specific version - the bytecode
+inspection is what actually confirms it for 26.2.) A live custom-chunk-storage bridge would need to
+intervene during `ServerLevel`'s own constructor on 26.2 for exactly the same reason it would on
+1.21.x - reflection into an already-constructed world is structurally too late either way, not a
+matter of 26.2-specific hardening.
+
+No code changes resulted from this stage - it was a verification pass, and the existing warm-cache
+design already documents 26.2's behavior correctly (§8, §16): the cache never hits there because the
+platform's own world-creation migration relocates the data every time, independent of anything to do
+with the NMS question this stage answers.
