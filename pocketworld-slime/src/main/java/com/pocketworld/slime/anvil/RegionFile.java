@@ -149,7 +149,7 @@ public final class RegionFile implements AutoCloseable {
         int index = index(localX, localZ);
         Path externalFile = externalFile(absoluteX(localX), absoluteZ(localZ));
 
-        int inlineSectorsNeeded = ceilDiv(1L + compressed.length, SECTOR_SIZE); // +1 for the type byte
+        int inlineSectorsNeeded = ceilDiv(5L + compressed.length, SECTOR_SIZE); // +4 length prefix, +1 type byte
         ByteBuffer record;
         int sectorsToAllocate;
 

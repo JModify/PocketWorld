@@ -122,6 +122,40 @@ class RegionFileTest {
     }
 
     @Test
+    void writesChunksWhoseRecordSizeLandsRightAtASectorBoundary(@TempDir Path dir) throws Exception {
+        // Regression test: the on-disk record is [4-byte length][1-byte compression type][payload], 5
+        // header bytes total. writeChunk's sector-count calculation once only accounted for the type
+        // byte (+1), not the full 5-byte header, so whenever a payload's size left less than 4 spare
+        // bytes in its last allocated sector, the write overflowed the buffer. Compression makes the
+        // final payload size hard to predict directly, so this sweeps a wide, contiguous range of
+        // raw byte-array sizes (using NONE compression, so payload size == byte-array size plus a
+        // small constant NBT/tag overhead) that's guaranteed to cross every possible byte-offset
+        // within a sector at least once, including the exact problem window.
+        Path file = dir.resolve("r.0.0.mca");
+        int caseCount = 0;
+        try (RegionFile region = RegionFile.open(file, 0, 0)) {
+            for (int boundary = 1; boundary <= 2; boundary++) {
+                for (int size = 4096 * boundary - 20; size <= 4096 * boundary + 20; size++) {
+                    int x = caseCount % 32;
+                    int z = caseCount / 32;
+                    CompoundBinaryTag tag = CompoundBinaryTag.builder().putByteArray("payload", new byte[size]).build();
+                    region.writeChunk(x, z, tag, AnvilCompression.NONE);
+                    caseCount++;
+                }
+            }
+        }
+
+        try (RegionFile region = RegionFile.open(file, 0, 0)) {
+            for (int i = 0; i < caseCount; i++) {
+                int x = i % 32;
+                int z = i / 32;
+                assertTrue(region.hasChunk(x, z), "chunk " + i + " should have round-tripped");
+                region.readChunk(x, z);
+            }
+        }
+    }
+
+    @Test
     void rejectsOutOfRangeLocalCoordinates(@TempDir Path dir) throws Exception {
         try (RegionFile region = RegionFile.open(dir.resolve("r.0.0.mca"), 0, 0)) {
             assertThrows(IllegalArgumentException.class, () -> region.hasChunk(32, 0));
