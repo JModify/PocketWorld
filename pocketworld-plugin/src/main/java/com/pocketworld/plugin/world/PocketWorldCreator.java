@@ -29,7 +29,7 @@ public class PocketWorldCreator {
         WorldSpawn spawn = WorldSpawn.fromString(theme.getSpawnPoint());
 
         PocketWorld world = new PocketWorld(UUID.randomUUID(), worldName, theme.getIcon(), new HashMap<>(),
-                new HashMap<>(), theme.getBiome(), 100, spawn, true, true, true, false);
+                new HashMap<>(), theme.getBiome(), PocketWorld.DEFAULT_WORLD_SIZE, spawn, true, true, true, false);
         world.getUsers().put(creatorId, WorldRank.OWNER);
         return world;
     }

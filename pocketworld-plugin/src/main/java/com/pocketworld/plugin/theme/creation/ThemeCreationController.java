@@ -5,6 +5,8 @@ import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.user.PocketUserInventory;
 import com.pocketworld.plugin.util.ColorFormat;
+import com.pocketworld.plugin.util.VoidGenerator;
+import com.pocketworld.plugin.world.PocketWorld;
 import com.pocketworld.slime.model.SlimeWorldData;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -216,10 +218,14 @@ public class ThemeCreationController {
     }
 
     /**
-     * Generates a fresh, normally-terrain-generated Bukkit world for the admin to build the theme
-     * in. Unlike loading an existing PocketWorld, there's no stored Slime data to materialize yet -
-     * this world only becomes part of the Slime storage layer once {@link #completeCreation()}
-     * extracts and persists it.
+     * Generates a fresh, empty (void) Bukkit world for the admin to build the theme in - an
+     * intentionally blank canvas, not a fully terrain-generated world that happens to be
+     * biome-locked, so nothing ends up in a theme's stored data except what was actually built. The
+     * world border matches {@link PocketWorld#DEFAULT_WORLD_SIZE}, the same size a world created
+     * from this theme will actually get, so a theme creator builds within the real bounds a player
+     * will experience. Unlike loading an existing PocketWorld, there's no stored Slime data to
+     * materialize yet - this world only becomes part of the Slime storage layer once
+     * {@link #completeCreation()} extracts and persists it.
      */
     private void generateEditorWorld() {
         this.themeId = UUID.randomUUID();
@@ -229,6 +235,7 @@ public class ThemeCreationController {
         editorWorldGenerationTask = Bukkit.getScheduler().runTask(plugin, () -> {
             WorldCreator creator = new WorldCreator(themeId.toString())
                     .environment(World.Environment.NORMAL)
+                    .generator(new VoidGenerator())
                     .biomeProvider(new SingleBiomeProvider(biome))
                     .generateStructures(false);
             World world = Bukkit.createWorld(creator);
@@ -242,6 +249,8 @@ public class ThemeCreationController {
             world.setDifficulty(org.bukkit.Difficulty.NORMAL);
             world.setSpawnLocation(0, 100, 0);
             world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
+            world.getWorldBorder().setCenter(0.0, 0.0);
+            world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
 
             long time = System.currentTimeMillis() - startTime;
             if (player != null) {

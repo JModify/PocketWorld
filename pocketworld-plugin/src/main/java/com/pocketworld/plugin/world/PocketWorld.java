@@ -35,6 +35,10 @@ import java.util.stream.Collectors;
  */
 public class PocketWorld implements Listener {
 
+    /** World size newly created pocket worlds get - also used for the theme editor world's border, so a
+     *  theme creator builds within the same bounds a player will actually get once a world is created from it. */
+    public static final int DEFAULT_WORLD_SIZE = 100;
+
     private final UUID id;
     private final Map<UUID, WorldRank> users;
     private final String worldName;

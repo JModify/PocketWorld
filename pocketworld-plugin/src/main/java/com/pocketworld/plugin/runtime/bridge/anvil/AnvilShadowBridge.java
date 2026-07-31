@@ -2,6 +2,7 @@ package com.pocketworld.plugin.runtime.bridge.anvil;
 
 import com.pocketworld.plugin.runtime.WorldProperties;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
+import com.pocketworld.plugin.util.VoidGenerator;
 import com.pocketworld.slime.anvil.AnvilChunkConverter;
 import com.pocketworld.slime.anvil.AnvilWorldReader;
 import com.pocketworld.slime.anvil.AnvilWorldWriter;
@@ -127,6 +128,14 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
         WorldCreator creator = new WorldCreator(worldName)
                 .environment(World.Environment.NORMAL)
                 .generateStructures(false)
+                // A world border alone does not stop chunk generation, only entities crossing it -
+                // anything that touches a chunk outside what prepare() actually wrote (the vanilla
+                // spawn-safety search in particular, which can probe outward independently of the
+                // border) would otherwise fall through to the default overworld generator and paste
+                // in real, random vanilla terrain having nothing to do with the stored world.
+                // Confirmed by a real in-game report of exactly that. VoidGenerator makes any chunk
+                // not already on disk come out as plain empty air instead.
+                .generator(new VoidGenerator())
                 // Pocket worlds are small and bounded by their own world border; forcing vanilla's
                 // ~11x11 chunk spawn-keep-alive area regardless of that size would mean most (or
                 // all) of a small world's chunks stay permanently loaded and ticking even with no
