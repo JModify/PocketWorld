@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 /**
  * Orchestrates the storage layer ({@link WorldLoader}) and the active {@link WorldRuntimeBridge}
@@ -61,9 +62,14 @@ public final class PocketWorldRuntime {
         storage.cloneWorld(sourceWorldId, targetRuntime.storage, targetWorldId);
     }
 
-    /** Deletes a world's stored bytes outright, without touching any live Bukkit world. Pure I/O. */
+    /**
+     * Deletes a world's stored bytes outright, without touching any live Bukkit world - also evicts
+     * any bridge-side cache left over from an earlier session, since a world can be deleted while
+     * already unloaded. Pure I/O.
+     */
     public void deleteStored(String worldId) throws IOException {
         storage.delete(worldId);
+        bridge.evictCache(worldId);
     }
 
     public boolean exists(String worldId) throws IOException {
@@ -71,12 +77,20 @@ public final class PocketWorldRuntime {
     }
 
     /**
-     * Reads and decodes a stored world, then writes whatever on-disk state the runtime bridge
-     * needs to bring it live. Pure I/O - safe off the main thread. Call {@link #activate} next.
+     * Prepares {@code worldId} to be {@link #activate}d. If the bridge already has a valid warm
+     * cache for this world (nothing's changed since it was last unloaded), the expensive
+     * decode-and-rewrite is skipped entirely and that cache is reused as-is; otherwise this reads
+     * and decodes the stored world and writes whatever on-disk state the bridge needs. Pure I/O -
+     * safe off the main thread.
      *
-     * @return the decoded world's Minecraft data version, needed by {@link #activate}.
+     * @return the world's Minecraft data version, needed by {@link #activate}.
      */
     public int prepareLoad(String worldId) throws IOException {
+        OptionalInt cached = bridge.cachedDataVersion(worldId);
+        if (cached.isPresent()) {
+            return cached.getAsInt();
+        }
+
         SlimeWorldData data = decode(worldId);
         bridge.prepare(data, worldId);
         return data.dataVersion();
@@ -88,15 +102,16 @@ public final class PocketWorldRuntime {
     }
 
     /**
-     * Extracts the world's live state (if {@code save}), unloads it, and cleans up the bridge's
-     * on-disk state. Must run on the main thread. Does NOT write the extracted data to storage -
-     * pass the result to {@link #persist} to do that off the main thread.
+     * Extracts the world's live state (if {@code save}), unloads it, and lets the bridge either
+     * retain or clean up whatever on-disk state it created (see {@link WorldRuntimeBridge#afterUnload}).
+     * Must run on the main thread. Does NOT write the extracted data to storage - pass the result to
+     * {@link #persist} to do that off the main thread.
      */
     public SlimeWorldData unloadSync(World world, String worldId, boolean save) throws IOException {
         SlimeWorldData data = save ? bridge.extract(world) : null;
         Path worldFolder = world.getWorldFolder().toPath();
         Bukkit.unloadWorld(world, false);
-        bridge.discard(worldId, worldFolder);
+        bridge.afterUnload(worldId, worldFolder, data != null, data != null ? data.dataVersion() : -1);
         return data;
     }
 

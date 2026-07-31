@@ -227,3 +227,56 @@ same internals directly rather than go through `WorldCreator`.
   at the first native call - only surfaced by actually running the shaded jar on a real server, not
   by anything `mvn package` checks. `zstd-jni` is deliberately excluded from `pocketworld-plugin`'s
   shade relocations.
+
+## 15. NMS Bridge Spike — Paper 1.21.x, and the Warm-Cache Redesign (Stage 6)
+
+**Conclusion on a full custom-storage NMS bridge**: not achievable via reflection alone on 1.21.11,
+confirmed by inspecting the real patched server jar's bytecode (not inferred). `ChunkMap` extends
+`SimpleRegionStorage` and implements Moonrise's `ChunkSystemChunkMap`; real chunk I/O bottoms out in
+`ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO$RegionDataController`, a
+private async scheduler with no plugin-facing seam. AdvancedSlimePaper's own Access Transformer
+(`build-data/aspaper.at`) confirms *why* reflection can't substitute for this even after the fact:
+it needs `protected-f` (remove `final`) on `ServerLevel.chunkTaskScheduler`/`entityDataController`/
+`poiDataController`, because those fields are read and handed off to other objects **during
+`ServerLevel`'s own constructor** - by the time a live world exists to reflect into, everything
+downstream has already wired itself to the originals. The only way in is to be present during
+construction (subclass `ServerLevel`), which is exactly the fork ASP already is.
+
+**What was built instead**: a "warm cache" redesign of `AnvilShadowBridge` and the
+`WorldRuntimeBridge` contract (`cachedDataVersion`/`afterUnload(retain)`/`evictCache`), driven by the
+observation that the actual cost center wasn't chunk-format decoding - it was the full
+decode-Slime-bytes-then-rewrite-a-fresh-Anvil-folder round trip happening on *every single*
+load/unload, even when a world was revisited moments after it was last used. A world's on-disk
+folder is now kept after a saving unload instead of deleted, and reused directly (skipping decode
+and rewrite entirely) if nothing's invalidated it - self-limited to one server session (never
+trusted across a restart) and bounded by a 30-minute disuse TTL.
+
+Also applied: `keepSpawnLoaded(TriState.FALSE)` on every pocket world (vanilla forces an ~11x11
+chunk area permanently loaded around spawn regardless of world size - wasteful for a small, bounded
+instanced world), and removal of a 20-tick artificial delay before teleporting a player into a
+newly loaded/created world (`Bukkit.createWorld()` already synchronously prepares the spawn area
+before returning, confirmed via server logs - the delay was vestigial from the original codebase).
+
+**Verified empirically on a real Paper 26.2 server** (not assumed): the full
+create→unload→reload→unload→delete cycle, including a bug the first version of this design had -
+retaining the folder unconditionally left behind a copy of the data at its *migrated* location
+(`LegacyCraftBukkitWorldMigration` relocates it into the primary world's own `dimensions/` folder
+in 26.2 - see §14), which then made the *next* migration attempt fail outright because its
+destination already existed. Fixed by only ever retaining when the live world's data folder path
+equals the classic pre-migration path (i.e., no migration happened this activate) - otherwise always
+fully clean up regardless of the `retain` flag. The net effect on 26.2: the warm cache safely never
+actually hits (its own freshness check requires the classic path to still hold the data, which
+migration always defeats), but every cycle remains fully correct. On 1.21.x, where no such migration
+happens, the same check is expected to hit and skip the rewrite entirely - not yet confirmed, because:
+
+**Separate, pre-existing bug surfaced by this testing, not yet fixed**: activating a
+bridge-materialized world on a real Paper 1.21.11 server fails with
+`IllegalStateException: No key dimensions in MapLike[{}]; No key seed in MapLike[{}]` - `LevelDatWriter`
+(built and only ever verified against 26.2 in Stage 4) does not write a `WorldGenSettings` compound
+at all, and 1.21.11's world-loading codec requires one where 26.2's apparently doesn't. This means
+the documented "Paper 1.21.x" support floor has compiled successfully but never actually been
+exercised end-to-end against a real 1.21.x server until this session - the gap was only found, not
+fixed, and blocks confirming the warm-cache's expected win on that floor. Next step: derive a minimal
+valid `WorldGenSettings` (seed + per-dimension `LevelStem` entries) for `LevelDatWriter`, then re-run
+the same empirical create→unload→reload cycle against 1.21.11 to confirm both the fix and the
+expected cache-hit speedup.

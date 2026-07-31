@@ -71,8 +71,10 @@ public class PocketWorldCreator {
                         if (creator != null) {
                             plugin.getMessageReader().send("world-creation-complete", creator, "{TIME}:" + time);
 
-                            // Delayed so the player isn't teleported before the world fully finishes loading in.
-                            Bukkit.getScheduler().runTaskLater(plugin, () -> world.teleport(creator), 20L);
+                            // Bukkit.createWorld() (called by activate() above) synchronously
+                            // prepares the spawn area before returning, so the world is already
+                            // ready to receive players by this point - no artificial delay needed.
+                            world.teleport(creator);
                         }
 
                         plugin.getLogger().info("Successfully created pocket world " + world.getId() + " in " + time + "ms!");

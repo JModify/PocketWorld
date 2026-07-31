@@ -177,7 +177,10 @@ public class PocketWorld implements Listener {
                                 plugin.getMessageReader().send("world-load-success", loader, "{TIME}:" + time);
                             }
                             if (shouldTeleport) {
-                                Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(loader), 20L);
+                                // Bukkit.createWorld() (called by activate() above) synchronously
+                                // prepares the spawn area before returning, so the world is already
+                                // ready to receive players by this point - no artificial delay needed.
+                                teleport(loader);
                             }
                         }
                         plugin.getLogger().info("Successfully loaded pocket world " + id + " in " + time + "ms!");
