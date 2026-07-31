@@ -5,6 +5,8 @@ import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.user.PocketUserInventory;
 import com.pocketworld.plugin.util.ColorFormat;
+import com.pocketworld.plugin.runtime.WorldProperties;
+import com.pocketworld.plugin.runtime.bridge.anvil.LevelDatWriter;
 import com.pocketworld.plugin.util.VoidGenerator;
 import com.pocketworld.plugin.world.PocketWorld;
 import com.pocketworld.slime.model.SlimeWorldData;
@@ -17,6 +19,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -233,6 +239,19 @@ public class ThemeCreationController {
         Player player = Bukkit.getPlayer(userId);
 
         editorWorldGenerationTask = Bukkit.getScheduler().runTask(plugin, () -> {
+            // Pre-seed level.dat with a known spawn before Bukkit.createWorld() ever runs: without
+            // this, vanilla's own first-creation spawn search touches (and permanently persists) a
+            // large fixed radius of untouched void chunks around origin, unconditionally - confirmed
+            // empirically, and independent of keepSpawnLoaded/world-border timing. See LevelDatWriter.
+            Path worldFolder = Bukkit.getWorldContainer().toPath().resolve(themeId.toString());
+            try {
+                Files.createDirectories(worldFolder);
+                LevelDatWriter.write(worldFolder, themeId.toString(), Bukkit.getUnsafe().getDataVersion(),
+                        new WorldProperties(0.5, 100.0, 0.5, 0f, 0f, "normal", false));
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to pre-seed editor world level.dat for theme " + themeId, e);
+            }
+
             WorldCreator creator = new WorldCreator(themeId.toString())
                     .environment(World.Environment.NORMAL)
                     .generator(new VoidGenerator())

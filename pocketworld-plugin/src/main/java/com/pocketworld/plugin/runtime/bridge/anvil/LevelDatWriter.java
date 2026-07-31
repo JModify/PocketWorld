@@ -26,14 +26,23 @@ import java.nio.file.Path;
  * world border lets a player reach is one this bridge already wrote explicitly - so a fixed
  * constant seed is fine; this exists purely to satisfy the schema, not to drive real generation.
  */
-final class LevelDatWriter {
+public final class LevelDatWriter {
 
     private static final int LEGACY_ANVIL_VERSION = 19133;
     private static final long PLACEHOLDER_SEED = 0L;
 
     private LevelDatWriter() {}
 
-    static void write(Path worldFolder, String levelName, int dataVersion, WorldProperties properties) throws IOException {
+    /**
+     * Also used directly by theme creation to pre-seed a brand-new editor world's level.dat with a
+     * known spawn before {@link org.bukkit.WorldCreator} ever runs - without that, vanilla's own
+     * "find/prepare a valid spawn" step runs unconditionally on first creation and touches (and
+     * permanently persists) a large fixed radius of otherwise-untouched void chunks around origin,
+     * confirmed empirically to be completely independent of {@code keepSpawnLoaded} or how soon the
+     * world border is set afterward - the only thing that avoided it was the level already declaring
+     * itself initialized with a known spawn before Bukkit's own creation call ever sees it.
+     */
+    public static void write(Path worldFolder, String levelName, int dataVersion, WorldProperties properties) throws IOException {
         CompoundBinaryTag versionTag = CompoundBinaryTag.builder()
                 .putInt("Id", dataVersion)
                 .putString("Name", "PocketWorld")
