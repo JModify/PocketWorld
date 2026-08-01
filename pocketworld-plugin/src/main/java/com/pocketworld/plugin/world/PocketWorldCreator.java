@@ -38,19 +38,42 @@ public class PocketWorldCreator {
      * Clones the theme's stored world into a brand-new PocketWorld and brings it live. Safe to call
      * from any thread: the clone and the runtime's I/O-safe preparation happen off the main thread,
      * and only the final activation step is scheduled back onto it.
+     * <p>
+     * Goes through the plugin's global {@link com.pocketworld.plugin.runtime.PocketWorldCreationQueue}
+     * rather than starting immediately: {@code Bukkit.createWorld()} is unavoidably main-thread-
+     * blocking (~100ms per world, measured), so if many players' creations happened to finish their
+     * async prepare work around the same moment, all their activate() calls landing on the main
+     * thread in the same tick would freeze the whole server for the sum of all of them. Serializing
+     * creation server-wide - only one in flight at a time - caps that worst case to one world's cost,
+     * at the price of later requests waiting for the current one to finish first.
      */
     public void generateWorldFromTheme(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme, UUID creatorId) {
         plugin.getWorldCache().add(world.getId(), world);
         plugin.getUserCache().readThrough(creatorId).addWorld(world.getId());
 
-        long start = System.currentTimeMillis();
         String worldId = world.getId().toString();
         String themeId = theme.getId().toString();
+
+        int position = plugin.getCreationQueue().enqueue(onComplete ->
+                createNow(plugin, world, theme, creatorId, worldId, themeId, onComplete));
+
+        if (position > 0) {
+            Player creator = Bukkit.getPlayer(creatorId);
+            if (creator != null) {
+                plugin.getMessageReader().send("world-creation-queued", creator, "{POSITION}:" + position);
+            }
+        }
+    }
+
+    private void createNow(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme, UUID creatorId,
+                            String worldId, String themeId, Runnable onComplete) {
+        long start = System.currentTimeMillis();
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 if (plugin.getRuntime().exists(worldId)) {
                     plugin.getLogger().severe("Attempted world creation for " + worldId + " but this world already exists!");
+                    onComplete.run();
                     return;
                 }
 
@@ -80,10 +103,13 @@ public class PocketWorldCreator {
                         plugin.getLogger().info("Successfully created pocket world " + world.getId() + " in " + time + "ms!");
                     } catch (IOException e) {
                         plugin.getLogger().severe("Failed to activate newly created pocket world " + worldId + ": " + e);
+                    } finally {
+                        onComplete.run();
                     }
                 });
             } catch (IOException e) {
                 plugin.getLogger().severe("Failed to create pocket world " + worldId + ": " + e);
+                onComplete.run();
             }
         });
     }

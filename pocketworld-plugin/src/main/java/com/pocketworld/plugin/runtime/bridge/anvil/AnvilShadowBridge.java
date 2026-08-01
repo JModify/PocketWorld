@@ -1,6 +1,7 @@
 package com.pocketworld.plugin.runtime.bridge.anvil;
 
 import com.pocketworld.plugin.runtime.WorldProperties;
+import com.pocketworld.plugin.runtime.bridge.ChunkBounds;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
 import com.pocketworld.plugin.util.VoidGenerator;
 import com.pocketworld.slime.anvil.AnvilChunkConverter;
@@ -156,14 +157,23 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
     }
 
     @Override
-    public SlimeWorldData extractUnloaded(Path worldFolder) throws IOException {
+    public SlimeWorldData extractUnloaded(Path worldFolder, ChunkBounds bounds) throws IOException {
         Map<ChunkPos, CompoundBinaryTag> regionChunks = AnvilWorldReader.readAll(worldFolder.resolve("region"));
         Map<ChunkPos, CompoundBinaryTag> entityChunks = AnvilWorldReader.readAll(worldFolder.resolve("entities"));
 
         List<SlimeChunkData> chunks = new ArrayList<>();
         for (Map.Entry<ChunkPos, CompoundBinaryTag> entry : regionChunks.entrySet()) {
-            CompoundBinaryTag entities = entityChunks.get(entry.getKey());
-            chunks.add(AnvilChunkConverter.toSlimeChunk(entry.getKey().x(), entry.getKey().z(), entry.getValue(), entities));
+            ChunkPos pos = entry.getKey();
+            // Paper's own chunk-generation pipeline can touch (and persist) real chunks outside the
+            // border on a brand-new world's very first chunk load, independent of anything this
+            // bridge does - confirmed empirically. The border already stops players from ever
+            // reaching those chunks, so they're dead weight; drop them here rather than paying
+            // decode/encode cost for them on every future load. See ChunkBounds.
+            if (!bounds.contains(pos.x(), pos.z())) {
+                continue;
+            }
+            CompoundBinaryTag entities = entityChunks.get(pos);
+            chunks.add(AnvilChunkConverter.toSlimeChunk(pos.x(), pos.z(), entry.getValue(), entities));
         }
 
         int dataVersion = Bukkit.getUnsafe().getDataVersion();

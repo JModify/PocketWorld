@@ -69,8 +69,14 @@ public interface WorldRuntimeBridge {
      * Bukkit.unloadWorld(world, true)} is the one operation the whole Bukkit ecosystem already
      * depends on to guarantee a world's data is fully flushed before it's considered gone, so callers
      * unload first and only read the folder afterward - see {@link com.pocketworld.plugin.runtime.PocketWorldRuntime#unloadSync}.
+     * <p>
+     * {@code bounds} must be captured from the live world's border BEFORE it was unloaded (the
+     * border itself is unrecoverable once the world is gone) - any on-disk chunk outside it is
+     * dropped rather than persisted. A world border only stops players from reaching those chunks,
+     * not Paper's own chunk-generation pipeline from occasionally touching (and permanently writing)
+     * real chunks well outside it anyway - confirmed empirically, see {@link ChunkBounds}.
      */
-    SlimeWorldData extractUnloaded(Path worldFolder) throws IOException;
+    SlimeWorldData extractUnloaded(Path worldFolder, ChunkBounds bounds) throws IOException;
 
     /**
      * Called after a world has been unloaded. {@code worldFolder} is the live world's own

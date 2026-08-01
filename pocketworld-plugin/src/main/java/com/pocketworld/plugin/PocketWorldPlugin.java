@@ -16,6 +16,7 @@ import com.pocketworld.plugin.listener.PlayerListener;
 import com.pocketworld.plugin.listener.ThemeCreationListener;
 import com.pocketworld.plugin.listener.WorldAutoUnloadTracker;
 import com.pocketworld.plugin.listener.WorldListener;
+import com.pocketworld.plugin.runtime.PocketWorldCreationQueue;
 import com.pocketworld.plugin.runtime.PocketWorldRuntime;
 import com.pocketworld.plugin.runtime.bridge.BridgeSelector;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
@@ -41,6 +42,7 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
     private PocketWorldRuntime runtime;
     private PocketWorldRuntime themeRuntime;
+    private final PocketWorldCreationQueue creationQueue = new PocketWorldCreationQueue();
 
     private DataSource dataSource;
     private WorldCache worldCache;
@@ -156,5 +158,9 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
     public ThemeRegistry getThemeRegistry() {
         return themeRegistry;
+    }
+
+    public PocketWorldCreationQueue getCreationQueue() {
+        return creationQueue;
     }
 }

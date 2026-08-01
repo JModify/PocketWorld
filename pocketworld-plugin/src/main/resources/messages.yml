@@ -33,6 +33,9 @@ messages:
   world-creation-max-worlds:
     type: error
     message: "&cYou have reached your maximum number of pocket worlds."
+  world-creation-queued:
+    type: info
+    message: "&7Another pocket world is being created - yours will start once {POSITION} ahead of you finish."
   world-creation-complete:
     type: success
     message: "&aYour pocket world was created in {TIME}ms!"

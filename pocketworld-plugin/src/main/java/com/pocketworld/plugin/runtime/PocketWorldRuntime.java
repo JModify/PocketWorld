@@ -1,5 +1,6 @@
 package com.pocketworld.plugin.runtime;
 
+import com.pocketworld.plugin.runtime.bridge.ChunkBounds;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
 import com.pocketworld.slime.anvil.AnvilChunkConverter;
 import com.pocketworld.slime.anvil.AnvilWorldReader;
@@ -116,12 +117,16 @@ public final class PocketWorldRuntime {
      */
     public SlimeWorldData unloadSync(World world, String worldId, boolean save) throws IOException {
         Path worldFolder = world.getWorldFolder().toPath();
+        // Must capture the border now - it's unrecoverable once the world is unloaded, and
+        // extractUnloaded() needs it to drop any chunk Paper's own generation pipeline touched
+        // outside it (see ChunkBounds).
+        ChunkBounds bounds = ChunkBounds.fromWorldBorder(world.getWorldBorder());
 
         if (!Bukkit.unloadWorld(world, save)) {
             throw new IOException("Bukkit refused to unload world \"" + worldId + "\" - a player may still be in it");
         }
 
-        SlimeWorldData data = save ? bridge.extractUnloaded(worldFolder) : null;
+        SlimeWorldData data = save ? bridge.extractUnloaded(worldFolder, bounds) : null;
         bridge.afterUnload(worldId, worldFolder, data != null, data != null ? data.dataVersion() : -1);
         return data;
     }
