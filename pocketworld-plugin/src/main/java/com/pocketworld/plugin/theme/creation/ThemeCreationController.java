@@ -256,7 +256,8 @@ public class ThemeCreationController {
                     .environment(World.Environment.NORMAL)
                     .generator(new VoidGenerator())
                     .biomeProvider(new SingleBiomeProvider(biome))
-                    .generateStructures(false);
+                    .generateStructures(false)
+                    .keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE);
             World world = Bukkit.createWorld(creator);
             if (world == null) {
                 plugin.getLogger().severe("Failed to generate editor world for theme " + themeId);
@@ -266,17 +267,28 @@ public class ThemeCreationController {
             world.setSpawnFlags(false, false);
             world.setPVP(false);
             world.setDifficulty(org.bukkit.Difficulty.NORMAL);
-            world.setSpawnLocation(0, 100, 0);
-            world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
-            world.getWorldBorder().setCenter(0.0, 0.0);
-            world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
 
-            long time = System.currentTimeMillis() - startTime;
-            if (player != null) {
-                plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
-                player.teleport(new Location(world, 0.5, 100, 0.5));
-            }
-            nextState();
+            // The origin chunk's very first-ever touch in a brand-new world forces Paper's own
+            // chunk-generation pipeline through an expensive, wide-radius pass - confirmed empirically
+            // to cost over a second of pure main-thread blocking when triggered synchronously (e.g. by
+            // placing a block directly, as this used to do right here). Pre-warming it asynchronously
+            // first moves that entire cost onto a background thread instead - confirmed empirically to
+            // keep the main thread completely responsive while it happens, at the cost of a sub-second
+            // delay before the editor world is actually ready. Nothing that needs the chunk already
+            // loaded runs until this completes.
+            world.getChunkAtAsync(0, 0, true).thenRun(() -> {
+                world.setSpawnLocation(0, 100, 0);
+                world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
+                world.getWorldBorder().setCenter(0.0, 0.0);
+                world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
+
+                long time = System.currentTimeMillis() - startTime;
+                if (player != null) {
+                    plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
+                    player.teleport(new Location(world, 0.5, 100, 0.5));
+                }
+                nextState();
+            });
         });
     }
 
