@@ -235,6 +235,24 @@ public class PocketWorld implements Listener {
      * itself a main-thread-only operation.
      */
     public void unload(PocketWorldPlugin plugin, boolean save) {
+        unload(plugin, save, true);
+    }
+
+    /**
+     * Same as {@link #unload(PocketWorldPlugin, boolean)}, but lets the caller force the final
+     * storage write to happen synchronously instead of being scheduled onto the async scheduler.
+     * <p>
+     * Must be {@code false} when called from {@code onDisable()} (directly or indirectly, e.g. via
+     * {@link com.pocketworld.plugin.cache.WorldCache#flush()}): by the time a plugin's
+     * {@code onDisable()} runs, Bukkit has already marked it disabled, and {@code
+     * Bukkit.getScheduler().runTaskAsynchronously} throws {@code IllegalPluginAccessException}
+     * immediately rather than queuing the task - silently discarding whatever data that task would
+     * have written. Confirmed by a real server log: a world left loaded when the server shut down
+     * had its data extracted successfully but never persisted, because the scheduling call itself
+     * threw before the write could happen. Normal (non-shutdown) unloads should keep using {@code
+     * true} so the storage write never blocks the main thread.
+     */
+    public void unload(PocketWorldPlugin plugin, boolean save, boolean asyncPersist) {
         if (!loaded) {
             return;
         }
@@ -260,13 +278,21 @@ public class PocketWorld implements Listener {
             setLoaded(false);
 
             if (data != null) {
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                if (asyncPersist) {
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            plugin.getRuntime().persist(id.toString(), data);
+                        } catch (IOException e) {
+                            plugin.getLogger().severe("Failed to persist pocket world " + id + " on unload: " + e);
+                        }
+                    });
+                } else {
                     try {
                         plugin.getRuntime().persist(id.toString(), data);
                     } catch (IOException e) {
                         plugin.getLogger().severe("Failed to persist pocket world " + id + " on unload: " + e);
                     }
-                });
+                }
             }
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to unload pocket world " + id + ": " + e);

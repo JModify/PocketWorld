@@ -48,13 +48,20 @@ public class WorldCache extends PocketCache<PocketWorld> {
         remove(worldId);
     }
 
+    /**
+     * Called from {@link com.pocketworld.plugin.PocketWorldPlugin#onDisable}. Any still-loaded world
+     * must persist synchronously here (not the usual async path {@link PocketWorld#unload(PocketWorldPlugin, boolean)}
+     * takes) - by this point Bukkit has already marked the plugin disabled, and scheduling a new
+     * async task for a disabled plugin throws immediately rather than queuing it, which was silently
+     * discarding the world's final save entirely. See {@link PocketWorld#unload(PocketWorldPlugin, boolean, boolean)}.
+     */
     @Override
     public void flush() {
         DAO dao = plugin.getDataSource().getConnection().getDAO();
 
         for (PocketWorld world : cache.values()) {
             if (world.isLoaded()) {
-                world.unload(plugin, true);
+                world.unload(plugin, true, false);
             }
             dao.updatePocketWorld(world);
         }
