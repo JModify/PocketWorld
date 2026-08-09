@@ -32,7 +32,7 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
             return true;
         }
 
-        if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_ADMIN)) {
+        if (!PocketPermission.has(player, PocketPermission.COMMAND_ADMIN)) {
             plugin.getMessageReader().send("insufficient-permissions", player);
             return true;
         }
@@ -43,13 +43,37 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "reload" -> handleReload(player);
-            case "import" -> handleImport(player, args);
-            case "export" -> handleExport(player, args);
-            case "validate" -> handleValidate(player, args);
+            case "reload" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_RELOAD)) {
+                    handleReload(player);
+                }
+            }
+            case "import" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_IMPORT)) {
+                    handleImport(player, args);
+                }
+            }
+            case "export" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_EXPORT)) {
+                    handleExport(player, args);
+                }
+            }
+            case "validate" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_VALIDATE)) {
+                    handleValidate(player, args);
+                }
+            }
             default -> sendHelp(player, label);
         }
         return true;
+    }
+
+    private boolean checkPermission(Player player, PocketPermission permission) {
+        if (PocketPermission.has(player, permission)) {
+            return true;
+        }
+        plugin.getMessageReader().send("insufficient-permissions", player);
+        return false;
     }
 
     private void sendHelp(Player player, String label) {

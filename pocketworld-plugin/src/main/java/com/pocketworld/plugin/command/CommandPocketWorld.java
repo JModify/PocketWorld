@@ -32,7 +32,7 @@ public class CommandPocketWorld implements CommandExecutor {
             return true;
         }
 
-        if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_DEFAULT)) {
+        if (!PocketPermission.has(player, PocketPermission.COMMAND_POCKETWORLD)) {
             plugin.getMessageReader().send("insufficient-permissions", player);
             return true;
         }

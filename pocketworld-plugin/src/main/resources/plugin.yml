@@ -21,22 +21,60 @@ commands:
 
 permissions:
   pocketworld.*:
-    description: Grants every PocketWorld permission, including admin commands.
+    description: Grants every PocketWorld permission, including all admin and theme sub-permissions.
     default: op
     children:
-      pocketworld.command.default: true
+      pocketworld.command.pocketworld: true
+      pocketworld.command.theme: true
       pocketworld.command.admin: true
       pocketworld.theme.create: true
       pocketworld.theme.manage: true
-  pocketworld.command.default:
-    description: Allows use of /pocketworld.
+      pocketworld.theme.delete: true
+      pocketworld.theme.import: true
+      pocketworld.theme.edit: true
+      pocketworld.admin.reload: true
+      pocketworld.admin.import: true
+      pocketworld.admin.export: true
+      pocketworld.admin.validate: true
+
+  # /pocketworld - base access only, it has no sub-arguments.
+  pocketworld.command.pocketworld:
+    description: Allows use of /pocketworld - creating, managing, and traveling to your own pocket worlds.
     default: true
-  pocketworld.command.admin:
-    description: Allows use of /pocketworldadmin (reload, import, export, validate).
+
+  # /theme - base access, required alongside one of the specific nodes below for each sub-argument.
+  pocketworld.command.theme:
+    description: Allows use of /theme at all. Also requires the specific pocketworld.theme.<action> node for whichever sub-argument is used.
     default: op
   pocketworld.theme.create:
-    description: Allows creating PocketWorld themes.
+    description: Allows "/theme create".
     default: op
   pocketworld.theme.manage:
-    description: Allows managing (listing/deleting) PocketWorld themes.
+    description: Allows "/theme manage" (and its "list" alias) - viewing all themes.
+    default: op
+  pocketworld.theme.delete:
+    description: Allows "/theme delete <id>".
+    default: op
+  pocketworld.theme.import:
+    description: Allows "/theme import" (not yet implemented).
+    default: op
+  pocketworld.theme.edit:
+    description: Allows "/theme edit" (not yet implemented).
+    default: op
+
+  # /pocketworldadmin - base access, required alongside one of the specific nodes below for each sub-argument.
+  pocketworld.command.admin:
+    description: Allows use of /pocketworldadmin at all. Also requires the specific pocketworld.admin.<action> node for whichever sub-argument is used.
+    default: op
+  pocketworld.admin.reload:
+    description: Allows "/pocketworldadmin reload".
+    default: op
+  pocketworld.admin.import:
+    description: Allows "/pocketworldadmin import <folder> <worldId> [dataVersion]".
+    default: op
+  pocketworld.admin.export:
+    description: Allows "/pocketworldadmin export <worldId> <folder>".
+    default: op
+  pocketworld.admin.validate:
+    description: Allows "/pocketworldadmin validate <worldId|all>".
     default: op

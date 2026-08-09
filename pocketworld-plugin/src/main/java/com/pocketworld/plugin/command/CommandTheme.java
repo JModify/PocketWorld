@@ -35,6 +35,11 @@ public class CommandTheme implements CommandExecutor {
         }
 
         MessageReader reader = plugin.getMessageReader();
+        if (!PocketPermission.has(player, PocketPermission.COMMAND_THEME)) {
+            reader.send("insufficient-permissions", player);
+            return true;
+        }
+
         if (args.length == 0) {
             reader.send("invalid-usage", player, "{USAGE}:/theme <create|manage|delete>");
             return true;
@@ -42,21 +47,21 @@ public class CommandTheme implements CommandExecutor {
 
         switch (args[0].toLowerCase()) {
             case "create" -> {
-                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_CREATE)) {
+                if (!PocketPermission.has(player, PocketPermission.THEME_CREATE)) {
                     reader.send("insufficient-permissions", player);
                     return true;
                 }
                 ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId());
             }
             case "manage", "list" -> {
-                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_MANAGE)) {
+                if (!PocketPermission.has(player, PocketPermission.THEME_MANAGE)) {
                     reader.send("insufficient-permissions", player);
                     return true;
                 }
                 printThemeManage(player);
             }
             case "delete" -> {
-                if (!PocketPermission.has(player, PocketPermission.POCKET_WORLD_THEME_MANAGE)) {
+                if (!PocketPermission.has(player, PocketPermission.THEME_DELETE)) {
                     reader.send("insufficient-permissions", player);
                     return true;
                 }
@@ -79,7 +84,20 @@ public class CommandTheme implements CommandExecutor {
                 }
                 theme.delete(plugin);
             }
-            case "import", "edit" -> player.sendMessage(ColorFormat.format("&cThis feature is not yet implemented."));
+            case "import" -> {
+                if (!PocketPermission.has(player, PocketPermission.THEME_IMPORT)) {
+                    reader.send("insufficient-permissions", player);
+                    return true;
+                }
+                player.sendMessage(ColorFormat.format("&cThis feature is not yet implemented."));
+            }
+            case "edit" -> {
+                if (!PocketPermission.has(player, PocketPermission.THEME_EDIT)) {
+                    reader.send("insufficient-permissions", player);
+                    return true;
+                }
+                player.sendMessage(ColorFormat.format("&cThis feature is not yet implemented."));
+            }
             default -> reader.send("invalid-usage", player, "{USAGE}:/theme <create|manage|delete>");
         }
 
