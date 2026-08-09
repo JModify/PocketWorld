@@ -33,6 +33,18 @@ mvn -pl pocketworld-slime,pocketworld-plugin -am package
 
 The final, shaded plugin jar is produced at `pocketworld-plugin/target/PocketWorld-<version>.jar`.
 
+## Commands & permissions
+
+| Command | Permission | Default | Notes |
+|---|---|---|---|
+| `/pocketworld` (`/pw`) | `pocketworld.command.default` | everyone | Opens a player's own PocketWorld menu — create, manage, and travel to their worlds. |
+| `/theme <create\|manage\|delete>` | `pocketworld.theme.create` / `pocketworld.theme.manage` | op | Build and manage the themes players create worlds from. |
+| `/pocketworldadmin` (`/pwa`) `<reload\|import\|export\|validate>` | `pocketworld.command.admin` | op | Reload config, move a stored pocket world in/out of a real Anvil folder, or check stored data for corruption. |
+
+`pocketworld.*` grants everything above in one node, for permission plugins like LuckPerms.
+
 ## Status
 
-Early development, built in verified stages — see `docs/ARCHITECTURE.md` §12 for the roadmap.
+Feature-complete against the original design (`docs/ARCHITECTURE.md` §12) and verified through
+extended live play on real Paper 1.21.x and 26.2 servers, including several bugs found and fixed
+from that testing rather than assumed away.

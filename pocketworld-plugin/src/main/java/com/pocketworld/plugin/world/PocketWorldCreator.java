@@ -3,6 +3,7 @@ package com.pocketworld.plugin.world;
 import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.api.event.PocketWorldCreateEvent;
 import com.pocketworld.plugin.theme.PocketTheme;
+import com.pocketworld.slime.format.SlimeFormatException;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -107,6 +108,18 @@ public class PocketWorldCreator {
                         onComplete.run();
                     }
                 });
+            } catch (SlimeFormatException e) {
+                // Distinguished from a generic IOException because this specifically means theme
+                // "themeId"'s own stored data is corrupted - every future creation from this theme
+                // will fail the same way until an admin restores it from a backup (confirmable with
+                // /pocketworldadmin validate theme <id>), not just a transient failure for this player.
+                plugin.getLogger().severe("Failed to create pocket world " + worldId + ": theme " + themeId
+                        + "'s stored data is corrupted (" + e.getMessage() + "). This needs manual recovery, e.g. from a backup.");
+                Player creator = Bukkit.getPlayer(creatorId);
+                if (creator != null) {
+                    plugin.getMessageReader().send("world-creation-corrupted", creator);
+                }
+                onComplete.run();
             } catch (IOException e) {
                 plugin.getLogger().severe("Failed to create pocket world " + worldId + ": " + e);
                 onComplete.run();

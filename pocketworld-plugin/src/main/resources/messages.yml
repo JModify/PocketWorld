@@ -39,9 +39,15 @@ messages:
   world-creation-complete:
     type: success
     message: "&aYour pocket world was created in {TIME}ms!"
+  world-creation-corrupted:
+    type: error
+    message: "&cThe theme this world is based on is corrupted and cannot be used. Please contact an administrator."
   world-load-success:
     type: success
     message: "&aYour pocket world loaded in {TIME}ms!"
+  world-load-corrupted:
+    type: error
+    message: "&cYour pocket world's data is corrupted and could not be loaded. Please contact an administrator."
   world-set-spawn-outside:
     type: error
     message: "&cYou must be standing in your pocket world to set its spawn point."

@@ -14,17 +14,25 @@ commands:
   pocketworldadmin:
     aliases: [pwa]
     description: PocketWorld administrative commands.
-    usage: /pocketworldadmin <reload>
+    usage: /pocketworldadmin <reload|import|export|validate>
   theme:
     description: Manage PocketWorld themes.
     usage: /theme <create|manage|delete>
 
 permissions:
+  pocketworld.*:
+    description: Grants every PocketWorld permission, including admin commands.
+    default: op
+    children:
+      pocketworld.command.default: true
+      pocketworld.command.admin: true
+      pocketworld.theme.create: true
+      pocketworld.theme.manage: true
   pocketworld.command.default:
     description: Allows use of /pocketworld.
     default: true
   pocketworld.command.admin:
-    description: Allows use of /pocketworldadmin.
+    description: Allows use of /pocketworldadmin (reload, import, export, validate).
     default: op
   pocketworld.theme.create:
     description: Allows creating PocketWorld themes.

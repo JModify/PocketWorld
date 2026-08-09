@@ -7,6 +7,7 @@ import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.util.ColorFormat;
 import com.pocketworld.plugin.util.MessageReader;
 import com.pocketworld.plugin.runtime.WorldProperties;
+import com.pocketworld.slime.format.SlimeFormatException;
 import com.pocketworld.slime.model.SlimeWorldData;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -192,6 +193,16 @@ public class PocketWorld implements Listener {
                         plugin.getLogger().severe("Failed to activate pocket world " + id + ": " + e);
                     }
                 });
+            } catch (SlimeFormatException e) {
+                // Distinguished from a generic IOException so both the admin log and the player see
+                // "this data is actually corrupted" rather than a vague failure that looks retryable -
+                // an admin can confirm with /pocketworldadmin validate world <id> and should restore
+                // from backup, since there's nothing this plugin can automatically reconstruct.
+                plugin.getLogger().severe("Pocket world " + id + " failed to load: its stored data is corrupted (" + e.getMessage() + "). This needs manual recovery, e.g. from a backup.");
+                Player loader = Bukkit.getPlayer(loaderId);
+                if (loader != null) {
+                    plugin.getMessageReader().send("world-load-corrupted", loader);
+                }
             } catch (IOException e) {
                 plugin.getLogger().severe("Failed to load pocket world " + id + ": " + e);
             }

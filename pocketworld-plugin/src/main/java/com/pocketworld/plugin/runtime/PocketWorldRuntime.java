@@ -77,6 +77,23 @@ public final class PocketWorldRuntime {
         return storage.exists(worldId);
     }
 
+    /** All stored world ids. Pure I/O - safe off the main thread. */
+    public List<String> list() throws IOException {
+        return storage.list();
+    }
+
+    /**
+     * Fully decodes a stored world's bytes without touching the runtime bridge or any live Bukkit
+     * state - the same decode step {@link #prepareLoad} already runs on every load/create, exposed
+     * standalone so a stored world can be checked for corruption proactively (e.g. by an admin
+     * command) rather than only ever surfacing as a caught-and-logged exception the first time a
+     * player happens to load it. Returns normally if the data is structurally valid; throws
+     * (typically a {@code SlimeFormatException}) otherwise. Pure I/O - safe off the main thread.
+     */
+    public void validate(String worldId) throws IOException {
+        decode(worldId);
+    }
+
     /**
      * Prepares {@code worldId} to be {@link #activate}d. If the bridge already has a valid warm
      * cache for this world (nothing's changed since it was last unloaded), the expensive

@@ -369,3 +369,78 @@ No code changes resulted from this stage - it was a verification pass, and the e
 design already documents 26.2's behavior correctly (§8, §16): the cache never hits there because the
 platform's own world-creation migration relocates the data every time, independent of anything to do
 with the NMS question this stage answers.
+
+## 18. Empirical Findings — Capacity Investigation and Concurrency Hardening
+
+A capacity question ("would 100 simultaneous PocketWorld creations be safe?") drove a round of load
+testing against a real Paper 26.2 server, which surfaced three real, previously-unknown issues -
+each confirmed empirically, not assumed, before being fixed:
+
+**Brand-new-world spawn search (fixed).** Vanilla's own first-creation spawn search runs
+unconditionally inside `Bukkit.createWorld()` and touches (and permanently persists) a large fixed
+radius of empty void chunks around origin - confirmed independent of `keepSpawnLoaded` or how soon
+the world border is set afterward. The only thing that avoided it was the world already declaring
+itself initialized with a known spawn, via `level.dat`, before `Bukkit.createWorld()` ever ran.
+`AnvilShadowBridge.activate()` already did this for every regular PocketWorld create/load;
+`ThemeCreationController.generateEditorWorld()` did not, so every theme's first-ever creation was
+silently baking ~1000 extra empty chunks into its stored data, which then propagated (via the
+byte-level clone `PocketWorldCreator` uses) into every PocketWorld ever made from that theme.
+
+**First-ever chunk touch in virgin territory (fixed, two ways).** A second, deeper issue: even a bare
+chunk *load* (no block placement, independent of block opacity or whether Bukkit physics is applied)
+in a brand-new, never-touched world forces Paper's own multi-stage chunk-generation pipeline through
+a wide-radius pass - almost certainly structure-reference checks needing a neighbor radius, not
+anything this plugin's bridge code does. Measured at up to several hundred extra chunks and, when
+triggered synchronously (a live block placement, exactly what theme editor-world creation used to do
+immediately after `Bukkit.createWorld()`), 1.2-7.8 seconds of complete main-thread blocking - far
+worse than initial capacity estimates, which never happened to exercise a genuinely virgin world.
+Fixed two ways: `WorldRuntimeBridge.extractUnloaded` now takes a `ChunkBounds` (captured from the
+live world's border before it's unloaded, since the border is unrecoverable afterward) and drops any
+on-disk chunk outside it regardless of why it exists - a border already stops players from ever
+reaching those chunks, so persisting them was always dead weight. Separately, confirmed empirically
+that pre-warming a chunk via `World#getChunkAtAsync()` *before* any synchronous touch moves the whole
+cascade onto a background thread (tick-heartbeat gaps dropped from ~1500ms to ~100ms across repeated
+runs); `generateEditorWorld()` now pre-warms its origin chunk this way before placing the spawn
+platform or teleporting the theme creator in.
+
+**`Bukkit.createWorld()`/`unloadWorld()` have no async alternative (confirmed, and designed around).**
+Calling `Bukkit.createWorld()` off the main thread throws `IllegalStateException` ("WorldInitEvent
+may only be triggered synchronously") - a hard platform restriction, not convention, and not
+something reflection should try to route around. Since a burst of simultaneous creation requests
+finishing their async prepare work around the same moment could still pile multiple `activate()`
+calls into the same tick, `PocketWorldCreationQueue` (`runtime/PocketWorldCreationQueue.java`)
+serializes creation server-wide - only one in flight at a time, everyone else queued and told their
+position. This doesn't reduce any single creation's cost; it caps the *worst case* to one world's
+cost no matter how many requests land at once.
+
+**Verification**: with all three fixes in place, 100 simultaneous creation requests were fired
+against the real, unmodified production code (`PocketWorldCreator` + `PocketWorldCreationQueue`) on a
+real Paper 26.2 server, with a per-tick heartbeat running throughout to directly measure
+responsiveness rather than infer it. Result: 21.4 seconds total for the whole queue to drain, but as
+~100 individual 60-280ms hitches (one per creation) with zero gaps over 500ms - the server stayed
+responsive the entire time rather than freezing continuously. The cost of a deep queue is wait time
+for the player at the back of it, not server health.
+
+## 19. Stage 8 — Polish
+
+**Corruption handling.** The format reader has thrown clean, typed exceptions on malformed data
+since Stage 1 (`CorruptedSlimeFileException`, `UnsupportedSlimeVersionException`, both
+`SlimeFormatException` subtypes) - but a corrupted stored world previously only ever surfaced as a
+caught-and-logged `IOException` with no distinction from a transient I/O failure, and no feedback to
+the affected player at all. `PocketWorld.load()` and `PocketWorldCreator`'s creation flow now catch
+`SlimeFormatException` specifically, logging a clearly-actionable admin message ("needs manual
+recovery, e.g. from a backup") and sending the player a real error message instead of silence.
+`PocketWorldRuntime.validate(worldId)` and `.list()` expose the same decode step every load/create
+already runs, standalone - pure I/O, no bridge or live Bukkit state involved, so a world can be
+checked for corruption proactively rather than only discovered by a player's failed load.
+
+**Migration tooling.** `PocketWorldRuntime.importWorld()`/`.exportWorld()` (built in Stage 4) never
+had a command surface. `/pocketworldadmin import <folder> <worldId> [dataVersion]` and
+`/pocketworldadmin export <worldId> <folder>` expose them directly, alongside
+`/pocketworldadmin validate <worldId|all>` for the corruption check above.
+
+**Permissions.** New admin subcommands share the existing `pocketworld.command.admin` node rather
+than fragmenting into per-subcommand permissions - consistent with how `reload` was already gated,
+and there's exactly one admin trust tier in this plugin's design. Added a `pocketworld.*` wildcard
+(with explicit `children`) for permission-plugin convenience, since server owners commonly grant
+staff a single node rather than enumerating four.
