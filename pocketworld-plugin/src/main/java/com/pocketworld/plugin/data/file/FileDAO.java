@@ -4,7 +4,9 @@ import com.pocketworld.plugin.data.DAO;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.world.Invitation;
+import com.pocketworld.plugin.world.PermissionRank;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
 import com.pocketworld.plugin.world.WorldSpawn;
 import org.bukkit.Material;
@@ -16,6 +18,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -144,6 +147,11 @@ public final class FileDAO implements DAO {
             entry.set("sent-at", invitation.timestamp());
         }
 
+        ConfigurationSection permissionsSection = yaml.createSection("permissions");
+        for (Map.Entry<PermissionRank, Set<WorldAction>> entry : world.getPermissions().entrySet()) {
+            permissionsSection.set(entry.getKey().name(), entry.getValue().stream().map(Enum::name).toList());
+        }
+
         save(yaml, fileFor(worldsDir, world.getId()));
     }
 
@@ -179,8 +187,18 @@ public final class FileDAO implements DAO {
             }
         }
 
+        Map<PermissionRank, Set<WorldAction>> permissions = PocketWorld.defaultPermissions();
+        ConfigurationSection permissionsSection = yaml.getConfigurationSection("permissions");
+        if (permissionsSection != null) {
+            for (String key : permissionsSection.getKeys(false)) {
+                Set<WorldAction> actions = permissionsSection.getStringList(key).stream()
+                        .map(WorldAction::valueOf).collect(Collectors.toCollection(() -> EnumSet.noneOf(WorldAction.class)));
+                permissions.put(PermissionRank.valueOf(key), actions);
+            }
+        }
+
         return new PocketWorld(id, name, icon, users, invitations, biome, worldSize, worldSpawn,
-                allowAnimals, allowMonsters, pvp, false);
+                allowAnimals, allowMonsters, pvp, false, permissions);
     }
 
     private void writeUser(PocketUser user) {

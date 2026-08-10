@@ -36,6 +36,12 @@ messages:
   world-creation-queued:
     type: info
     message: "&7Another pocket world is being created - yours will start once {POSITION} ahead of you finish."
+  world-load-queued:
+    type: info
+    message: "&7Another pocket world is being loaded - yours will start once {POSITION} ahead of you finish."
+  world-queue-position:
+    type: raw
+    message: "&7Pocket world queue position: &f{POSITION}"
   world-creation-complete:
     type: success
     message: "&aYour pocket world was created in {TIME}ms!"
@@ -60,6 +66,12 @@ messages:
   world-manage-higher-rank:
     type: error
     message: "&cYou cannot manage a player with an equal or higher rank than you."
+  world-permission-denied:
+    type: raw
+    message: "&cYou do not have permission to do that here."
+  world-visitors-expelled:
+    type: success
+    message: "&aExpelled all visitors from {WORLD_NAME}."
 
   world-invite-sent:
     type: raw

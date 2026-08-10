@@ -46,7 +46,7 @@ public class OutgoingInvitationsMenu extends PocketPaginatedMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
+                        "&7World Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
                 .build().getAsSkull("BlockminersTV");
         inventory.setItem(4, globe);
 

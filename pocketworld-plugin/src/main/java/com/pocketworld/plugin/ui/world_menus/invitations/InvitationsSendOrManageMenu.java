@@ -5,7 +5,7 @@ import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.ui.PocketMenu;
 import com.pocketworld.plugin.ui.world_menus.management.user_manage.PlayerManagementListMenu;
 import com.pocketworld.plugin.world.PocketWorld;
-import com.pocketworld.plugin.world.WorldRank;
+import com.pocketworld.plugin.world.WorldAction;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -45,7 +45,7 @@ public class InvitationsSendOrManageMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
+                        "&7World Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
                 .build().getAsSkull("BlockminersTV");
         inventory.setItem(13, globe);
 
@@ -98,8 +98,7 @@ public class InvitationsSendOrManageMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("is-send-invite")) {
-            WorldRank playerRank = world.getUsers().get(player.getUniqueId());
-            if (playerRank != WorldRank.OWNER && playerRank != WorldRank.MOD) {
+            if (!world.hasPermission(player.getUniqueId(), WorldAction.INVITE)) {
                 plugin.getMessageReader().send("insufficient-world-rank", player);
                 player.closeInventory();
                 return;

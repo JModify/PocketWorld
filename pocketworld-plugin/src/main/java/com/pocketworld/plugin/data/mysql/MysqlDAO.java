@@ -4,7 +4,9 @@ import com.pocketworld.plugin.data.DAO;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.world.Invitation;
+import com.pocketworld.plugin.world.PermissionRank;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
 import com.pocketworld.plugin.world.WorldSpawn;
 import com.zaxxer.hikari.HikariDataSource;
@@ -15,11 +17,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Plain-JDBC MySQL implementation of {@link DAO}, backed by a HikariCP pool. Replaces the original
@@ -61,6 +66,14 @@ public class MysqlDAO implements DAO {
                     + "sender_id VARCHAR(36) NOT NULL, "
                     + "sent_at BIGINT NOT NULL, "
                     + "PRIMARY KEY (world_id, recipient_id))",
+            // One row per rank (not per action) so a deliberately-emptied action set is still a
+            // stored row, distinguishable from a world that predates this feature and has no rows
+            // at all - see readWorldPermissions().
+            "CREATE TABLE IF NOT EXISTS pocketworld_world_permissions ("
+                    + "world_id VARCHAR(36) NOT NULL, "
+                    + "permission_rank VARCHAR(16) NOT NULL, "
+                    + "actions VARCHAR(128) NOT NULL, "
+                    + "PRIMARY KEY (world_id, permission_rank))",
             "CREATE TABLE IF NOT EXISTS pocketworld_themes ("
                     + "id VARCHAR(36) NOT NULL PRIMARY KEY, "
                     + "name VARCHAR(64) NOT NULL, "
@@ -93,6 +106,7 @@ public class MysqlDAO implements DAO {
             insertWorldRow(connection, world);
             replaceWorldUsers(connection, world);
             replaceWorldInvitations(connection, world);
+            replaceWorldPermissions(connection, world);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to register pocket world " + world.getId(), e);
         }
@@ -121,9 +135,10 @@ public class MysqlDAO implements DAO {
 
                 Map<UUID, WorldRank> users = readWorldUsers(connection, worldId);
                 Map<UUID, Invitation> invitations = readWorldInvitations(connection, worldId);
+                Map<PermissionRank, Set<WorldAction>> permissions = readWorldPermissions(connection, worldId);
 
                 return new PocketWorld(worldId, worldName, icon, users, invitations, biome, worldSize, worldSpawn,
-                        allowAnimals, allowMonsters, pvp, false);
+                        allowAnimals, allowMonsters, pvp, false, permissions);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to read pocket world " + worldId, e);
@@ -150,6 +165,7 @@ public class MysqlDAO implements DAO {
 
             replaceWorldUsers(connection, world);
             replaceWorldInvitations(connection, world);
+            replaceWorldPermissions(connection, world);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to update pocket world " + world.getId(), e);
         }
@@ -337,6 +353,48 @@ public class MysqlDAO implements DAO {
             }
         }
         return invitations;
+    }
+
+    private static Map<PermissionRank, Set<WorldAction>> readWorldPermissions(java.sql.Connection connection, UUID worldId) throws SQLException {
+        String sql = "SELECT permission_rank, actions FROM pocketworld_world_permissions WHERE world_id = ?";
+        Map<PermissionRank, Set<WorldAction>> stored = new EnumMap<>(PermissionRank.class);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, worldId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    PermissionRank rank = PermissionRank.valueOf(resultSet.getString("permission_rank"));
+                    String actions = resultSet.getString("actions");
+                    Set<WorldAction> actionSet = actions.isEmpty() ? EnumSet.noneOf(WorldAction.class)
+                            : java.util.Arrays.stream(actions.split(","))
+                                    .map(WorldAction::valueOf).collect(Collectors.toCollection(() -> EnumSet.noneOf(WorldAction.class)));
+                    stored.put(rank, actionSet);
+                }
+            }
+        }
+        // No rows at all means this world predates this feature and has never had its permissions
+        // saved - fall back to the same defaults new worlds get. Once even one rank has been
+        // written (see replaceWorldPermissions, which always writes all three), an intentionally
+        // emptied action set is still its own stored row and is trusted as-is.
+        return stored.isEmpty() ? PocketWorld.defaultPermissions() : stored;
+    }
+
+    private static void replaceWorldPermissions(java.sql.Connection connection, PocketWorld world) throws SQLException {
+        try (PreparedStatement delete = connection.prepareStatement(
+                "DELETE FROM pocketworld_world_permissions WHERE world_id = ?")) {
+            delete.setString(1, world.getId().toString());
+            delete.executeUpdate();
+        }
+
+        String insertSql = "INSERT INTO pocketworld_world_permissions (world_id, permission_rank, actions) VALUES (?, ?, ?)";
+        try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
+            for (Map.Entry<PermissionRank, Set<WorldAction>> entry : world.getPermissions().entrySet()) {
+                insert.setString(1, world.getId().toString());
+                insert.setString(2, entry.getKey().name());
+                insert.setString(3, entry.getValue().stream().map(Enum::name).collect(Collectors.joining(",")));
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
     }
 
     private static void replaceWorldUsers(java.sql.Connection connection, PocketWorld world) throws SQLException {

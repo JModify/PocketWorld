@@ -3,6 +3,7 @@ package com.pocketworld.plugin.util;
 import com.pocketworld.plugin.data.config.MessageFile;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 
 public class MessageReader {
 
@@ -38,6 +39,13 @@ public class MessageReader {
 
     public void send(String path, CommandSender commandSender) {
         commandSender.sendMessage(read(path));
+    }
+
+    /** Sends via the action bar rather than chat - for transient status that would otherwise spam
+     *  chat if repeated (e.g. a live-updating queue position). */
+    public void sendActionBar(String path, Player player, String... placeholders) {
+        String formatted = read(path, placeholders);
+        player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(formatted));
     }
 
     /**

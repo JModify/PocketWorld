@@ -277,6 +277,16 @@ public class ThemeCreationController {
             // delay before the editor world is actually ready. Nothing that needs the chunk already
             // loaded runs until this completes.
             world.getChunkAtAsync(0, 0, true).thenRun(() -> {
+                // The player may have disconnected (or explicitly cancelled) while this was
+                // generating in the background - editorWorldGenerationTask.cancel() in
+                // cancelCreation() only stops this outer sync task, not this already-detached async
+                // continuation, so this world can still get created after the controller itself was
+                // already removed from the registry. Nothing would ever clean it up otherwise.
+                if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
+                    discardEditorWorld(world);
+                    return;
+                }
+
                 world.setSpawnLocation(0, 100, 0);
                 world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
                 world.getWorldBorder().setCenter(0.0, 0.0);
@@ -300,8 +310,15 @@ public class ThemeCreationController {
         }
 
         if (state == ThemeCreationState.GENERATING_WORLD) {
+            // Only stops the outer sync task - if generation has already reached its async
+            // continuation, that continuation checks the registry itself (see generateEditorWorld())
+            // and discards the world once this method removes the controller from it below.
             editorWorldGenerationTask.cancel();
-        } else if (state == ThemeCreationState.BUILDING) {
+        } else if (state == ThemeCreationState.SET_SPAWN || state == ThemeCreationState.BUILDING) {
+            // Both states mean the player was actually teleported into the editor world already
+            // (SET_SPAWN immediately after generation, BUILDING once they've confirmed a spawn) -
+            // leaving it loaded here would silently orphan it forever, since nothing else is
+            // tracking it once this controller is removed from the registry below.
             if (player != null) {
                 World defaultWorld = plugin.getServer().getWorlds().get(0);
                 player.teleport(defaultWorld.getSpawnLocation());
@@ -309,15 +326,24 @@ public class ThemeCreationController {
 
             World editorWorld = Bukkit.getWorld(themeId.toString());
             if (editorWorld != null) {
-                try {
-                    plugin.getThemeRuntime().unloadSync(editorWorld, themeId.toString(), false);
-                } catch (java.io.IOException e) {
-                    plugin.getLogger().severe("Failed to discard cancelled theme editor world " + themeId + ": " + e);
-                }
+                discardEditorWorld(editorWorld);
             }
         }
 
         ThemeCreationRegistry.getInstance().removeByController(this);
+    }
+
+    /** Unloads (without saving) an editor world that's being discarded rather than completed -
+     *  shared by cancelCreation() and the generation-race guard in generateEditorWorld(). Like
+     *  completeCreation(), the caller must ensure the player is out of the world first (or was
+     *  never teleported in) - Bukkit.unloadWorld() refuses to unload a world that still has players
+     *  in it, and this only logs that failure rather than retrying. */
+    private void discardEditorWorld(World editorWorld) {
+        try {
+            plugin.getThemeRuntime().unloadSync(editorWorld, themeId.toString(), false);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().severe("Failed to discard cancelled theme editor world " + themeId + ": " + e);
+        }
     }
 
     /** Extracts the finished editor world, persists it as the theme's stored world, and registers the theme. */

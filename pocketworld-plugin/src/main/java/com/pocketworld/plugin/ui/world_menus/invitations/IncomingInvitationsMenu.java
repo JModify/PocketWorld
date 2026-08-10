@@ -56,7 +56,7 @@ public class IncomingInvitationsMenu extends PocketPaginatedMenu {
                     .material(world.getIcon())
                     .displayName("&d" + world.getWorldName())
                     .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                            "&7Size: " + world.getWorldSizeFormatted(), " ",
+                            "&7World Size: " + world.getWorldSizeFormatted(), " ",
                             "&8Left-Click = ACCEPT | Right-Click = DECLINE"))
                     .tag(world.getId().toString())
                     .build().get();

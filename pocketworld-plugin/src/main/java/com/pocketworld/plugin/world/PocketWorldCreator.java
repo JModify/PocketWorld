@@ -30,7 +30,8 @@ public class PocketWorldCreator {
         WorldSpawn spawn = WorldSpawn.fromString(theme.getSpawnPoint());
 
         PocketWorld world = new PocketWorld(UUID.randomUUID(), worldName, theme.getIcon(), new HashMap<>(),
-                new HashMap<>(), theme.getBiome(), PocketWorld.DEFAULT_WORLD_SIZE, spawn, true, true, true, false);
+                new HashMap<>(), theme.getBiome(), PocketWorld.DEFAULT_WORLD_SIZE, spawn, true, true, true, false,
+                PocketWorld.defaultPermissions());
         world.getUsers().put(creatorId, WorldRank.OWNER);
         return world;
     }
@@ -55,14 +56,27 @@ public class PocketWorldCreator {
         String worldId = world.getId().toString();
         String themeId = theme.getId().toString();
 
-        int position = plugin.getCreationQueue().enqueue(onComplete ->
-                createNow(plugin, world, theme, creatorId, worldId, themeId, onComplete));
+        if (!plugin.isCreationQueueEnabled()) {
+            createNow(plugin, world, theme, creatorId, worldId, themeId, () -> {});
+            return;
+        }
+
+        int position = plugin.getCreationQueue().enqueue(
+                onComplete -> createNow(plugin, world, theme, creatorId, worldId, themeId, onComplete),
+                newPosition -> notifyQueuePosition(plugin, creatorId, newPosition));
 
         if (position > 0) {
             Player creator = Bukkit.getPlayer(creatorId);
             if (creator != null) {
                 plugin.getMessageReader().send("world-creation-queued", creator, "{POSITION}:" + position);
             }
+        }
+    }
+
+    private static void notifyQueuePosition(PocketWorldPlugin plugin, UUID playerId, int position) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            plugin.getMessageReader().sendActionBar("world-queue-position", player, "{POSITION}:" + position);
         }
     }
 

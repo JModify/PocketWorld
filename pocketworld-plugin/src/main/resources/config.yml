@@ -10,6 +10,11 @@ general:
   # A world is only unloaded if it's STILL empty once this delay elapses - a member rejoining (or
   # another member logging in) before then cancels the pending unload.
   auto-unload-delay-seconds: 60
+  # Serializes pocket-world creation/loading server-wide (one at a time) rather than letting many
+  # requests land on the main thread in the same tick - see docs/ARCHITECTURE.md §18. Only worth
+  # disabling if you've verified your hardware/player count don't need it; the queue's cost is
+  # extra wait time for whoever's at the back of it, never server health.
+  creation-queue-enabled: true
 
 # Difficulty applied to pocket worlds. One of: peaceful, easy, normal, hard.
 world-difficulty: normal

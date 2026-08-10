@@ -59,7 +59,7 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
                     .displayName("&b" + world.getWorldName())
                     .lore(List.of("&7Click to manage this world.", " ",
                             "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
-                            "&eSize: " + world.getWorldSize() + "x" + world.getWorldSize(),
+                            "&eWorld Size: " + world.getWorldSize() + "x" + world.getWorldSize(),
                             " ", status, "&8" + world.getId()))
                     .tag(world.getId().toString())
                     .build().get();

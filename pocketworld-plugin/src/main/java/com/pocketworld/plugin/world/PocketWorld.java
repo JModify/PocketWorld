@@ -23,6 +23,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,10 +55,13 @@ public class PocketWorld implements Listener {
     private boolean loaded;
     /** Invitations to this pocket world, keyed by recipient. */
     private final Map<UUID, Invitation> invitations;
+    /** Which {@link WorldAction}s each non-owner {@link PermissionRank} is allowed to perform here. */
+    private final Map<PermissionRank, Set<WorldAction>> permissions;
 
     public PocketWorld(UUID id, String worldName, Material icon, Map<UUID, WorldRank> users,
                         Map<UUID, Invitation> invitations, String biome, int worldSize, WorldSpawn worldSpawn,
-                        boolean allowAnimals, boolean allowMonsters, boolean pvp, boolean loaded) {
+                        boolean allowAnimals, boolean allowMonsters, boolean pvp, boolean loaded,
+                        Map<PermissionRank, Set<WorldAction>> permissions) {
         this.id = id;
         this.users = users;
         this.invitations = invitations;
@@ -69,6 +74,21 @@ public class PocketWorld implements Listener {
         this.worldName = worldName;
         this.icon = icon;
         this.loaded = loaded;
+        this.permissions = permissions;
+    }
+
+    /**
+     * The permission defaults a brand-new pocket world is created with: MOD keeps today's
+     * hardcoded invite/kick access, MEMBER and VISITOR start with nothing extra (no build/break/
+     * interact for visitors) - so existing behavior is unchanged until an owner opens the new
+     * permissions menu and deliberately changes it.
+     */
+    public static Map<PermissionRank, Set<WorldAction>> defaultPermissions() {
+        Map<PermissionRank, Set<WorldAction>> defaults = new EnumMap<>(PermissionRank.class);
+        defaults.put(PermissionRank.VISITOR, EnumSet.noneOf(WorldAction.class));
+        defaults.put(PermissionRank.MEMBER, EnumSet.noneOf(WorldAction.class));
+        defaults.put(PermissionRank.MOD, EnumSet.of(WorldAction.INVITE, WorldAction.KICK));
+        return defaults;
     }
 
     public UUID getId() {
@@ -127,6 +147,32 @@ public class PocketWorld implements Listener {
         return invitations;
     }
 
+    public Map<PermissionRank, Set<WorldAction>> getPermissions() {
+        return permissions;
+    }
+
+    /**
+     * Resolves whether {@code playerId} may perform {@code action} in this world right now. Owners
+     * always pass, regardless of the configured matrix. Anyone else is checked against the
+     * permission set for their {@link PermissionRank} - their {@link WorldRank} if they're a member
+     * at any rank, or {@link PermissionRank#VISITOR} if they're not a member at all.
+     */
+    public boolean hasPermission(UUID playerId, WorldAction action) {
+        WorldRank rank = users.get(playerId);
+        if (rank == WorldRank.OWNER) {
+            return true;
+        }
+
+        PermissionRank permissionRank = switch (rank) {
+            case MOD -> PermissionRank.MOD;
+            case MEMBER -> PermissionRank.MEMBER;
+            case OWNER -> throw new IllegalStateException("unreachable");
+            case null -> PermissionRank.VISITOR;
+        };
+
+        return permissions.getOrDefault(permissionRank, Set.of()).contains(action);
+    }
+
     /** The world-instantiation parameters for this world's current spawn/pvp/difficulty settings. */
     WorldProperties toWorldProperties(PocketWorldPlugin plugin) {
         String difficulty = plugin.getConfigFile().getYaml().getString("world-difficulty", "normal");
@@ -156,11 +202,30 @@ public class PocketWorld implements Listener {
             return;
         }
 
+        if (!plugin.isCreationQueueEnabled()) {
+            loadNow(plugin, loaderId, shouldTeleport, shouldNotify, () -> {});
+            return;
+        }
+
+        int position = plugin.getCreationQueue().enqueue(
+                onComplete -> loadNow(plugin, loaderId, shouldTeleport, shouldNotify, onComplete),
+                newPosition -> notifyQueuePosition(plugin, loaderId, newPosition));
+
+        if (position > 0) {
+            Player loader = Bukkit.getPlayer(loaderId);
+            if (loader != null) {
+                plugin.getMessageReader().send("world-load-queued", loader, "{POSITION}:" + position);
+            }
+        }
+    }
+
+    private void loadNow(PocketWorldPlugin plugin, UUID loaderId, boolean shouldTeleport, boolean shouldNotify, Runnable onComplete) {
         long start = System.currentTimeMillis();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 if (!plugin.getRuntime().exists(id.toString())) {
                     plugin.getLogger().severe("Failed to load world " + id + ". World does not exist.");
+                    onComplete.run();
                     return;
                 }
 
@@ -191,6 +256,8 @@ public class PocketWorld implements Listener {
                         plugin.getLogger().info("Successfully loaded pocket world " + id + " in " + time + "ms!");
                     } catch (IOException e) {
                         plugin.getLogger().severe("Failed to activate pocket world " + id + ": " + e);
+                    } finally {
+                        onComplete.run();
                     }
                 });
             } catch (SlimeFormatException e) {
@@ -203,10 +270,19 @@ public class PocketWorld implements Listener {
                 if (loader != null) {
                     plugin.getMessageReader().send("world-load-corrupted", loader);
                 }
+                onComplete.run();
             } catch (IOException e) {
                 plugin.getLogger().severe("Failed to load pocket world " + id + ": " + e);
+                onComplete.run();
             }
         });
+    }
+
+    private static void notifyQueuePosition(PocketWorldPlugin plugin, UUID playerId, int position) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            plugin.getMessageReader().sendActionBar("world-queue-position", player, "{POSITION}:" + position);
+        }
     }
 
     /**

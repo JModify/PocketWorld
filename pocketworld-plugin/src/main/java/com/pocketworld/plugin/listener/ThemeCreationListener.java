@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -68,15 +67,6 @@ public class ThemeCreationListener implements Listener {
             controller.nextState();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-cancel-theme")) {
             ThemeCreationRegistry.getInstance().getController(player.getUniqueId()).cancelCreation();
-        }
-    }
-
-    @EventHandler
-    public void onPlayerDrop(PlayerDropItemEvent event) {
-        ItemStack item = event.getItemDrop().getItemStack();
-
-        if (PocketItem.hasAnyTags(plugin, item, "is-biome-select", "is-icon-select", "is-theme-complete", "is-cancel-theme")) {
-            event.setCancelled(true);
         }
     }
 

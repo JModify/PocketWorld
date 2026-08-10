@@ -8,6 +8,7 @@ import com.pocketworld.plugin.ui.world_menus.management.ManageWorldMenu;
 import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.util.MessageReader;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -50,7 +51,7 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
+                        "&7World Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
                 .build().getAsSkull("BlockminersTV");
         inventory.setItem(4, globe);
 
@@ -121,8 +122,7 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
         } else {
             Map<UUID, WorldRank> users = world.getUsers();
 
-            WorldRank playerRank = users.get(player.getUniqueId());
-            if (playerRank != WorldRank.OWNER && playerRank != WorldRank.MOD) {
+            if (!world.hasPermission(player.getUniqueId(), WorldAction.KICK)) {
                 return;
             }
 

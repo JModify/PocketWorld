@@ -4,9 +4,14 @@ import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.ui.PocketMenu;
 import com.pocketworld.plugin.ui.world_menus.management.user_manage.PlayerManagementListMenu;
+import com.pocketworld.plugin.util.MessageReader;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -45,7 +50,7 @@ public class ManageWorldMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
+                        "&7World Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack playerManagement = new PocketItem.Builder(plugin)
@@ -70,6 +75,18 @@ public class ManageWorldMenu extends PocketMenu {
         inventory.setItem(24, leaveOrDelete);
         inventory.setItem(27, backButton);
 
+        if (world.hasPermission(player.getUniqueId(), WorldAction.SET_SPAWN)) {
+            ItemStack spawnPoint = new PocketItem.Builder(plugin)
+                    .material(Material.ENDER_EYE)
+                    .displayName("&5Spawn Point")
+                    .lore(List.of("&7Click to set world spawn point to your current position.",
+                            "&7You must be standing in your pocket world to set this."))
+                    .tag("world-spawn-point")
+                    .build().get();
+
+            inventory.setItem(16, spawnPoint);
+        }
+
         if (world.getUsers().get(player.getUniqueId()) == WorldRank.OWNER) {
             ItemStack worldProperties = new PocketItem.Builder(plugin)
                     .material(Material.DIAMOND_AXE)
@@ -79,6 +96,24 @@ public class ManageWorldMenu extends PocketMenu {
                     .build().get();
 
             inventory.setItem(22, worldProperties);
+
+            ItemStack permissions = new PocketItem.Builder(plugin)
+                    .material(Material.IRON_BARS)
+                    .displayName("&cPermissions")
+                    .lore(List.of("&7Configure what visitors, members and mods can do here."))
+                    .tag("world-permissions")
+                    .build().get();
+
+            inventory.setItem(11, permissions);
+
+            ItemStack expelVisitors = new PocketItem.Builder(plugin)
+                    .material(Material.IRON_DOOR)
+                    .displayName("&cExpel Visitors")
+                    .lore(List.of("&7Teleport every non-member currently in this world back out."))
+                    .tag("world-expel-visitors")
+                    .build().get();
+
+            inventory.setItem(15, expelVisitors);
         }
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
@@ -108,6 +143,12 @@ public class ManageWorldMenu extends PocketMenu {
             new PlayerManagementListMenu(player, plugin, world, this).open();
         } else if (tag.equalsIgnoreCase("world-properties")) {
             new WorldPropertiesMenu(player, plugin, world, this).open();
+        } else if (tag.equalsIgnoreCase("world-permissions")) {
+            new WorldPermissionsMenu(player, plugin, world, this).open();
+        } else if (tag.equalsIgnoreCase("world-expel-visitors")) {
+            expelVisitors();
+        } else if (tag.equalsIgnoreCase("world-spawn-point")) {
+            setSpawnPoint();
         } else if (tag.equalsIgnoreCase("world-leave")) {
             new LeaveWorldConfirmationMenu(player, plugin, world, this).open();
         } else if (tag.equalsIgnoreCase("world-delete")) {
@@ -115,6 +156,41 @@ public class ManageWorldMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("is-back-button")) {
             previousMenu.open();
         }
+    }
+
+    private void setSpawnPoint() {
+        if (!world.hasPermission(player.getUniqueId(), WorldAction.SET_SPAWN)) {
+            return;
+        }
+
+        Location playerLoc = player.getLocation();
+        MessageReader reader = plugin.getMessageReader();
+        if (playerLoc.getWorld() == null || !playerLoc.getWorld().getName().equals(world.getId().toString())) {
+            reader.send("world-set-spawn-outside", player);
+            return;
+        }
+
+        world.setWorldSpawn(playerLoc);
+        player.closeInventory();
+        reader.send("world-set-spawn-success", player);
+    }
+
+    /** Teleports every player physically in this world who isn't a member back to the default world. */
+    private void expelVisitors() {
+        World bukkitWorld = Bukkit.getWorld(world.getId().toString());
+        if (bukkitWorld == null) {
+            return;
+        }
+
+        World defaultWorld = Bukkit.getWorlds().get(0);
+        for (Player visitor : bukkitWorld.getPlayers()) {
+            if (!world.getUsers().containsKey(visitor.getUniqueId())) {
+                visitor.teleport(defaultWorld.getSpawnLocation());
+            }
+        }
+
+        plugin.getMessageReader().send("world-visitors-expelled", player, "{WORLD_NAME}:" + world.getWorldName());
+        player.closeInventory();
     }
 
     private ItemStack getLeaveOrDeleteWorldIcon() {

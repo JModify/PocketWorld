@@ -47,7 +47,7 @@ public class ManagePlayerMenu extends PocketMenu {
                 .material(Material.PLAYER_HEAD)
                 .displayName("&d" + world.getWorldName())
                 .lore(List.of("&7Members (" + world.getUsers().size() + "): " + world.getMembersFormatted(", "),
-                        "&7Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
+                        "&7World Size: " + world.getWorldSizeFormatted(), " ", "&8" + world.getId()))
                 .build().getAsSkull("BlockminersTV");
 
         String name = userToManage.getName();

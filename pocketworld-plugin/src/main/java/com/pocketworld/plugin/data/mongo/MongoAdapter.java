@@ -3,19 +3,24 @@ package com.pocketworld.plugin.data.mongo;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.world.Invitation;
+import com.pocketworld.plugin.world.PermissionRank;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
 import com.pocketworld.plugin.world.WorldSpawn;
 import org.bson.Document;
 import org.bukkit.Material;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /** Adapts plugin domain objects to and from Mongo documents. */
 public final class MongoAdapter {
@@ -81,6 +86,7 @@ public final class MongoAdapter {
         document.append("biome", pocketWorld.getBiome());
         document.append("users", memberMapToDocumentList(pocketWorld.getUsers()));
         document.append("invitations", invitationsMapToDocumentList(pocketWorld.getInvitations()));
+        document.append("permissions", permissionsMapToDocument(pocketWorld.getPermissions()));
         document.append("world-size", pocketWorld.getWorldSize());
         document.append("world-spawn", pocketWorld.getWorldSpawn().toString());
         document.append("allow-animals", pocketWorld.isAllowAnimals());
@@ -114,6 +120,11 @@ public final class MongoAdapter {
             invitations.put(recipient, new Invitation(sender, recipient, timestamp));
         }
 
+        Document permissionsRaw = document.get("permissions", Document.class);
+        Map<PermissionRank, Set<WorldAction>> permissions = permissionsRaw != null
+                ? permissionsMapFromDocument(permissionsRaw)
+                : PocketWorld.defaultPermissions();
+
         int worldSize = document.getInteger("world-size");
         WorldSpawn worldSpawn = WorldSpawn.fromString(document.getString("world-spawn"));
         boolean allowAnimals = document.getBoolean("allow-animals");
@@ -121,7 +132,26 @@ public final class MongoAdapter {
         boolean pvp = document.getBoolean("pvp");
 
         return new PocketWorld(id, worldName, icon, users, invitations, biome, worldSize, worldSpawn,
-                allowAnimals, allowMonsters, pvp, false);
+                allowAnimals, allowMonsters, pvp, false, permissions);
+    }
+
+    public static Document permissionsMapToDocument(Map<PermissionRank, Set<WorldAction>> permissions) {
+        Document document = new Document();
+        for (Map.Entry<PermissionRank, Set<WorldAction>> entry : permissions.entrySet()) {
+            document.append(entry.getKey().name(), entry.getValue().stream().map(Enum::name).toList());
+        }
+        return document;
+    }
+
+    public static Map<PermissionRank, Set<WorldAction>> permissionsMapFromDocument(Document document) {
+        Map<PermissionRank, Set<WorldAction>> permissions = new EnumMap<>(PermissionRank.class);
+        for (String key : document.keySet()) {
+            @SuppressWarnings("unchecked")
+            List<String> actions = document.get(key, List.class);
+            permissions.put(PermissionRank.valueOf(key), actions.stream().map(WorldAction::valueOf)
+                    .collect(Collectors.toCollection(() -> EnumSet.noneOf(WorldAction.class))));
+        }
+        return permissions;
     }
 
     public static List<Document> memberMapToDocumentList(Map<UUID, WorldRank> users) {

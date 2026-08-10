@@ -5,6 +5,7 @@ import com.pocketworld.plugin.api.event.PlayerEnterPocketWorldEvent;
 import com.pocketworld.plugin.api.event.PlayerLeavePocketWorldEvent;
 import com.pocketworld.plugin.util.PocketUtils;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Animals;
@@ -13,8 +14,12 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import java.util.UUID;
 
@@ -55,6 +60,53 @@ public class WorldListener implements Listener {
         } else if (entity instanceof Monster && !pocketWorld.isAllowMonsters()) {
             event.setCancelled(true);
         }
+    }
+
+    /** Enforces {@link WorldAction#BREAK} for whoever's effective {@link com.pocketworld.plugin.world.PermissionRank}
+     *  in this pocket world doesn't allow it - owners and anyone the matrix grants it always pass. */
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        PocketWorld pocketWorld = asPocketWorld(event.getBlock().getWorld().getName());
+        if (pocketWorld == null) {
+            return;
+        }
+        denyUnless(event, pocketWorld, event.getPlayer(), WorldAction.BREAK);
+    }
+
+    /** Enforces {@link WorldAction#BUILD}, same rules as {@link #onBlockBreak}. */
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        PocketWorld pocketWorld = asPocketWorld(event.getBlock().getWorld().getName());
+        if (pocketWorld == null) {
+            return;
+        }
+        denyUnless(event, pocketWorld, event.getPlayer(), WorldAction.BUILD);
+    }
+
+    /** Enforces {@link WorldAction#INTERACT} for right-clicking blocks (doors, chests, buttons,
+     *  levers, ...) and physical triggers (pressure plates, tripwire) - not item use in the air. */
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL) {
+            return;
+        }
+        if (event.getClickedBlock() == null) {
+            return;
+        }
+
+        PocketWorld pocketWorld = asPocketWorld(event.getClickedBlock().getWorld().getName());
+        if (pocketWorld == null) {
+            return;
+        }
+        denyUnless(event, pocketWorld, event.getPlayer(), WorldAction.INTERACT);
+    }
+
+    private void denyUnless(org.bukkit.event.Cancellable event, PocketWorld pocketWorld, Player player, WorldAction action) {
+        if (pocketWorld.hasPermission(player.getUniqueId(), action)) {
+            return;
+        }
+        event.setCancelled(true);
+        plugin.getMessageReader().sendActionBar("world-permission-denied", player);
     }
 
     /** Fires the public enter/leave API events by diffing the player's previous and new world. */

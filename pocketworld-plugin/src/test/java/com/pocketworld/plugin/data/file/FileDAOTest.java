@@ -3,7 +3,9 @@ package com.pocketworld.plugin.data.file;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.world.Invitation;
+import com.pocketworld.plugin.world.PermissionRank;
 import com.pocketworld.plugin.world.PocketWorld;
+import com.pocketworld.plugin.world.WorldAction;
 import com.pocketworld.plugin.world.WorldRank;
 import com.pocketworld.plugin.world.WorldSpawn;
 import org.bukkit.Material;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +38,12 @@ class FileDAOTest {
         Map<UUID, Invitation> invitations = new HashMap<>();
         invitations.put(recipientId, new Invitation(ownerId, recipientId, 12345L));
 
+        Map<PermissionRank, Set<WorldAction>> permissions = PocketWorld.defaultPermissions();
+        permissions.put(PermissionRank.VISITOR, EnumSet.of(WorldAction.INTERACT));
+
         PocketWorld world = new PocketWorld(UUID.randomUUID(), "My World", Material.GRASS_BLOCK, users,
                 invitations, "minecraft:plains", 150, new WorldSpawn(1.5, 65.0, -3.25, 90f, -10f),
-                true, false, true, false);
+                true, false, true, false, permissions);
 
         dao.registerPocketWorld(world);
         PocketWorld reloaded = dao.getPocketWorld(world.getId());
@@ -50,6 +56,7 @@ class FileDAOTest {
         assertEquals(world.isAllowMonsters(), reloaded.isAllowMonsters());
         assertEquals(world.isPvp(), reloaded.isPvp());
         assertEquals(WorldRank.OWNER, reloaded.getUsers().get(ownerId));
+        assertEquals(permissions, reloaded.getPermissions());
 
         Invitation reloadedInvitation = reloaded.getInvitations().get(recipientId);
         assertEquals(ownerId, reloadedInvitation.sender());
