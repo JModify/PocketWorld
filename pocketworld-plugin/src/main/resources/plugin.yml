@@ -14,7 +14,7 @@ commands:
   pocketworldadmin:
     aliases: [pwa]
     description: PocketWorld administrative commands.
-    usage: /pocketworldadmin <reload|import|export|validate>
+    usage: /pocketworldadmin <reload|import|export|validate|manage>
   theme:
     description: Manage PocketWorld themes.
     usage: /theme <create|manage|delete>
@@ -36,6 +36,7 @@ permissions:
       pocketworld.admin.import: true
       pocketworld.admin.export: true
       pocketworld.admin.validate: true
+      pocketworld.admin.manage: true
 
   # /pocketworld - base access only, it has no sub-arguments.
   pocketworld.command.pocketworld:
@@ -77,4 +78,7 @@ permissions:
     default: op
   pocketworld.admin.validate:
     description: Allows "/pocketworldadmin validate <worldId|all>".
+    default: op
+  pocketworld.admin.manage:
+    description: Allows "/pocketworldadmin manage [player]" - browsing and managing any player's pocket worlds.
     default: op

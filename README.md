@@ -20,16 +20,24 @@ loose region files.
   managed (listed, deleted) independently of the worlds created from them.
 - **Ranks and shared ownership.** Every member of a pocket world has a rank - **Owner** (full
   control, including editing other members' ranks and deleting the world), **Mod** (can invite and
-  kick players), or **Member** (no elevated permissions). A world can have any number of members at
-  any rank.
-- **Invitations.** An owner or mod can invite any online player by typing their username in chat; the
-  invited player accepts or declines from their own Invitations menu, and a pending invitation can be
-  revoked before it's answered.
-- **Per-world settings.** Each world's owner/mod can toggle PVP, animal spawns, and monster spawns
-  independently, and set the world's spawn point to their current in-world position - all from the
-  World Properties menu, no commands needed.
+  kick players by default), or **Member** (no elevated permissions by default). A world can have any
+  number of members at any rank.
+- **Visitor permissions.** Anyone physically inside a world who isn't a member is a **Visitor**. An
+  owner can configure, per rank (Visitor/Member/Mod), exactly which actions are allowed - build,
+  break, and interact for visitors; invite, kick, and set-spawn for members/mods - from a dedicated
+  Permissions menu, and can expel every visitor from the world in one click. Defaults match the
+  original hardcoded behavior, so nothing changes until an owner opens the menu.
+- **Invitations.** An owner or mod (or anyone else granted the invite permission) can invite any
+  online player by typing their username in chat; the invited player accepts or declines from their
+  own Invitations menu, and a pending invitation can be revoked before it's answered.
+- **Per-world settings.** Each world's owner can toggle PVP, animal spawns, and monster spawns
+  independently from the World Properties menu, and whoever holds the set-spawn permission (the owner,
+  by default) can set the world's spawn point to their current in-world position - no commands needed.
 - **World teleportation menu.** Jump directly to any world you're a member of from a single menu,
   without needing to remember or type its name.
+- **World creation queue.** World creation/loading is serialized server-wide (toggleable in
+  `config.yml`) so a burst of simultaneous requests can't stack their main-thread cost into one long
+  freeze - queued players see a live position indicator instead.
 - **Corruption detection.** Every stored world's bytes can be checked for structural corruption
   on demand (`/pocketworldadmin validate`), and a corrupted world fails with a clear message to both
   the affected player and the server log instead of silently doing nothing.
@@ -63,7 +71,7 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 |---|---|
 | `/pocketworld` (`/pw`) | Opens the main PocketWorld menu - create, manage, teleport to, and receive invitations for your own pocket worlds. Takes no arguments; everything past this is menu-driven. |
 | `/theme <create\|manage\|delete\|import\|edit>` | Build and manage the themes players create worlds from. `import` and `edit` are recognized but not yet implemented. |
-| `/pocketworldadmin` (`/pwa`) `<reload\|import\|export\|validate>` | Server administration: reload config files, move a stored pocket world in/out of a real Anvil folder, or check stored world data for corruption. Running it with no arguments prints usage help. |
+| `/pocketworldadmin` (`/pwa`) `<reload\|import\|export\|validate\|manage>` | Server administration: reload config files, move a stored pocket world in/out of a real Anvil folder, check stored world data for corruption, or browse/manage any player's pocket worlds. Running it with no arguments prints usage help. |
 
 ### `/theme` sub-arguments
 
@@ -83,6 +91,7 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 | `import` | `/pocketworldadmin import <folder> <worldId> [dataVersion]` | Imports a real Anvil-format world folder (a `region/` + `entities/` pair) as a stored pocket world under `<worldId>`. `folder` is resolved relative to the server's root directory unless given as an absolute path. `dataVersion` defaults to the running server's own version if omitted - only pass one explicitly for a folder from an older Minecraft version. Refuses to overwrite an existing world id. |
 | `export` | `/pocketworldadmin export <worldId> <folder>` | Exports a stored pocket world back out as a real Anvil-format world folder at `folder`. Refuses to write into a path that already exists. |
 | `validate` | `/pocketworldadmin validate <worldId\|all>` | Decodes a stored world's bytes (or every stored world, with `all`) and reports whether each one is structurally valid or corrupted, without needing to actually load it in-game first. |
+| `manage` | `/pocketworldadmin manage [player]` | With no name, opens a paginated grid of every online player's skull; with a name, resolves that player directly (online or offline). Either way opens a menu with **Worlds** (every pocket world the player is a member of - view members, resize the world border, wipe it, or teleport yourself/another player into it) and **Punish** (placeholder, no punishments configured yet). |
 
 ## Permissions
 
@@ -106,6 +115,7 @@ just the one node.
 | `pocketworld.admin.import` | op | `/pocketworldadmin import` |
 | `pocketworld.admin.export` | op | `/pocketworldadmin export` |
 | `pocketworld.admin.validate` | op | `/pocketworldadmin validate` |
+| `pocketworld.admin.manage` | op | `/pocketworldadmin manage` - browsing and managing any player's pocket worlds |
 
 ## Configuration
 
@@ -116,6 +126,7 @@ just the one node.
 | `debug` | `false` | Verbose diagnostic logging (world load/unload timings, which runtime bridge was selected, etc). |
 | `general.max-worlds` | `5` | Maximum pocket worlds a single player may own at once. |
 | `general.auto-unload-delay-seconds` | `60` | How long an empty, loaded pocket world waits before auto-unloading. Cancelled if a member rejoins first. |
+| `general.creation-queue-enabled` | `true` | Serializes world creation/loading server-wide so a burst of simultaneous requests can't stack into one long main-thread freeze. Disable to let every request start immediately instead. |
 | `world-difficulty` | `normal` | Difficulty applied to every pocket world. One of `peaceful`, `easy`, `normal`, `hard`. |
 | `mongodb.use` / `mysql.use` | `false` / `false` | Which backend stores world/theme/user *metadata* (not the world data itself - see Features above). Local YAML files are used if neither is enabled; enabling both at once is an error. |
 

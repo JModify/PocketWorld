@@ -45,7 +45,10 @@ public enum PocketPermission {
     ADMIN_EXPORT("pocketworld.admin.export"),
 
     /** /pocketworldadmin validate */
-    ADMIN_VALIDATE("pocketworld.admin.validate");
+    ADMIN_VALIDATE("pocketworld.admin.validate"),
+
+    /** /pocketworldadmin manage */
+    ADMIN_MANAGE("pocketworld.admin.manage");
 
     private final String node;
 

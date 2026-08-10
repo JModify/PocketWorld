@@ -2,10 +2,13 @@ package com.pocketworld.plugin.command;
 
 import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.runtime.PocketWorldRuntime;
+import com.pocketworld.plugin.ui.admin.AdminManageUserMenu;
+import com.pocketworld.plugin.ui.admin.AdminPlayerBrowserMenu;
 import com.pocketworld.plugin.util.ColorFormat;
 import com.pocketworld.plugin.util.PocketPermission;
 import com.pocketworld.slime.format.SlimeFormatException;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,6 +67,11 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
                     handleValidate(player, args);
                 }
             }
+            case "manage" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_MANAGE)) {
+                    handleManage(player, args);
+                }
+            }
             default -> sendHelp(player, label);
         }
         return true;
@@ -84,6 +93,7 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
                 "&e/" + label + " import <folder> <worldId> [dataVersion] &f- &7Import a real Anvil world folder as a stored pocket world.",
                 "&e/" + label + " export <worldId> <folder> &f- &7Export a stored pocket world as a real Anvil world folder.",
                 "&e/" + label + " validate <worldId|all> &f- &7Check stored pocket world(s) for corruption.",
+                "&e/" + label + " manage [player] &f- &7Browse and manage a player's pocket worlds.",
                 "&7&m---------------------------");
         menu.forEach(line -> player.sendMessage(ColorFormat.format(line)));
     }
@@ -166,6 +176,34 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
                 player.sendMessage(ColorFormat.format("&cExport failed: " + e.getMessage()));
                 plugin.getLogger().severe("Failed to export pocket world \"" + worldId + "\" to " + folder + ": " + e);
             }
+        });
+    }
+
+    /** No name given -> a paginated skull grid of every online player. A name given -> resolves that
+     *  player directly (online or offline, so an admin can manage someone who's currently logged off). */
+    private void handleManage(Player player, String[] args) {
+        if (args.length == 1) {
+            new AdminPlayerBrowserMenu(player, plugin, new ArrayList<>(Bukkit.getOnlinePlayers())).open();
+            return;
+        }
+        if (args.length != 2) {
+            plugin.getMessageReader().send("invalid-usage", player, "{USAGE}:/pocketworldadmin manage [player]");
+            return;
+        }
+
+        String name = args[1];
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            @SuppressWarnings("deprecation")
+            OfflinePlayer target = Bukkit.getOfflinePlayer(name);
+
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        player.sendMessage(ColorFormat.format("&cNo player found with name \"" + name + "\".")));
+                return;
+            }
+
+            Bukkit.getScheduler().runTask(plugin, () ->
+                    new AdminManageUserMenu(player, plugin, target.getUniqueId(), target.getName(), null).open());
         });
     }
 
