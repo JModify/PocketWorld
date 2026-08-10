@@ -26,6 +26,9 @@ messages:
   theme-deleted:
     type: success
     message: "&aTheme \"{NAME}\" deleted."
+  theme-creation-already-in-progress:
+    type: error
+    message: "&cYou are already creating a theme. Finish or cancel it before starting another."
 
   world-creation-max-worlds:
     type: error

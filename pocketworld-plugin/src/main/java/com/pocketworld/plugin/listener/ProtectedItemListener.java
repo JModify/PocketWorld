@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
@@ -56,6 +57,18 @@ public class ProtectedItemListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (isTagged(event.getCursor()) || isTagged(event.getCurrentItem())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Belt-and-suspenders for stage items that happen to be real, placeable blocks (BARRIER,
+     *  LIME_WOOL, ...): {@code ThemeCreationListener} is responsible for cancelling the
+     *  {@code PlayerInteractEvent} that would otherwise lead to this, but this catches it directly
+     *  too in case any future tagged item reaches placement through a path that listener doesn't
+     *  cover (dispensers, other menus, etc.). */
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (isTagged(event.getItemInHand())) {
             event.setCancelled(true);
         }
     }

@@ -47,6 +47,13 @@ public class ThemeCreationListener implements Listener {
      * showed pressing Q to attempt (and correctly have blocked) a drop of the cancel item also fires
      * an incidental interact packet, which this unfiltered handler was treating as "clicked cancel",
      * tearing the player out of theme creation entirely as a side effect of a blocked drop.
+     * <p>
+     * Every branch below must also call {@code event.setCancelled(true)} - three of them (theme
+     * complete, spawn point, cancel) previously didn't. Since their items are all real, placeable/
+     * throwable vanilla items (LIME_WOOL, ENDER_EYE, BARRIER), an uncancelled RIGHT_CLICK_BLOCK let
+     * the normal vanilla action proceed alongside the plugin's own logic - e.g. right-clicking the
+     * cancel item against a block correctly cancelled theme creation AND placed the barrier as a
+     * real block, since nothing stopped the placement half of that same interaction.
      */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
@@ -72,8 +79,10 @@ public class ThemeCreationListener implements Listener {
             event.setCancelled(true);
             new SelectIconMenu(player, plugin).open();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-theme-complete")) {
+            event.setCancelled(true);
             ThemeCreationRegistry.getInstance().getController(player.getUniqueId()).nextState();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-spawn-point")) {
+            event.setCancelled(true);
             Location location = player.getLocation();
             String formattedLocation = String.format("%f:%f:%f:%f:%f", location.getX(),
                     location.getY(), location.getZ(), location.getYaw(), location.getPitch());
@@ -83,6 +92,7 @@ public class ThemeCreationListener implements Listener {
             plugin.getMessageReader().send("theme-spawn-set", player);
             controller.nextState();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-cancel-theme")) {
+            event.setCancelled(true);
             plugin.getDebugger().info("[ThemeCreationListener] Cancelling theme creation for "
                     + player.getName() + " - clicked cancel item (action: " + event.getAction() + ").");
             ThemeCreationRegistry.getInstance().getController(player.getUniqueId()).cancelCreation();

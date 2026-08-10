@@ -21,11 +21,32 @@ public final class ThemeCreationRegistry {
         return INSTANCE;
     }
 
-    public void addCreator(PocketWorldPlugin plugin, UUID userId) {
+    /**
+     * @return false if {@code userId} was already mid-creation and nothing happened, true if a new
+     *         controller was started. Guarding against a duplicate start is essential, not just
+     *         tidiness: {@link ThemeCreationController} has no {@code equals()}/{@code hashCode()}
+     *         override, so a second controller for the same user would sit in this {@link HashSet}
+     *         as a distinct entry (reference equality) alongside the first. {@link #find} then
+     *         returns whichever of the two a plain {@code HashSet} happens to iterate to first -
+     *         unpredictable, and different calls could resolve to different controllers. Cancelling
+     *         or completing one via {@link #removeByController} only ever removes that one specific
+     *         instance, so the other is silently orphaned in this static, server-lifetime singleton
+     *         with no other path to ever remove it - the exact "stuck until restart" state a second
+     *         {@code /theme create} while already mid-creation was observed to cause live. The new
+     *         controller's own {@link ThemeCreationController#start()} would also have re-stashed the
+     *         player's inventory over the first (real) backup, permanently losing it.
+     */
+    public boolean addCreator(PocketWorldPlugin plugin, UUID userId) {
+        if (containsUser(userId)) {
+            return false;
+        }
+
         ThemeCreationController controller = new ThemeCreationController(plugin, userId);
         if (controller.start()) {
             controllers.add(controller);
+            return true;
         }
+        return false;
     }
 
     public void removeByController(ThemeCreationController controller) {

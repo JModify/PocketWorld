@@ -44,7 +44,9 @@ public class CommandTheme implements CommandExecutor {
                     reader.send("insufficient-permissions", player);
                     return true;
                 }
-                ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId());
+                if (!ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId())) {
+                    reader.send("theme-creation-already-in-progress", player);
+                }
             }
             case "manage", "list" -> {
                 if (!PocketPermission.has(player, PocketPermission.THEME_MANAGE)) {
