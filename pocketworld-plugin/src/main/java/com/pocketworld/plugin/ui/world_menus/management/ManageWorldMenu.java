@@ -38,7 +38,7 @@ public class ManageWorldMenu extends PocketMenu {
 
     @Override
     public int getMenuSlots() {
-        return 36;
+        return 45;
     }
 
     @SuppressWarnings("deprecation")
@@ -73,7 +73,7 @@ public class ManageWorldMenu extends PocketMenu {
         inventory.setItem(13, globe);
         inventory.setItem(20, playerManagement);
         inventory.setItem(24, leaveOrDelete);
-        inventory.setItem(27, backButton);
+        inventory.setItem(36, backButton);
 
         if (world.hasPermission(player.getUniqueId(), WorldAction.SET_SPAWN)) {
             ItemStack spawnPoint = new PocketItem.Builder(plugin)
@@ -84,7 +84,7 @@ public class ManageWorldMenu extends PocketMenu {
                     .tag("world-spawn-point")
                     .build().get();
 
-            inventory.setItem(16, spawnPoint);
+            inventory.setItem(31, spawnPoint);
         }
 
         if (world.getUsers().get(player.getUniqueId()) == WorldRank.OWNER) {
@@ -104,7 +104,7 @@ public class ManageWorldMenu extends PocketMenu {
                     .tag("world-permissions")
                     .build().get();
 
-            inventory.setItem(11, permissions);
+            inventory.setItem(29, permissions);
 
             ItemStack expelVisitors = new PocketItem.Builder(plugin)
                     .material(Material.IRON_DOOR)
@@ -113,7 +113,7 @@ public class ManageWorldMenu extends PocketMenu {
                     .tag("world-expel-visitors")
                     .build().get();
 
-            inventory.setItem(15, expelVisitors);
+            inventory.setItem(33, expelVisitors);
         }
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)

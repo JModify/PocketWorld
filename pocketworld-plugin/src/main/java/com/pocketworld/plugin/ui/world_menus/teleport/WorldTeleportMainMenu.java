@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,13 +54,18 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
                     .collect(Collectors.joining(", "));
 
             String status = world.isLoaded() ? "&aLOADED" : "&cNOT LOADED";
+            List<String> lore = new ArrayList<>(List.of("&7Click to teleport to this world.", " ",
+                    "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
+                    " ", status, "&8" + world.getId()));
+            if (isPlayerInside(world)) {
+                lore.add("&aYou are currently inside this PocketWorld");
+            }
+
             ItemStack worldIcon = new PocketItem.Builder(plugin)
                     .material(world.getIcon())
                     .stackSize(1)
                     .displayName("&b" + world.getWorldName())
-                    .lore(List.of("&7Click to teleport to this world.", " ",
-                            "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
-                            " ", status, "&8" + world.getId()))
+                    .lore(lore)
                     .tag(world.getId().toString())
                     .build().get();
 
@@ -108,5 +114,9 @@ public class WorldTeleportMainMenu extends PocketPaginatedMenu {
 
             world.teleport(player);
         }
+    }
+
+    private boolean isPlayerInside(PocketWorld world) {
+        return player.getWorld().getName().equals(world.getId().toString());
     }
 }

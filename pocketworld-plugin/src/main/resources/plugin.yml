@@ -14,10 +14,10 @@ commands:
   pocketworldadmin:
     aliases: [pwa]
     description: PocketWorld administrative commands.
-    usage: /pocketworldadmin <reload|import|export|validate|manage>
+    usage: /pocketworldadmin <reload|import|export|validate|manage|bypass>
   theme:
     description: Manage PocketWorld themes.
-    usage: /theme <create|manage|delete>
+    usage: /theme <create|manage>
 
 permissions:
   pocketworld.*:
@@ -29,7 +29,6 @@ permissions:
       pocketworld.command.admin: true
       pocketworld.theme.create: true
       pocketworld.theme.manage: true
-      pocketworld.theme.delete: true
       pocketworld.theme.import: true
       pocketworld.theme.edit: true
       pocketworld.admin.reload: true
@@ -37,6 +36,7 @@ permissions:
       pocketworld.admin.export: true
       pocketworld.admin.validate: true
       pocketworld.admin.manage: true
+      pocketworld.admin.bypass: true
 
   # /pocketworld - base access only, it has no sub-arguments.
   pocketworld.command.pocketworld:
@@ -51,10 +51,7 @@ permissions:
     description: Allows "/theme create".
     default: op
   pocketworld.theme.manage:
-    description: Allows "/theme manage" (and its "list" alias) - viewing all themes.
-    default: op
-  pocketworld.theme.delete:
-    description: Allows "/theme delete <id>".
+    description: Allows "/theme manage" (and its "list" alias) - viewing, deleting, and (once implemented) editing themes.
     default: op
   pocketworld.theme.import:
     description: Allows "/theme import" (not yet implemented).
@@ -81,4 +78,7 @@ permissions:
     default: op
   pocketworld.admin.manage:
     description: Allows "/pocketworldadmin manage [player]" - browsing and managing any player's pocket worlds.
+    default: op
+  pocketworld.admin.bypass:
+    description: Allows "/pocketworldadmin bypass" - toggles bypassing visitor build/break/interact permissions in any pocket world.
     default: op

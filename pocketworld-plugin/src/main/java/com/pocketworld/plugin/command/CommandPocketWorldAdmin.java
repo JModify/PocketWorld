@@ -72,6 +72,11 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
                     handleManage(player, args);
                 }
             }
+            case "bypass" -> {
+                if (checkPermission(player, PocketPermission.ADMIN_BYPASS)) {
+                    handleBypass(player);
+                }
+            }
             default -> sendHelp(player, label);
         }
         return true;
@@ -94,6 +99,7 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
                 "&e/" + label + " export <worldId> <folder> &f- &7Export a stored pocket world as a real Anvil world folder.",
                 "&e/" + label + " validate <worldId|all> &f- &7Check stored pocket world(s) for corruption.",
                 "&e/" + label + " manage [player] &f- &7Browse and manage a player's pocket worlds.",
+                "&e/" + label + " bypass &f- &7Toggle bypassing visitor build/break/interact permissions.",
                 "&7&m---------------------------");
         menu.forEach(line -> player.sendMessage(ColorFormat.format(line)));
     }
@@ -205,6 +211,13 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
             Bukkit.getScheduler().runTask(plugin, () ->
                     new AdminManageUserMenu(player, plugin, target.getUniqueId(), target.getName(), null).open());
         });
+    }
+
+    /** Toggles this admin bypassing visitor build/break/interact permission enforcement (see
+     *  {@link com.pocketworld.plugin.listener.WorldListener}) - session-only, off again on restart. */
+    private void handleBypass(Player player) {
+        boolean nowBypassing = plugin.toggleBypass(player.getUniqueId());
+        plugin.getMessageReader().send(nowBypassing ? "admin-bypass-enabled" : "admin-bypass-disabled", player);
     }
 
     private void handleValidate(Player player, String[] args) {

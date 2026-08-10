@@ -62,7 +62,7 @@ public class PocketWorldCreator {
         }
 
         int position = plugin.getCreationQueue().enqueue(
-                onComplete -> createNow(plugin, world, theme, creatorId, worldId, themeId, onComplete),
+                onComplete -> createNow(plugin, world, theme, creatorId, worldId, themeId, delayedComplete(plugin, onComplete)),
                 newPosition -> notifyQueuePosition(plugin, creatorId, newPosition));
 
         if (position > 0) {
@@ -78,6 +78,16 @@ public class PocketWorldCreator {
         if (player != null) {
             plugin.getMessageReader().sendActionBar("world-queue-position", player, "{POSITION}:" + position);
         }
+    }
+
+    /** Wraps the queue's completion callback with an extra configured pause, if any, before the
+     *  next queued job is allowed to start - see {@link PocketWorldPlugin#getCreationQueueDelayTicks()}. */
+    private static Runnable delayedComplete(PocketWorldPlugin plugin, Runnable onComplete) {
+        long delayTicks = plugin.getCreationQueueDelayTicks();
+        if (delayTicks <= 0) {
+            return onComplete;
+        }
+        return () -> Bukkit.getScheduler().runTaskLater(plugin, onComplete, delayTicks);
     }
 
     private void createNow(PocketWorldPlugin plugin, PocketWorld world, PocketTheme theme, UUID creatorId,

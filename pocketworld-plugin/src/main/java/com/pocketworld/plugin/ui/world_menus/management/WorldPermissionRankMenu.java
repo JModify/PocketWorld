@@ -58,6 +58,8 @@ public class WorldPermissionRankMenu extends PocketMenu {
     public void setMenuItems() {
         Inventory inventory = getInventory();
 
+        inventory.setItem(13, getRankIcon());
+
         int[] slots = {20, 22, 24};
         for (int i = 0; i < applicableActions.size(); i++) {
             inventory.setItem(slots[i], getActionToggle(applicableActions.get(i)));
@@ -117,6 +119,7 @@ public class WorldPermissionRankMenu extends PocketMenu {
         String displayName = (enabled ? "&a" : "&c") + capitalize(action.name());
 
         List<String> lore = new ArrayList<>();
+        lore.add("&7" + getActionDescription(action));
         lore.add(enabled ? "&7Enabled" : "&7Disabled");
         lore.add(" ");
         lore.add(enabled ? "&8Click to disable." : "&8Click to enable.");
@@ -126,6 +129,31 @@ public class WorldPermissionRankMenu extends PocketMenu {
                 .displayName(displayName)
                 .lore(lore)
                 .tag("permission-toggle-" + action.name())
+                .build().get();
+    }
+
+    /** Short (<=40 char) description of what toggling this action actually does, shown in its lore. */
+    private static String getActionDescription(WorldAction action) {
+        return switch (action) {
+            case BUILD -> "Toggle block placement permission";
+            case BREAK -> "Toggle block breakage permission";
+            case INTERACT -> "Toggle block interaction permission";
+            case INVITE -> "Toggle invite permission";
+            case KICK -> "Toggle kick permission";
+            case SET_SPAWN -> "Toggle set spawn permission";
+        };
+    }
+
+    private ItemStack getRankIcon() {
+        Material material = switch (rank) {
+            case VISITOR -> Material.DIRT;
+            case MEMBER -> Material.COAL;
+            case MOD -> Material.GOLD_INGOT;
+        };
+
+        return new PocketItem.Builder(plugin)
+                .material(material)
+                .displayName("&a" + capitalize(rank.name()) + " Permissions")
                 .build().get();
     }
 

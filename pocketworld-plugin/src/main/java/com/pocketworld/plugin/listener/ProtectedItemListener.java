@@ -4,6 +4,7 @@ import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.ui.PocketItem;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -30,10 +31,14 @@ public class ProtectedItemListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
+    /** {@code HIGHEST} (rather than the implicit {@code NORMAL}) so nothing else can run after this
+     *  and undo the cancellation, and the dropped entity is removed explicitly rather than relying
+     *  solely on {@code setCancelled}'s own cleanup - belt-and-suspenders for exactly this item. */
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDrop(PlayerDropItemEvent event) {
         if (isTagged(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
+            event.getItemDrop().remove();
         }
     }
 

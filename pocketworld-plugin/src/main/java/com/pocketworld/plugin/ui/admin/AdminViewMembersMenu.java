@@ -3,6 +3,8 @@ package com.pocketworld.plugin.ui.admin;
 import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.ui.PocketPaginatedMenu;
+import com.pocketworld.plugin.ui.world_menus.management.user_manage.ManagePlayerMenu;
+import com.pocketworld.plugin.user.PocketUser;
 import com.pocketworld.plugin.world.PocketWorld;
 import com.pocketworld.plugin.world.WorldRank;
 import org.bukkit.Bukkit;
@@ -14,10 +16,12 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
-/** Read-only listing of every member of a world and their rank - no click action per member, this
- *  is purely informational for an admin (unlike the owner-facing {@code PlayerManagementListMenu}). */
+/** Every member of a world and their rank - clicking one opens the same {@code ManagePlayerMenu}
+ *  world owners use, with the admin treated as if they owned the world regardless of their actual
+ *  membership (or lack of it), so kicking/editing ranks works exactly like it does for a real owner. */
 public class AdminViewMembersMenu extends PocketPaginatedMenu {
 
     private final PocketWorld world;
@@ -55,7 +59,8 @@ public class AdminViewMembersMenu extends PocketPaginatedMenu {
             ItemStack userIcon = new PocketItem.Builder(plugin)
                     .material(Material.PLAYER_HEAD)
                     .displayName("&a" + name)
-                    .lore(List.of("&7Rank: " + rank.name(), " ", "&8" + id))
+                    .lore(List.of("&7Rank: " + rank.name(), " ", "&7Click to manage this player.", "&8" + id))
+                    .tag(id.toString())
                     .build().getAsSkull(name);
 
             getInventory().addItem(userIcon);
@@ -88,6 +93,14 @@ public class AdminViewMembersMenu extends PocketPaginatedMenu {
                 page--;
                 open();
             }
+        } else {
+            Optional<UUID> memberId = memberIds.stream().filter(id -> id.toString().equalsIgnoreCase(tag)).findFirst();
+            if (memberId.isEmpty()) {
+                return;
+            }
+
+            PocketUser userToManage = plugin.getUserCache().readThrough(memberId.get());
+            new ManagePlayerMenu(player, plugin, world, userToManage, this::open, true).open();
         }
     }
 }

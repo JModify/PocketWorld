@@ -27,10 +27,17 @@ public final class WorldAutoUnloadTracker {
         this.plugin = plugin;
     }
 
-    /** Call once per disconnect: checks every currently-loaded world for having gone empty. */
-    public void onPlayerQuit() {
+    /**
+     * Call once per disconnect, with the quitting player's id: checks every currently-loaded world
+     * for having gone empty. The quitting player's id must be passed and excluded explicitly - while
+     * {@link org.bukkit.event.player.PlayerQuitEvent} handlers are running, {@code Bukkit.getPlayer()}
+     * still returns them (removal from the online-player list happens only after the event finishes
+     * firing, a well-known Bukkit quirk), so without this exclusion a world whose only online member
+     * just quit would incorrectly look "still occupied" and never get scheduled for unload at all.
+     */
+    public void onPlayerQuit(UUID quittingPlayerId) {
         for (PocketWorld world : plugin.getWorldCache().getLoadedWorlds()) {
-            scheduleIfEmpty(world);
+            scheduleIfEmpty(world, quittingPlayerId);
         }
     }
 
@@ -44,9 +51,9 @@ public final class WorldAutoUnloadTracker {
         }
     }
 
-    private void scheduleIfEmpty(PocketWorld world) {
+    private void scheduleIfEmpty(PocketWorld world, UUID excludePlayerId) {
         UUID worldId = world.getId();
-        if (pendingUnloads.containsKey(worldId) || hasOnlineMember(world)) {
+        if (pendingUnloads.containsKey(worldId) || hasOnlineMember(world, excludePlayerId)) {
             return;
         }
 
@@ -72,6 +79,12 @@ public final class WorldAutoUnloadTracker {
     }
 
     private boolean hasOnlineMember(PocketWorld world) {
-        return world.getUsers().keySet().stream().anyMatch(id -> Bukkit.getPlayer(id) != null);
+        return hasOnlineMember(world, null);
+    }
+
+    private boolean hasOnlineMember(PocketWorld world, UUID excludePlayerId) {
+        return world.getUsers().keySet().stream()
+                .filter(id -> !id.equals(excludePlayerId))
+                .anyMatch(id -> Bukkit.getPlayer(id) != null);
     }
 }

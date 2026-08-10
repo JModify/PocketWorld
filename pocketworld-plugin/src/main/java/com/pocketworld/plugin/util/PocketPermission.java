@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
  * Every permission node this plugin checks. Each command that takes sub-arguments (`/theme`,
  * `/pocketworldadmin`) has its own base "can you run this command at all" node, plus one further
  * node per sub-argument - so an admin can hand out, say, {@code pocketworld.theme.manage} without
- * also granting {@code pocketworld.theme.delete}. `/pocketworld` has no sub-arguments, so its one
+ * also granting {@code pocketworld.theme.create}. `/pocketworld` has no sub-arguments, so its one
  * node is both the base and only check.
  */
 public enum PocketPermission {
@@ -23,11 +23,9 @@ public enum PocketPermission {
     /** /theme create */
     THEME_CREATE("pocketworld.theme.create"),
 
-    /** /theme manage (and its "list" alias) */
+    /** /theme manage (and its "list" alias) - also covers deleting a theme from that menu, since
+     *  there's no separate command for it anymore. */
     THEME_MANAGE("pocketworld.theme.manage"),
-
-    /** /theme delete */
-    THEME_DELETE("pocketworld.theme.delete"),
 
     /** /theme import (not yet implemented) */
     THEME_IMPORT("pocketworld.theme.import"),
@@ -48,7 +46,10 @@ public enum PocketPermission {
     ADMIN_VALIDATE("pocketworld.admin.validate"),
 
     /** /pocketworldadmin manage */
-    ADMIN_MANAGE("pocketworld.admin.manage");
+    ADMIN_MANAGE("pocketworld.admin.manage"),
+
+    /** /pocketworldadmin bypass */
+    ADMIN_BYPASS("pocketworld.admin.bypass");
 
     private final String node;
 

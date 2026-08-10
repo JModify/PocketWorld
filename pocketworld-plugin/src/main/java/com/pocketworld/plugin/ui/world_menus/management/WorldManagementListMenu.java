@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,13 +55,18 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
                     .collect(Collectors.joining(", "));
             String status = world.isLoaded() ? "&aLOADED" : "&cNOT LOADED";
 
+            List<String> lore = new ArrayList<>(List.of("&7Click to manage this world.", " ",
+                    "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
+                    "&eWorld Size: " + world.getWorldSize() + "x" + world.getWorldSize(),
+                    " ", status, "&8" + world.getId()));
+            if (isPlayerInside(world)) {
+                lore.add("&aYou are currently inside this PocketWorld");
+            }
+
             ItemStack worldIcon = new PocketItem.Builder(plugin)
                     .material(world.getIcon())
                     .displayName("&b" + world.getWorldName())
-                    .lore(List.of("&7Click to manage this world.", " ",
-                            "&6Properties", "&eBiome: " + world.getBiome(), "&eMembers: " + members,
-                            "&eWorld Size: " + world.getWorldSize() + "x" + world.getWorldSize(),
-                            " ", status, "&8" + world.getId()))
+                    .lore(lore)
                     .tag(world.getId().toString())
                     .build().get();
 
@@ -99,5 +105,9 @@ public class WorldManagementListMenu extends PocketPaginatedMenu {
             Optional<PocketWorld> optionalWorld = worlds.stream().filter(t -> t.getId().equals(worldId)).findFirst();
             optionalWorld.ifPresent(world -> new ManageWorldMenu(player, plugin, world, this).open());
         }
+    }
+
+    private boolean isPlayerInside(PocketWorld world) {
+        return player.getWorld().getName().equals(world.getId().toString());
     }
 }

@@ -42,6 +42,6 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getUserCache().handleDisconnection(event.getPlayer());
-        autoUnloadTracker.onPlayerQuit();
+        autoUnloadTracker.onPlayerQuit(event.getPlayer().getUniqueId());
     }
 }

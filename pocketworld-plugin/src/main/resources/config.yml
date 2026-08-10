@@ -15,6 +15,11 @@ general:
   # disabling if you've verified your hardware/player count don't need it; the queue's cost is
   # extra wait time for whoever's at the back of it, never server health.
   creation-queue-enabled: true
+  # Extra pause (in seconds) between one queued creation/load finishing and the next one starting -
+  # spreads server load out further than the queue alone does, at the cost of everyone behind the
+  # front of the queue waiting longer. 0 (default) starts the next one immediately, matching the
+  # queue's original behavior. Has no effect when creation-queue-enabled is false.
+  creation-queue-delay-seconds: 0
 
 # Difficulty applied to pocket worlds. One of: peaceful, easy, normal, hard.
 world-difficulty: normal

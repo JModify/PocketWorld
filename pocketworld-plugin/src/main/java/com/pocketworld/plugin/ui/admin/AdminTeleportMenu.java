@@ -42,15 +42,15 @@ public class AdminTeleportMenu extends PocketMenu {
 
         ItemStack teleportSelf = new PocketItem.Builder(plugin)
                 .material(Material.ENDER_PEARL)
-                .displayName("&aTeleport Me Here")
+                .displayName("&aTeleport Me")
                 .lore(List.of("&7Teleport yourself into \"" + world.getWorldName() + "\"."))
                 .tag("admin-teleport-self")
                 .build().get();
 
         ItemStack teleportPlayer = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
-                .displayName("&aTeleport a Player Here")
-                .lore(List.of("&7Teleport another online player into \"" + world.getWorldName() + "\"."))
+                .displayName("&aTeleport Target")
+                .lore(List.of("&7Teleport an online player into " + world.getWorldName() + "."))
                 .tag("admin-teleport-player")
                 .build().get();
 

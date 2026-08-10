@@ -208,7 +208,7 @@ public class PocketWorld implements Listener {
         }
 
         int position = plugin.getCreationQueue().enqueue(
-                onComplete -> loadNow(plugin, loaderId, shouldTeleport, shouldNotify, onComplete),
+                onComplete -> loadNow(plugin, loaderId, shouldTeleport, shouldNotify, delayedComplete(plugin, onComplete)),
                 newPosition -> notifyQueuePosition(plugin, loaderId, newPosition));
 
         if (position > 0) {
@@ -283,6 +283,16 @@ public class PocketWorld implements Listener {
         if (player != null) {
             plugin.getMessageReader().sendActionBar("world-queue-position", player, "{POSITION}:" + position);
         }
+    }
+
+    /** Wraps the queue's completion callback with an extra configured pause, if any, before the
+     *  next queued job is allowed to start - see {@link PocketWorldPlugin#getCreationQueueDelayTicks()}. */
+    private static Runnable delayedComplete(PocketWorldPlugin plugin, Runnable onComplete) {
+        long delayTicks = plugin.getCreationQueueDelayTicks();
+        if (delayTicks <= 0) {
+            return onComplete;
+        }
+        return () -> Bukkit.getScheduler().runTaskLater(plugin, onComplete, delayTicks);
     }
 
     /**

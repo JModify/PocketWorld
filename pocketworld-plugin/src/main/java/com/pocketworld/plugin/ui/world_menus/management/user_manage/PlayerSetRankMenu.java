@@ -52,7 +52,7 @@ public class PlayerSetRankMenu extends PocketMenu {
         ItemStack userIcon = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .displayName("&a" + name)
-                .lore(List.of("&7Rank: " + rank.name(), " ", "&8" + userToSetRank))
+                .lore(List.of("&7Rank: " + rank.name(), " ", "&8" + userToSetRank.getId()))
                 .build().getAsSkull(name);
 
         ItemStack backButton = new PocketItem.Builder(plugin)
@@ -147,7 +147,12 @@ public class PlayerSetRankMenu extends PocketMenu {
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
             player.closeInventory();
             world.getUsers().put(userToSetRank.getId(), WorldRank.OWNER);
-            world.getUsers().put(player.getUniqueId(), WorldRank.MOD);
+            // Only demote the acting player if they were already a member - an admin exercising this
+            // via /pocketworldadmin manage on a world they aren't part of shouldn't be inserted as a
+            // MOD member as a side effect of transferring someone else's ownership.
+            if (world.getUsers().containsKey(player.getUniqueId())) {
+                world.getUsers().put(player.getUniqueId(), WorldRank.MOD);
+            }
 
             world.announce(reader.read("world-leadership-transfer",
                     "{PLAYER}:" + player.getName(),

@@ -18,14 +18,24 @@ public class ManagePlayerMenu extends PocketMenu {
 
     private final PocketUser userToManage;
     private final PocketWorld world;
-    private final PlayerManagementListMenu previousMenu;
+    private final Runnable onBack;
+    private final boolean actingAsOwner;
 
+    /**
+     * @param onBack        returns to whichever menu opened this one - {@code PlayerManagementListMenu}
+     *                      for a real owner/mod, or an admin menu reached via {@code /pocketworldadmin manage}.
+     * @param actingAsOwner whether owner-only controls (currently just Edit Rank) should be shown,
+     *                      regardless of the acting player's actual membership in this world - true
+     *                      for a real owner, and always true for the admin path (which lets an admin
+     *                      manage a world they aren't necessarily a member of at all).
+     */
     public ManagePlayerMenu(Player player, PocketWorldPlugin plugin, PocketWorld world, PocketUser userToManage,
-                             PlayerManagementListMenu previousMenu) {
+                             Runnable onBack, boolean actingAsOwner) {
         super(player, plugin);
         this.world = world;
         this.userToManage = userToManage;
-        this.previousMenu = previousMenu;
+        this.onBack = onBack;
+        this.actingAsOwner = actingAsOwner;
     }
 
     @Override
@@ -55,7 +65,7 @@ public class ManagePlayerMenu extends PocketMenu {
         ItemStack userIcon = new PocketItem.Builder(plugin)
                 .material(Material.PLAYER_HEAD)
                 .displayName("&a" + name)
-                .lore(List.of("&7Rank: " + rank.name(), " ", "&8" + userToManage))
+                .lore(List.of("&7Rank: " + rank.name(), " ", "&8" + userToManage.getId()))
                 .build().getAsSkull(name);
 
         ItemStack backButton = new PocketItem.Builder(plugin)
@@ -77,7 +87,7 @@ public class ManagePlayerMenu extends PocketMenu {
         inventory.setItem(36, backButton);
 
         WorldRank playerRank = world.getUsers().get(player.getUniqueId());
-        if (playerRank == WorldRank.OWNER) {
+        if (actingAsOwner || playerRank == WorldRank.OWNER) {
             ItemStack setRank = new PocketItem.Builder(plugin)
                     .material(Material.COMMAND_BLOCK)
                     .displayName("&6Edit Rank")
@@ -114,7 +124,7 @@ public class ManagePlayerMenu extends PocketMenu {
         }
 
         if (tag.equalsIgnoreCase("is-back-button")) {
-            previousMenu.open();
+            onBack.run();
         } else if (tag.equalsIgnoreCase("user-edit-rank")) {
             new PlayerSetRankMenu(player, plugin, world, userToManage, this).open();
         } else if (tag.equalsIgnoreCase("user-kick")) {

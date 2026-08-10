@@ -147,7 +147,8 @@ public class PlayerManagementListMenu extends PocketPaginatedMenu {
             }
 
             PocketUser userToManage = plugin.getUserCache().readThrough(id);
-            new ManagePlayerMenu(player, plugin, world, userToManage, this).open();
+            boolean isOwner = world.getUsers().get(player.getUniqueId()) == WorldRank.OWNER;
+            new ManagePlayerMenu(player, plugin, world, userToManage, this::open, isOwner).open();
         }
     }
 }

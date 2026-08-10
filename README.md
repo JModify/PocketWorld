@@ -17,7 +17,8 @@ loose region files.
   cancels itself if someone rejoins first), so idle worlds don't sit around consuming resources.
 - **Themes.** Admins build a theme once, as a real void world with a bordered build area, using
   `/theme create`. Every pocket world made from that theme starts as an exact copy of it. Themes are
-  managed (listed, deleted) independently of the worlds created from them.
+  managed (viewed, deleted) from `/theme manage`'s own menu, independently of the worlds created
+  from them.
 - **Ranks and shared ownership.** Every member of a pocket world has a rank - **Owner** (full
   control, including editing other members' ranks and deleting the world), **Mod** (can invite and
   kick players by default), or **Member** (no elevated permissions by default). A world can have any
@@ -70,16 +71,15 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 | Command | Description |
 |---|---|
 | `/pocketworld` (`/pw`) | Opens the main PocketWorld menu - create, manage, teleport to, and receive invitations for your own pocket worlds. Takes no arguments; everything past this is menu-driven. |
-| `/theme <create\|manage\|delete\|import\|edit>` | Build and manage the themes players create worlds from. `import` and `edit` are recognized but not yet implemented. |
-| `/pocketworldadmin` (`/pwa`) `<reload\|import\|export\|validate\|manage>` | Server administration: reload config files, move a stored pocket world in/out of a real Anvil folder, check stored world data for corruption, or browse/manage any player's pocket worlds. Running it with no arguments prints usage help. |
+| `/theme <create\|manage\|import\|edit>` | Build and manage the themes players create worlds from. `import` and `edit` are recognized but not yet implemented. |
+| `/pocketworldadmin` (`/pwa`) `<reload\|import\|export\|validate\|manage\|bypass>` | Server administration: reload config files, move a stored pocket world in/out of a real Anvil folder, check stored world data for corruption, browse/manage any player's pocket worlds, or toggle bypassing visitor permissions. Running it with no arguments prints usage help. |
 
 ### `/theme` sub-arguments
 
 | Sub-argument | Usage | Description |
 |---|---|---|
 | `create` | `/theme create` | Starts the theme-creation wizard: name, biome, icon, description, then drops you into a fresh void editor world to build in. |
-| `manage` (alias `list`) | `/theme manage` | Lists every theme, with clickable buttons to edit or delete each one. |
-| `delete` | `/theme delete <id>` | Permanently deletes a theme by its UUID (shown in the manage list). |
+| `manage` (alias `list`) | `/theme manage` | Opens a paginated menu of every theme; clicking one opens its own menu to view details, delete it (with confirmation), or edit it (not yet implemented). |
 | `import` | `/theme import` | Not yet implemented. |
 | `edit` | `/theme edit` | Not yet implemented. |
 
@@ -91,13 +91,14 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 | `import` | `/pocketworldadmin import <folder> <worldId> [dataVersion]` | Imports a real Anvil-format world folder (a `region/` + `entities/` pair) as a stored pocket world under `<worldId>`. `folder` is resolved relative to the server's root directory unless given as an absolute path. `dataVersion` defaults to the running server's own version if omitted - only pass one explicitly for a folder from an older Minecraft version. Refuses to overwrite an existing world id. |
 | `export` | `/pocketworldadmin export <worldId> <folder>` | Exports a stored pocket world back out as a real Anvil-format world folder at `folder`. Refuses to write into a path that already exists. |
 | `validate` | `/pocketworldadmin validate <worldId\|all>` | Decodes a stored world's bytes (or every stored world, with `all`) and reports whether each one is structurally valid or corrupted, without needing to actually load it in-game first. |
-| `manage` | `/pocketworldadmin manage [player]` | With no name, opens a paginated grid of every online player's skull; with a name, resolves that player directly (online or offline). Either way opens a menu with **Worlds** (every pocket world the player is a member of - view members, resize the world border, wipe it, or teleport yourself/another player into it) and **Punish** (placeholder, no punishments configured yet). |
+| `manage` | `/pocketworldadmin manage [player]` | With no name, opens a paginated grid of every online player's skull; with a name, resolves that player directly (online or offline). Either way opens a menu with **Worlds** (every pocket world the player is a member of - view/manage members as if you owned the world, resize the world border, wipe it, or teleport yourself/another player into it) and **Punish** (placeholder, no punishments configured yet). |
+| `bypass` | `/pocketworldadmin bypass` | Toggles bypassing visitor build/break/interact permission enforcement in every pocket world for yourself, for the rest of your session (not persisted across a restart). |
 
 ## Permissions
 
 Every command that takes sub-arguments has its own base "can you run this command at all" node, plus
 one further node per sub-argument - so, for example, an admin can grant `pocketworld.theme.manage`
-without also handing out `pocketworld.theme.delete`. `/pocketworld` has no sub-arguments, so it has
+without also handing out `pocketworld.theme.create`. `/pocketworld` has no sub-arguments, so it has
 just the one node.
 
 | Node | Default | Grants |
@@ -106,8 +107,7 @@ just the one node.
 | `pocketworld.command.pocketworld` | **true** (everyone) | Use `/pocketworld` at all. |
 | `pocketworld.command.theme` | op | Use `/theme` at all. Also requires the matching node below for whichever sub-argument is used. |
 | `pocketworld.theme.create` | op | `/theme create` |
-| `pocketworld.theme.manage` | op | `/theme manage` (and its `list` alias) |
-| `pocketworld.theme.delete` | op | `/theme delete` |
+| `pocketworld.theme.manage` | op | `/theme manage` (and its `list` alias) - also covers deleting a theme from that menu |
 | `pocketworld.theme.import` | op | `/theme import` (not yet implemented) |
 | `pocketworld.theme.edit` | op | `/theme edit` (not yet implemented) |
 | `pocketworld.command.admin` | op | Use `/pocketworldadmin` at all. Also requires the matching node below for whichever sub-argument is used. |
@@ -116,6 +116,7 @@ just the one node.
 | `pocketworld.admin.export` | op | `/pocketworldadmin export` |
 | `pocketworld.admin.validate` | op | `/pocketworldadmin validate` |
 | `pocketworld.admin.manage` | op | `/pocketworldadmin manage` - browsing and managing any player's pocket worlds |
+| `pocketworld.admin.bypass` | op | `/pocketworldadmin bypass` - toggles bypassing visitor build/break/interact permissions in any pocket world |
 
 ## Configuration
 
@@ -127,6 +128,7 @@ just the one node.
 | `general.max-worlds` | `5` | Maximum pocket worlds a single player may own at once. |
 | `general.auto-unload-delay-seconds` | `60` | How long an empty, loaded pocket world waits before auto-unloading. Cancelled if a member rejoins first. |
 | `general.creation-queue-enabled` | `true` | Serializes world creation/loading server-wide so a burst of simultaneous requests can't stack into one long main-thread freeze. Disable to let every request start immediately instead. |
+| `general.creation-queue-delay-seconds` | `0` | Extra pause between one queued creation/load finishing and the next one starting, spreading server load out further than the queue alone. Has no effect when the queue is disabled. |
 | `world-difficulty` | `normal` | Difficulty applied to every pocket world. One of `peaceful`, `easy`, `normal`, `hard`. |
 | `mongodb.use` / `mysql.use` | `false` / `false` | Which backend stores world/theme/user *metadata* (not the world data itself - see Features above). Local YAML files are used if neither is enabled; enabling both at once is an error. |
 

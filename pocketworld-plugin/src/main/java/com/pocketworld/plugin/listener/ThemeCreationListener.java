@@ -6,11 +6,12 @@ import com.pocketworld.plugin.theme.creation.ThemeCreationRegistry;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.ui.theme_menus.SelectBiomeMenu;
 import com.pocketworld.plugin.ui.theme_menus.SelectIconMenu;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -71,7 +72,7 @@ public class ThemeCreationListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
+    public void onPlayerChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
         ThemeCreationRegistry registry = ThemeCreationRegistry.getInstance();
 
@@ -80,6 +81,7 @@ public class ThemeCreationListener implements Listener {
         }
 
         event.setCancelled(true);
-        registry.getController(player.getUniqueId()).handleChatInput(event.getMessage());
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message());
+        registry.getController(player.getUniqueId()).handleChatInput(message);
     }
 }

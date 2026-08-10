@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 public final class PocketWorldPlugin extends JavaPlugin {
@@ -51,6 +52,11 @@ public final class PocketWorldPlugin extends JavaPlugin {
     private PocketWorldRuntime runtime;
     private PocketWorldRuntime themeRuntime;
     private final PocketWorldCreationQueue creationQueue = new PocketWorldCreationQueue();
+
+    /** Admins with {@code /pocketworldadmin bypass} currently toggled on - session-only, never
+     *  persisted. Read/written only from the main thread (commands and the block/interact events
+     *  that check it are both always main-thread), so a plain {@link HashSet} is safe here. */
+    private final Set<UUID> bypassingAdmins = new HashSet<>();
 
     private DataSource dataSource;
     private WorldCache worldCache;
@@ -199,6 +205,11 @@ public final class PocketWorldPlugin extends JavaPlugin {
         return configFile.getYaml().getBoolean("general.creation-queue-enabled", true);
     }
 
+    /** Extra pause, in ticks, between one queued creation/load finishing and the next one starting. */
+    public long getCreationQueueDelayTicks() {
+        return configFile.getYaml().getInt("general.creation-queue-delay-seconds", 0) * 20L;
+    }
+
     public ChatInputRegistry getChatInputRegistry() {
         return chatInputRegistry;
     }
@@ -229,5 +240,18 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
     public PocketWorldCreationQueue getCreationQueue() {
         return creationQueue;
+    }
+
+    public boolean isBypassing(UUID playerId) {
+        return bypassingAdmins.contains(playerId);
+    }
+
+    /** Flips the given player's bypass state and returns the new state. */
+    public boolean toggleBypass(UUID playerId) {
+        if (!bypassingAdmins.remove(playerId)) {
+            bypassingAdmins.add(playerId);
+            return true;
+        }
+        return false;
     }
 }

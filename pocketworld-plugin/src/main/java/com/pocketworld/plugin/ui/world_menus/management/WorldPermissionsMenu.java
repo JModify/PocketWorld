@@ -51,7 +51,7 @@ public class WorldPermissionsMenu extends PocketMenu {
                 .build().getAsSkull("BlockminersTV");
 
         ItemStack visitor = new PocketItem.Builder(plugin)
-                .material(Material.OAK_DOOR)
+                .material(Material.DIRT)
                 .displayName("&eVisitor")
                 .lore(List.of("&7Anyone physically in the world who isn't a member.",
                         "&7Controls: build, break, interact."))
@@ -59,7 +59,7 @@ public class WorldPermissionsMenu extends PocketMenu {
                 .build().get();
 
         ItemStack member = new PocketItem.Builder(plugin)
-                .material(Material.PLAYER_HEAD)
+                .material(Material.COAL)
                 .displayName("&eMember")
                 .lore(List.of("&7Default world rank.",
                         "&7Controls: invite, kick, set spawn."))
@@ -67,7 +67,7 @@ public class WorldPermissionsMenu extends PocketMenu {
                 .build().get();
 
         ItemStack mod = new PocketItem.Builder(plugin)
-                .material(Material.IRON_HELMET)
+                .material(Material.GOLD_INGOT)
                 .displayName("&eMod")
                 .lore(List.of("&7Elevated world rank.",
                         "&7Controls: invite, kick, set spawn."))

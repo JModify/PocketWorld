@@ -23,12 +23,9 @@ messages:
   plugin-reloaded:
     type: success
     message: "&aConfiguration reloaded."
-  theme-delete-not-uuid:
-    type: error
-    message: "&c\"{ID}\" is not a valid theme id."
-  theme-not-found:
-    type: error
-    message: "&cNo theme exists with id \"{ID}\"."
+  theme-deleted:
+    type: success
+    message: "&aTheme \"{NAME}\" deleted."
 
   world-creation-max-worlds:
     type: error
@@ -72,6 +69,12 @@ messages:
   world-visitors-expelled:
     type: success
     message: "&aExpelled all visitors from {WORLD_NAME}."
+  admin-bypass-enabled:
+    type: success
+    message: "&aPocketWorld admin bypass enabled - you now bypass visitor build/break/interact permissions."
+  admin-bypass-disabled:
+    type: success
+    message: "&aPocketWorld admin bypass disabled."
 
   world-invite-sent:
     type: raw
