@@ -12,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -30,14 +31,29 @@ public class ThemeCreationListener implements Listener {
         ThemeCreationRegistry registry = ThemeCreationRegistry.getInstance();
 
         if (registry.containsUser(player.getUniqueId())) {
+            plugin.getDebugger().info("[ThemeCreationListener] Cancelling theme creation for "
+                    + player.getName() + " - disconnected.");
             ThemeCreationController controller = registry.getController(player.getUniqueId());
             controller.cancelCreation();
             registry.removeByUser(player.getUniqueId());
         }
     }
 
+    /**
+     * Every stage item here is meant to be activated with a deliberate right-click, matching their
+     * lore ("Right click to select theme biome", etc.) - so only {@code RIGHT_CLICK_AIR}/{@code
+     * RIGHT_CLICK_BLOCK} are handled. Previously this ran for every {@link PlayerInteractEvent}
+     * regardless of action, including {@code LEFT_CLICK_AIR}/{@code LEFT_CLICK_BLOCK} - live testing
+     * showed pressing Q to attempt (and correctly have blocked) a drop of the cancel item also fires
+     * an incidental interact packet, which this unfiltered handler was treating as "clicked cancel",
+     * tearing the player out of theme creation entirely as a side effect of a blocked drop.
+     */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
         Player player = event.getPlayer();
 
         if (!ThemeCreationRegistry.getInstance().containsUser(player.getUniqueId())) {
@@ -67,6 +83,8 @@ public class ThemeCreationListener implements Listener {
             plugin.getMessageReader().send("theme-spawn-set", player);
             controller.nextState();
         } else if (PocketItem.hasTag(plugin, itemInHand, "is-cancel-theme")) {
+            plugin.getDebugger().info("[ThemeCreationListener] Cancelling theme creation for "
+                    + player.getName() + " - clicked cancel item (action: " + event.getAction() + ").");
             ThemeCreationRegistry.getInstance().getController(player.getUniqueId()).cancelCreation();
         }
     }

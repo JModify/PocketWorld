@@ -31,14 +31,22 @@ public class ProtectedItemListener implements Listener {
         this.plugin = plugin;
     }
 
-    /** {@code HIGHEST} (rather than the implicit {@code NORMAL}) so nothing else can run after this
-     *  and undo the cancellation, and the dropped entity is removed explicitly rather than relying
-     *  solely on {@code setCancelled}'s own cleanup - belt-and-suspenders for exactly this item. */
+    /**
+     * {@code HIGHEST} (rather than the implicit {@code NORMAL}) so nothing else can run after this
+     * and undo the cancellation. Deliberately relies on {@code setCancelled(true)} alone - an
+     * earlier version of this method also called {@code event.getItemDrop().remove()} as extra
+     * "belt-and-suspenders" hardening, but that made things actively worse: manually removing the
+     * entity apparently fights with Paper's own cancel-drop restoration, and was observed (live,
+     * in-game) to both fail to keep the item AND tear the player out of theme creation entirely.
+     * {@code setCancelled(true)} alone is the standard, well-tested way to block a drop - no need to
+     * second-guess it further.
+     */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDrop(PlayerDropItemEvent event) {
         if (isTagged(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
-            event.getItemDrop().remove();
+            plugin.getDebugger().info("[ProtectedItemListener] Blocked drop of tagged item ("
+                    + event.getItemDrop().getItemStack().getType() + ") for " + event.getPlayer().getName());
         }
     }
 
