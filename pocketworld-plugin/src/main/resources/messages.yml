@@ -26,6 +26,9 @@ messages:
   theme-deleted:
     type: success
     message: "&aTheme \"{NAME}\" deleted."
+  theme-creation-blocks-commands:
+    type: error
+    message: "&cYou are currently creating a theme. Right-click the Cancel item in your hotbar to stop, or finish the wizard, before using any other command."
 
   world-creation-max-worlds:
     type: error

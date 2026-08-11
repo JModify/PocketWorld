@@ -45,6 +45,11 @@ public class ThemeCreationController {
     private ThemeCreationState state;
 
     private BukkitTask editorWorldGenerationTask;
+    /** Set as soon as {@link #cancelCreation()}/{@link #completeCreation()} starts, before either
+     *  teleports the player out of the editor world - both of those teleports would otherwise be
+     *  indistinguishable, from a listener's perspective, from the player unexpectedly leaving the
+     *  editor world some other way, and re-triggering a cancel reentrant into this same call. */
+    private boolean endingCreation;
 
     public ThemeCreationController(PocketWorldPlugin plugin, UUID userId) {
         this.plugin = plugin;
@@ -89,6 +94,24 @@ public class ThemeCreationController {
 
     public void setSpawnPoint(String spawnPoint) {
         this.spawnPoint = spawnPoint;
+    }
+
+    public UUID getThemeId() {
+        return themeId;
+    }
+
+    /** Whether {@link #cancelCreation()} or {@link #completeCreation()} has already started for
+     *  this controller - see the {@code endingCreation} field javadoc for why this matters. */
+    public boolean isEnding() {
+        return endingCreation;
+    }
+
+    /** Whether the player has actually been teleported into the editor world at this point in the
+     *  flow - true only once {@code SET_SPAWN} or {@code BUILDING} has been reached. Used to tell
+     *  whether an unexpected world change means they left the editor world (worth reacting to) or
+     *  they simply haven't been teleported in yet (nothing to react to). */
+    public boolean isPhysicallyInEditorWorld() {
+        return state == ThemeCreationState.SET_SPAWN || state == ThemeCreationState.BUILDING;
     }
 
     /** Stashes the admin's inventory and prompts them to type a theme name in chat. Returns false if they're offline. */
@@ -304,6 +327,11 @@ public class ThemeCreationController {
 
     /** Cancels the theme creation process, discarding any in-progress editor world. */
     public void cancelCreation() {
+        if (endingCreation) {
+            return;
+        }
+        endingCreation = true;
+
         Player player = Bukkit.getPlayer(userId);
         if (player != null) {
             PocketUserInventory.restoreUserInventory(plugin, player);
@@ -348,6 +376,11 @@ public class ThemeCreationController {
 
     /** Extracts the finished editor world, persists it as the theme's stored world, and registers the theme. */
     public void completeCreation() {
+        if (endingCreation) {
+            return;
+        }
+        endingCreation = true;
+
         World editorWorld = Bukkit.getWorld(themeId.toString());
         Player player = Bukkit.getPlayer(userId);
 
