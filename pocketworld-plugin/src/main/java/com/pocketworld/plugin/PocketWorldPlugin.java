@@ -48,7 +48,6 @@ public final class PocketWorldPlugin extends JavaPlugin {
     private MessageReader messageReader;
     private PocketDebugger debugger;
     private ChatInputRegistry chatInputRegistry;
-    private ProtectedItemListener protectedItemListener;
 
     private PocketWorldRuntime runtime;
     private PocketWorldRuntime themeRuntime;
@@ -103,9 +102,8 @@ public final class PocketWorldPlugin extends JavaPlugin {
         themeRegistry.load();
 
         WorldAutoUnloadTracker autoUnloadTracker = new WorldAutoUnloadTracker(this);
-        protectedItemListener = new ProtectedItemListener(this);
         getServer().getPluginManager().registerEvents(new ThemeCreationListener(this), this);
-        getServer().getPluginManager().registerEvents(protectedItemListener, this);
+        getServer().getPluginManager().registerEvents(new ProtectedItemListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this, autoUnloadTracker), this);
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
         getServer().getPluginManager().registerEvents(new InventoryListener(), this);
@@ -214,10 +212,6 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
     public ChatInputRegistry getChatInputRegistry() {
         return chatInputRegistry;
-    }
-
-    public ProtectedItemListener getProtectedItemListener() {
-        return protectedItemListener;
     }
 
     public PocketWorldRuntime getRuntime() {

@@ -41,36 +41,33 @@ public class ThemeCreationListener implements Listener {
     }
 
     /**
-     * Every stage item here is meant to be activated with a deliberate click - either hand, not
-     * {@code PHYSICAL} (stepping on a pressure plate shouldn't advance/cancel anything). Previously
-     * this ran for every {@link PlayerInteractEvent} including {@code PHYSICAL}.
-     * <p>
-     * Also skips any interact that lands within {@link ProtectedItemListener}'s drop-echo window for
-     * this player: live testing confirmed pressing the drop key on a tagged item also produces an
-     * arm-throw animation that surfaces as its own {@code PlayerInteractEvent}, indistinguishable by
-     * action type from a genuine click on the same item - without this check, a blocked drop of the
-     * cancel item was itself enough to cancel theme creation as a side effect.
+     * Every stage item here is meant to be activated with a deliberate right-click, matching their
+     * lore ("Right click to select theme biome", etc.) - so only {@code RIGHT_CLICK_AIR}/{@code
+     * RIGHT_CLICK_BLOCK} are handled. {@code LEFT_CLICK_AIR}/{@code LEFT_CLICK_BLOCK} (punching while
+     * holding a tagged item) and {@code PHYSICAL} (stepping on a pressure plate) deliberately do
+     * nothing - the arm still swings as normal, but no theme action fires. This also happens to be
+     * what makes {@link PlayerDropItemEvent}-blocking and this handler independent of each other:
+     * pressing the drop key on a tagged item produces an arm-throw animation that surfaces as its own
+     * {@code PlayerInteractEvent} with a {@code LEFT_CLICK_*} action, so as long as only right-clicks
+     * are handled here, {@link ProtectedItemListener} blocking the drop and this handler reacting to
+     * clicks never have to coordinate - no timing/state needed to tell one from the other.
      * <p>
      * Every branch below must also call {@code event.setCancelled(true)} - three of them (theme
      * complete, spawn point, cancel) previously didn't. Since their items are all real, placeable/
-     * throwable vanilla items (LIME_WOOL, ENDER_EYE, BARRIER), an uncancelled click let the normal
-     * vanilla action proceed alongside the plugin's own logic - e.g. clicking the cancel item against
-     * a block correctly cancelled theme creation AND placed the barrier as a real block, since
-     * nothing stopped the placement half of that same interaction.
+     * throwable vanilla items (LIME_WOOL, ENDER_EYE, BARRIER), an uncancelled right-click let the
+     * normal vanilla action proceed alongside the plugin's own logic - e.g. right-clicking the cancel
+     * item against a block correctly cancelled theme creation AND placed the barrier as a real block,
+     * since nothing stopped the placement half of that same interaction.
      */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.PHYSICAL) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
 
         Player player = event.getPlayer();
 
         if (!ThemeCreationRegistry.getInstance().containsUser(player.getUniqueId())) {
-            return;
-        }
-
-        if (plugin.getProtectedItemListener().wasDropJustBlocked(player.getUniqueId())) {
             return;
         }
 
