@@ -1,7 +1,6 @@
 package com.pocketworld.plugin.theme.creation;
 
 import com.pocketworld.plugin.PocketWorldPlugin;
-import org.bukkit.entity.Player;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -64,21 +63,6 @@ public final class ThemeCreationRegistry {
 
     public ThemeCreationController getController(UUID userId) {
         return find(userId).orElse(null);
-    }
-
-    /**
-     * Call at the top of every PocketWorld command's {@code onCommand()}: a player mid-theme-creation
-     * can't meaningfully use any other command (their inventory is stashed, they may be standing in
-     * a temporary editor world, and {@code /theme create} itself would otherwise silently corrupt
-     * state - see {@link #addCreator}'s javadoc). Sends a reminder and returns true if this player
-     * should be blocked; the caller should return immediately when this is true.
-     */
-    public boolean blocksCommand(PocketWorldPlugin plugin, Player player) {
-        if (!containsUser(player.getUniqueId())) {
-            return false;
-        }
-        plugin.getMessageReader().send("theme-creation-blocks-commands", player);
-        return true;
     }
 
     private Optional<ThemeCreationController> find(UUID userId) {

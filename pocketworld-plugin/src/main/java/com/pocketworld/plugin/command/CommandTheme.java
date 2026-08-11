@@ -28,10 +28,6 @@ public class CommandTheme implements CommandExecutor {
         }
 
         MessageReader reader = plugin.getMessageReader();
-        if (ThemeCreationRegistry.getInstance().blocksCommand(plugin, player)) {
-            return true;
-        }
-
         if (!PocketPermission.has(player, PocketPermission.COMMAND_THEME)) {
             reader.send("insufficient-permissions", player);
             return true;

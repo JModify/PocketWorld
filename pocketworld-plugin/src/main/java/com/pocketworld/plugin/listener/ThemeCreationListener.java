@@ -14,16 +14,48 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Locale;
+import java.util.Set;
+
 public class ThemeCreationListener implements Listener {
+
+    /** Every label (and alias) PocketWorld's three commands are registered under in plugin.yml -
+     *  see {@link #onCommandPreprocess}. */
+    private static final Set<String> POCKETWORLD_COMMAND_LABELS =
+            Set.of("pocketworld", "pw", "pocketworldadmin", "pwa", "theme");
 
     private final PocketWorldPlugin plugin;
 
     public ThemeCreationListener(PocketWorldPlugin plugin) {
         this.plugin = plugin;
+    }
+
+    /**
+     * Blocks every PocketWorld command (any label/alias) for a player mid-theme-creation, at the
+     * single point every one of them passes through regardless of which command class ends up
+     * handling it - simpler and more robust than each of the three CommandExecutors independently
+     * checking {@link ThemeCreationRegistry#containsUser}, and automatically covers aliases (/pw,
+     * /pwa) without needing to enumerate them per-executor.
+     */
+    @EventHandler
+    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        if (!ThemeCreationRegistry.getInstance().containsUser(player.getUniqueId())) {
+            return;
+        }
+
+        String label = event.getMessage().substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
+        if (!POCKETWORLD_COMMAND_LABELS.contains(label)) {
+            return;
+        }
+
+        event.setCancelled(true);
+        plugin.getMessageReader().send("theme-creation-blocks-commands", player);
     }
 
     @EventHandler
