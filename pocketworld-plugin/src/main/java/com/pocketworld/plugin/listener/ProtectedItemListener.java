@@ -11,6 +11,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 /**
  * Any item PocketWorld hands a player directly (theme-creation stage icons, and anything similar
  * in the future) is tagged via {@link PocketItem}'s PDC mechanism and must never leave their
@@ -26,7 +30,12 @@ import org.bukkit.inventory.ItemStack;
  */
 public class ProtectedItemListener implements Listener {
 
+    /** How long after a blocked drop an interact event for the same player is still treated as
+     *  that drop's echo rather than a deliberate click - see {@link #wasDropJustBlocked}. */
+    private static final long DROP_ECHO_WINDOW_MILLIS = 250;
+
     private final PocketWorldPlugin plugin;
+    private final Map<UUID, Long> recentlyBlockedDrops = new HashMap<>();
 
     public ProtectedItemListener(PocketWorldPlugin plugin) {
         this.plugin = plugin;
@@ -46,9 +55,23 @@ public class ProtectedItemListener implements Listener {
     public void onPlayerDrop(PlayerDropItemEvent event) {
         if (isTagged(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
+            recentlyBlockedDrops.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
             plugin.getDebugger().info("[ProtectedItemListener] Blocked drop of tagged item ("
                     + event.getItemDrop().getItemStack().getType() + ") for " + event.getPlayer().getName());
         }
+    }
+
+    /**
+     * Whether {@code playerId}'s attempt to drop a tagged item was blocked within the last
+     * {@link #DROP_ECHO_WINDOW_MILLIS}ms - confirmed live: pressing the drop key on a tagged item
+     * also produces an arm-throw animation that surfaces as its own {@code PlayerInteractEvent},
+     * indistinguishable by action type alone from a deliberate click on the same item. Callers that
+     * react to clicking a tagged item (like theme-creation's cancel button) need to ignore that echo
+     * rather than treat it as the player having clicked to confirm something.
+     */
+    public boolean wasDropJustBlocked(UUID playerId) {
+        Long blockedAt = recentlyBlockedDrops.get(playerId);
+        return blockedAt != null && System.currentTimeMillis() - blockedAt <= DROP_ECHO_WINDOW_MILLIS;
     }
 
     /** Covers creative mode's "drag out of the window to delete" gesture (no PlayerDropItemEvent

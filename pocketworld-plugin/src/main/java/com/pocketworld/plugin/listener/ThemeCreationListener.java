@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -40,30 +41,36 @@ public class ThemeCreationListener implements Listener {
     }
 
     /**
-     * Every stage item here is meant to be activated with a deliberate right-click, matching their
-     * lore ("Right click to select theme biome", etc.) - so only {@code RIGHT_CLICK_AIR}/{@code
-     * RIGHT_CLICK_BLOCK} are handled. Previously this ran for every {@link PlayerInteractEvent}
-     * regardless of action, including {@code LEFT_CLICK_AIR}/{@code LEFT_CLICK_BLOCK} - live testing
-     * showed pressing Q to attempt (and correctly have blocked) a drop of the cancel item also fires
-     * an incidental interact packet, which this unfiltered handler was treating as "clicked cancel",
-     * tearing the player out of theme creation entirely as a side effect of a blocked drop.
+     * Every stage item here is meant to be activated with a deliberate click - either hand, not
+     * {@code PHYSICAL} (stepping on a pressure plate shouldn't advance/cancel anything). Previously
+     * this ran for every {@link PlayerInteractEvent} including {@code PHYSICAL}.
+     * <p>
+     * Also skips any interact that lands within {@link ProtectedItemListener}'s drop-echo window for
+     * this player: live testing confirmed pressing the drop key on a tagged item also produces an
+     * arm-throw animation that surfaces as its own {@code PlayerInteractEvent}, indistinguishable by
+     * action type from a genuine click on the same item - without this check, a blocked drop of the
+     * cancel item was itself enough to cancel theme creation as a side effect.
      * <p>
      * Every branch below must also call {@code event.setCancelled(true)} - three of them (theme
      * complete, spawn point, cancel) previously didn't. Since their items are all real, placeable/
-     * throwable vanilla items (LIME_WOOL, ENDER_EYE, BARRIER), an uncancelled RIGHT_CLICK_BLOCK let
-     * the normal vanilla action proceed alongside the plugin's own logic - e.g. right-clicking the
-     * cancel item against a block correctly cancelled theme creation AND placed the barrier as a
-     * real block, since nothing stopped the placement half of that same interaction.
+     * throwable vanilla items (LIME_WOOL, ENDER_EYE, BARRIER), an uncancelled click let the normal
+     * vanilla action proceed alongside the plugin's own logic - e.g. clicking the cancel item against
+     * a block correctly cancelled theme creation AND placed the barrier as a real block, since
+     * nothing stopped the placement half of that same interaction.
      */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+        if (event.getAction() == Action.PHYSICAL) {
             return;
         }
 
         Player player = event.getPlayer();
 
         if (!ThemeCreationRegistry.getInstance().containsUser(player.getUniqueId())) {
+            return;
+        }
+
+        if (plugin.getProtectedItemListener().wasDropJustBlocked(player.getUniqueId())) {
             return;
         }
 
@@ -97,6 +104,35 @@ public class ThemeCreationListener implements Listener {
                     + player.getName() + " - clicked cancel item (action: " + event.getAction() + ").");
             ThemeCreationRegistry.getInstance().getController(player.getUniqueId()).cancelCreation();
         }
+    }
+
+    /**
+     * If a player mid-creation is teleported out of the editor world by anything other than the
+     * plugin's own cancel/complete flow (another plugin, a command, an ender pearl, ...), theme
+     * creation is cancelled to match - there's nothing useful left to track otherwise. Deliberately
+     * uses {@link ThemeCreationController#isEnding()} to skip the case where this event fires
+     * because {@code cancelCreation()}/{@code completeCreation()} itself is the one doing the
+     * teleporting (both happen to leave the editor world as part of normal, successful cleanup) -
+     * without that check this would call {@code cancelCreation()} reentrantly on every cancel or
+     * completion.
+     */
+    @EventHandler
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        ThemeCreationRegistry registry = ThemeCreationRegistry.getInstance();
+
+        if (!registry.containsUser(player.getUniqueId())) {
+            return;
+        }
+
+        ThemeCreationController controller = registry.getController(player.getUniqueId());
+        if (controller.isEnding() || !controller.isPhysicallyInEditorWorld()) {
+            return;
+        }
+
+        plugin.getDebugger().info("[ThemeCreationListener] Cancelling theme creation for "
+                + player.getName() + " - left the editor world.");
+        controller.cancelCreation();
     }
 
     @EventHandler

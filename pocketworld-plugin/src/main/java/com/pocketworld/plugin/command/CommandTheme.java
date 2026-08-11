@@ -28,6 +28,10 @@ public class CommandTheme implements CommandExecutor {
         }
 
         MessageReader reader = plugin.getMessageReader();
+        if (ThemeCreationRegistry.getInstance().blocksCommand(plugin, player)) {
+            return true;
+        }
+
         if (!PocketPermission.has(player, PocketPermission.COMMAND_THEME)) {
             reader.send("insufficient-permissions", player);
             return true;
@@ -44,9 +48,7 @@ public class CommandTheme implements CommandExecutor {
                     reader.send("insufficient-permissions", player);
                     return true;
                 }
-                if (!ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId())) {
-                    reader.send("theme-creation-already-in-progress", player);
-                }
+                ThemeCreationRegistry.getInstance().addCreator(plugin, player.getUniqueId());
             }
             case "manage", "list" -> {
                 if (!PocketPermission.has(player, PocketPermission.THEME_MANAGE)) {

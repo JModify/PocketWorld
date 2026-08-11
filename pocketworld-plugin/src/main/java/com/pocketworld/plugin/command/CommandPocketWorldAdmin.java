@@ -2,6 +2,7 @@ package com.pocketworld.plugin.command;
 
 import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.runtime.PocketWorldRuntime;
+import com.pocketworld.plugin.theme.creation.ThemeCreationRegistry;
 import com.pocketworld.plugin.ui.admin.AdminManageUserMenu;
 import com.pocketworld.plugin.ui.admin.AdminPlayerBrowserMenu;
 import com.pocketworld.plugin.util.ColorFormat;
@@ -33,6 +34,10 @@ public class CommandPocketWorldAdmin implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (!(sender instanceof Player player)) {
             plugin.getMessageReader().send("must-be-player", sender);
+            return true;
+        }
+
+        if (ThemeCreationRegistry.getInstance().blocksCommand(plugin, player)) {
             return true;
         }
 
