@@ -78,7 +78,7 @@ public final class PocketWorldPlugin extends JavaPlugin {
             WorldLoader worldStorage = new FileWorldLoader(getDataFolder().toPath().resolve("worlds"));
             WorldLoader themeStorage = new FileWorldLoader(getDataFolder().toPath().resolve("themes"));
 
-            WorldRuntimeBridge bridge = new BridgeSelector(getLogger()).current();
+            WorldRuntimeBridge bridge = new BridgeSelector(this).current();
             runtime = new PocketWorldRuntime(worldStorage, bridge);
             themeRuntime = new PocketWorldRuntime(themeStorage, bridge);
         } catch (IOException e) {
@@ -115,7 +115,7 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
         getServer().getServicesManager().register(PocketWorldAPI.class, PocketWorldAPI.create(this), this, ServicePriority.Normal);
 
-        getLogger().info("PocketWorld " + getPluginMeta().getVersion() + " enabled.");
+        getLogger().info("PocketWorld " + getDescription().getVersion() + " enabled.");
     }
 
     /**

@@ -444,3 +444,60 @@ than fragmenting into per-subcommand permissions - consistent with how `reload` 
 and there's exactly one admin trust tier in this plugin's design. Added a `pocketworld.*` wildcard
 (with explicit `children`) for permission-plugin convenience, since server owners commonly grant
 staff a single node rather than enumerating four.
+
+## 20. Spigot Compatibility and the Slot Pool
+
+**Spigot compatibility.** The plugin still compiles against `paper-api`, deliberately - Paper's API
+is a strict superset of Spigot's (Paper only ever adds to it, never removes), so a jar that never
+calls a Paper-exclusive symbol runs correctly on both platforms from that same compile target.
+Switching the Maven dependency to `spigot-api` instead would require running BuildTools.jar
+locally/in CI (Spigot doesn't publish it to any public repo) for no runtime benefit over the
+discipline-based approach. A full-tree audit found seven Paper-only call sites, all fixed the same
+way - swapped for the plain Bukkit/Spigot equivalent that also works unmodified on Paper:
+`io.papermc.paper.event.player.AsyncChatEvent` → `org.bukkit.event.player.AsyncPlayerChatEvent`
+(`ChatInputListener`, `ThemeCreationListener` - both now listen at `EventPriority.LOWEST` so this
+plugin's cancellation is decided before any other plugin's chat formatter/renderer sees the event,
+which is what actually determines whether cancelling the legacy event suppresses the message
+reliably); `Player#sendActionBar(Component)` → `player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+...)` (bungeecord-chat API, bundled in spigot-api itself, `MessageReader`); `WorldCreator#keepSpawnLoaded
+(TriState)` → `World#setKeepSpawnInMemory(boolean)` called after creation instead of chained on the
+creator (`AnvilShadowBridge`, `ThemeCreationController`); `World#getChunkAtAsync` → a plain
+synchronous `getChunkAt` in `ThemeCreationController` specifically (editor-world creation is a rare,
+admin-only action, not the hot per-player path the slot pool below targets, so it isn't worth keeping
+a Paper-only async pre-warm just for this one call site); `JavaPlugin#getPluginMeta()` →
+`getDescription().getVersion()`.
+
+**Slot pool - the empirical question.** Reducing the "new pocket world" freeze (the dominant cost of
+which, per §18, is a brand-new world folder's first-ever touch) matters more on Spigot, which has no
+`getChunkAtAsync` to shrink that cost at all. The previous session's measurement (fresh folder ~4.8s
+vs. reusing the *same-named* folder ~0.2s regardless of its content) didn't prove the case a reusable
+*pool* actually needs: each pocket world keeps its own permanent UUID name forever (assumed pervasively
+- `PocketWorld`, `WorldListener`, `PocketUser`, `PocketWorldAPIImpl` all derive "which pocket world is
+this" from `Bukkit.getWorld(id.toString())` or the reverse), so a pooled slot has to be handed over
+under a name it was never created with. Verified directly: create a world under name A, unload it,
+rename its on-disk folder to name B (never seen by Bukkit this session), then `Bukkit.createWorld()`
+under name B. Result: **134ms createWorld + 36ms first touch** (~170ms total) - indistinguishable from
+same-name reuse, versus a same-run fresh-folder baseline of **5255ms createWorld** for comparison. The
+speed benefit is tied to the folder's on-disk content already being touched, not to the name string
+having been seen by Bukkit/Paper before, so renaming a pre-warmed folder into place works.
+
+One wrinkle surfaced by this test: Paper 26.2 nests a non-primary world's actual data under
+`<primaryWorld>/dimensions/<namespace>/<name>`, not `<worldContainer>/<name>` directly (a naive rename
+using the classic path failed with `NoSuchFileException` until the test captured `World#getWorldFolder()`
+before unloading, exactly as `AnvilShadowBridge.afterUnload()`/`extractUnloaded()` already had to for
+the same reason - see §"On-disk layout" in `AnvilShadowBridge`'s class doc).
+
+**`AnvilSlotPool`** (`runtime/bridge/anvil/AnvilSlotPool.java`) implements this: a configurable number
+of standby slots (`general.slot-pool-size`, default 3), each a `Bukkit.createWorld()`-ed-then-unloaded
+empty world folder named with a fixed non-UUID prefix (`_pocketworld_slot_N`) so `sweepOrphanedEditorWorlds`
+already leaves idle slots alone with zero changes (its orphan check already requires a UUID-shaped
+name). `AnvilShadowBridge.prepare()` writes a real creation's converted chunk data directly into a
+claimed slot's folder instead of the classic path when one's available; `activate()` renames that
+folder to `slotFolder.resolveSibling(worldName)` - deriving the destination from wherever the slot's
+own folder actually already lives rather than assuming a fixed layout, so this is correct whether or
+not the running platform nests non-primary worlds - before proceeding with `Bukkit.createWorld()`
+exactly as before. Every claim immediately queues replenishment of a fresh slot through the same
+`PocketWorldCreationQueue` real creations use, so warming never competes with or blocks an actual
+player's request; a burst of creations that outpaces replenishment just degrades to the un-pooled
+behavior rather than failing. Correctness never depends on a slot being available - both bridge methods
+fall back to exactly their pre-pool behavior when the pool is disabled, not yet warmed, or exhausted.

@@ -279,49 +279,48 @@ public class ThemeCreationController {
                     .environment(World.Environment.NORMAL)
                     .generator(new VoidGenerator())
                     .biomeProvider(new SingleBiomeProvider(biome))
-                    .generateStructures(false)
-                    .keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE);
+                    .generateStructures(false);
             World world = Bukkit.createWorld(creator);
             if (world == null) {
                 plugin.getLogger().severe("Failed to generate editor world for theme " + themeId);
                 return;
             }
 
+            // setKeepSpawnInMemory is plain Bukkit/Spigot World API (unlike WorldCreator#keepSpawnLoaded,
+            // which is Paper-only), so it's set here after creation rather than on the WorldCreator chain.
+            world.setKeepSpawnInMemory(false);
             world.setSpawnFlags(false, false);
             world.setPVP(false);
             world.setDifficulty(org.bukkit.Difficulty.NORMAL);
 
             // The origin chunk's very first-ever touch in a brand-new world forces Paper's own
             // chunk-generation pipeline through an expensive, wide-radius pass - confirmed empirically
-            // to cost over a second of pure main-thread blocking when triggered synchronously (e.g. by
-            // placing a block directly, as this used to do right here). Pre-warming it asynchronously
-            // first moves that entire cost onto a background thread instead - confirmed empirically to
-            // keep the main thread completely responsive while it happens, at the cost of a sub-second
-            // delay before the editor world is actually ready. Nothing that needs the chunk already
-            // loaded runs until this completes.
-            world.getChunkAtAsync(0, 0, true).thenRun(() -> {
-                // The player may have disconnected (or explicitly cancelled) while this was
-                // generating in the background - editorWorldGenerationTask.cancel() in
-                // cancelCreation() only stops this outer sync task, not this already-detached async
-                // continuation, so this world can still get created after the controller itself was
-                // already removed from the registry. Nothing would ever clean it up otherwise.
-                if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
-                    discardEditorWorld(world);
-                    return;
-                }
+            // to cost over a second of main-thread blocking. Unlike real pocket-world creation (the hot,
+            // frequent, per-player path - see AnvilSlotPool), editor-world creation is a rare, admin-only
+            // action, so it isn't worth Paper-only getChunkAtAsync's async pre-warm just to keep this one
+            // path portable to Spigot too; touching it synchronously here is an acceptable one-off cost.
+            world.getChunkAt(0, 0);
 
-                world.setSpawnLocation(0, 100, 0);
-                world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
-                world.getWorldBorder().setCenter(0.0, 0.0);
-                world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
+            // The player may have disconnected (or explicitly cancelled) while the chunk touch above
+            // was running - editorWorldGenerationTask.cancel() in cancelCreation() only stops this outer
+            // sync task, so without this check the world could still get fully set up after the
+            // controller itself was already removed from the registry, with nothing left to clean it up.
+            if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
+                discardEditorWorld(world);
+                return;
+            }
 
-                long time = System.currentTimeMillis() - startTime;
-                if (player != null) {
-                    plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
-                    player.teleport(new Location(world, 0.5, 100, 0.5));
-                }
-                nextState();
-            });
+            world.setSpawnLocation(0, 100, 0);
+            world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
+            world.getWorldBorder().setCenter(0.0, 0.0);
+            world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
+
+            long time = System.currentTimeMillis() - startTime;
+            if (player != null) {
+                plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
+                player.teleport(new Location(world, 0.5, 100, 0.5));
+            }
+            nextState();
         });
     }
 

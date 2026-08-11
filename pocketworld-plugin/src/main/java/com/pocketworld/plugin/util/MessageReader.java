@@ -1,6 +1,8 @@
 package com.pocketworld.plugin.util;
 
 import com.pocketworld.plugin.data.config.MessageFile;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -42,10 +44,12 @@ public class MessageReader {
     }
 
     /** Sends via the action bar rather than chat - for transient status that would otherwise spam
-     *  chat if repeated (e.g. a live-updating queue position). */
+     *  chat if repeated (e.g. a live-updating queue position). Uses the bungeecord-chat API
+     *  (bundled in spigot-api itself, not a Paper-only Adventure type) so this works identically on
+     *  Spigot and Paper. */
     public void sendActionBar(String path, Player player, String... placeholders) {
         String formatted = read(path, placeholders);
-        player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(formatted));
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formatted));
     }
 
     /**
