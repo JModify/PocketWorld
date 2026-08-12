@@ -1,11 +1,10 @@
 # PocketWorld
 
 A plugin for personal, instanced player worlds, built primarily for Paper - it also runs on plain
-Spigot (same 1.21.x and current 26.2 version floors), with slightly slower world creation there,
-since Spigot has no equivalent of an async chunk-loading trick Paper offers (both are still well
-under a second). Every player can create their own small, private "pocket" world from a theme (a
-template an admin builds once), invite friends in with their own rank, tweak world settings, and
-hop between worlds through a menu.
+Spigot (same 1.21.x and current 26.2 version floors), though world creation is noticeably slower
+there; see "Paper vs. Spigot" below. Every player can create their own small, private "pocket"
+world from a theme (a template an admin builds once), invite friends in with their own rank, tweak
+world settings, and hop between worlds through a menu.
 
 Worlds are stored using Hypixel's **Slime Region Format (SRF)**, implemented directly in the
 plugin rather than requiring a forked server - so it installs like any other plugin jar, at the
@@ -41,8 +40,9 @@ loose region files.
 - **World teleportation menu.** Jump directly to any world you're a member of from a single menu,
   without needing to remember or type its name.
 - **World creation queue.** World creation/loading is serialized server-wide (toggleable in
-  `config.yml`), so a burst of players creating worlds at the same moment doesn't freeze the server
-  for everyone at once - queued players see a live position indicator instead.
+  `config.yml`), so a burst of players creating worlds at the same moment queues up one at a time
+  instead of piling into one longer stall - queued players see a live position indicator instead.
+  See "Paper vs. Spigot" below for what each individual creation costs.
 - **Corruption detection.** Any stored world can be checked for corruption on demand
   (`/pocketworldadmin validate`), and a corrupted world fails with a clear message to both the
   affected player and the server log instead of silently doing nothing.
@@ -66,6 +66,18 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 | Server software | Paper or Spigot |
 | Java | 21 (to build and to run on the 1.21.x floor); 25 required to run a 26.2 server |
 | Build tool | Maven 3.9+ |
+
+## Paper vs. Spigot
+
+**Paper is highly recommended.** Spigot support is real and fully functional, but we only
+recommend it for small servers - roughly under 10-20 concurrent players. The reason is structural,
+not a bug: Spigot has no async chunk-loading API, so bringing a newly-created pocket world online
+has to finish that work synchronously on the main thread instead of in the background. On a busy
+server that shows up as a brief (roughly 1-1.5 second) freeze felt by *every* player online, not
+just the one creating a world, and it can stack up if several players create worlds around the same
+time. On Paper the same work happens off-thread, so only the creating player notices a short
+loading pause and nobody else is affected. If you're running a larger, more populated server, use
+Paper.
 
 ## Commands
 
@@ -156,6 +168,7 @@ The final, shaded plugin jar is produced at `pocketworld-plugin/target/PocketWor
 
 Feature-complete against the original design (`docs/ARCHITECTURE.md` §12) and verified through
 extended live play on real Paper 1.21.x and 26.2 servers, with several bugs caught and fixed
-along the way. Spigot support is verified by compiling out every Paper-only API and testing the
-platform-specific pieces directly (see `docs/COMPATIBILITY.md`), but hasn't yet had the same
-extended live play on an actual Spigot server.
+along the way. Spigot support has also had real live testing, on an actual Spigot 26.2 server,
+which caught and fixed two platform-specific bugs (a missing world-gen-settings file, and pocket
+worlds loading in as empty voids - see `docs/ARCHITECTURE.md` §21/§22). See "Paper vs. Spigot"
+above for the performance guidance that testing led to.
