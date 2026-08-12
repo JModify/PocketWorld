@@ -20,16 +20,6 @@ general:
   # front of the queue waiting longer. 0 (default) starts the next one immediately, matching the
   # queue's original behavior. Has no effect when creation-queue-enabled is false.
   creation-queue-delay-seconds: 0
-  # Keeps a small pool of already-created, empty world folders on standby so a NEW pocket world can
-  # reuse one instead of always paying Minecraft's full "brand new folder" first-load cost (several
-  # seconds; reusing an already-touched folder is well under a second, confirmed empirically) - see
-  # AnvilSlotPool's class doc for the mechanism. Safe to leave on; correctness never depends on a
-  # slot being available; this only ever affects how fast creation is.
-  slot-pool-enabled: true
-  # How many pre-warmed slots to keep on standby at once. Each idle slot is just a small, empty,
-  # always-unloaded world folder sitting on disk - the cost of a larger pool is disk space and the
-  # background replenishment work after each slot gets consumed, not any ongoing runtime cost.
-  slot-pool-size: 3
 
 # Difficulty applied to pocket worlds. One of: peaceful, easy, normal, hard.
 world-difficulty: normal

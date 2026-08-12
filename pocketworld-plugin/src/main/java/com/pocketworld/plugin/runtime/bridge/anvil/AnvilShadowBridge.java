@@ -1,6 +1,5 @@
 package com.pocketworld.plugin.runtime.bridge.anvil;
 
-import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.runtime.WorldProperties;
 import com.pocketworld.plugin.runtime.bridge.ChunkBounds;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
@@ -22,14 +21,12 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -65,11 +62,13 @@ import java.util.stream.Stream;
  * relocates the data out from under it (the region folder it's looking for is simply gone), rather
  * than needing an explicit per-version branch.
  * <p>
- * <b>Slot pool</b>: {@link #prepare} and {@link #activate} also consult {@link AnvilSlotPool} - see
- * its own class doc for the full mechanism. In short, a real creation reuses an already-warmed,
- * empty world folder when one is available instead of always paying a virgin folder's first-touch
- * cost; when none is available (pool disabled, not yet warmed, or temporarily exhausted) both methods
- * fall back to exactly the un-pooled behavior described above.
+ * <b>Spawn pre-seeding</b>: {@link #activate} writes {@code level.dat} with a known spawn via
+ * {@link LevelDatWriter} before ever calling {@link Bukkit#createWorld}, so vanilla's own "find a
+ * valid spawn" search never runs at all - confirmed empirically to be the dominant cost of creating
+ * a brand-new world (several seconds, since that search behaves pathologically against a fully void
+ * generator with no solid ground anywhere), collapsing it to well under a second. See
+ * docs/ARCHITECTURE.md §20 and {@link com.pocketworld.plugin.util.ChunkPrewarmer}, which shaves the
+ * small remaining first-chunk-touch cost further on Paper.
  */
 public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
@@ -78,11 +77,6 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
     private record CacheEntry(int dataVersion, long markedFreshAtMillis) {}
 
     private final Map<String, CacheEntry> warmCache = new ConcurrentHashMap<>();
-    private final AnvilSlotPool slotPool;
-
-    public AnvilShadowBridge(PocketWorldPlugin plugin) {
-        this.slotPool = new AnvilSlotPool(plugin);
-    }
 
     @Override
     public String name() {
@@ -118,12 +112,7 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
     @Override
     public void prepare(SlimeWorldData data, String worldName) throws IOException {
-        // Reuse an already-warmed slot's folder when one's available, so this world's data lands
-        // somewhere that's already paid the expensive first-touch cost - see AnvilSlotPool. Falls
-        // back to the classic path (relying on activate()'s createWorld() to migrate it, exactly as
-        // before this existed) when the pool has nothing ready.
-        Path worldFolder = slotPool.claim(worldName)
-                .orElseGet(() -> Bukkit.getWorldContainer().toPath().resolve(worldName));
+        Path worldFolder = Bukkit.getWorldContainer().toPath().resolve(worldName);
         Files.createDirectories(worldFolder);
 
         Map<ChunkPos, CompoundBinaryTag> regionChunks = new LinkedHashMap<>();
@@ -141,22 +130,7 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
     @Override
     public World activate(String worldName, int dataVersion, WorldProperties properties) throws IOException {
-        Path worldFolder;
-        Optional<Path> claimedSlot = slotPool.consumeClaim(worldName);
-        if (claimedSlot.isPresent()) {
-            Path slotFolder = claimedSlot.get();
-            // Rename directly into the same spot a normal (un-pooled) world's data ends up at, rather
-            // than back through the classic pre-migration path - confirmed empirically that a folder
-            // already touched once keeps that benefit even under a name Bukkit has never seen this
-            // session. resolveSibling derives the destination from wherever the slot's own folder
-            // actually already lives, so this is correct regardless of whether the running platform
-            // nests non-primary worlds (Paper 26.2) or uses the classic layout directly (plain
-            // Spigot) - no per-platform branch needed.
-            worldFolder = slotFolder.resolveSibling(worldName);
-            Files.move(slotFolder, worldFolder, StandardCopyOption.REPLACE_EXISTING);
-        } else {
-            worldFolder = Bukkit.getWorldContainer().toPath().resolve(worldName);
-        }
+        Path worldFolder = Bukkit.getWorldContainer().toPath().resolve(worldName);
         LevelDatWriter.write(worldFolder, worldName, dataVersion, properties);
 
         WorldCreator creator = new WorldCreator(worldName)

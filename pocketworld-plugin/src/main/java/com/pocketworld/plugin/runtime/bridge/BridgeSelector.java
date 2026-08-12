@@ -1,9 +1,9 @@
 package com.pocketworld.plugin.runtime.bridge;
 
-import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.runtime.bridge.anvil.AnvilShadowBridge;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Picks the best available {@link WorldRuntimeBridge} for the running server once, at startup.
@@ -15,10 +15,10 @@ public final class BridgeSelector {
 
     private final WorldRuntimeBridge active;
 
-    public BridgeSelector(PocketWorldPlugin plugin) {
+    public BridgeSelector(Logger logger) {
         List<WorldRuntimeBridge> candidates = List.of(
                 // Version-specific NMS bridges are prepended here in later stages, tried first.
-                new AnvilShadowBridge(plugin));
+                new AnvilShadowBridge());
 
         WorldRuntimeBridge selected = candidates.stream()
                 .filter(WorldRuntimeBridge::isAvailable)
@@ -28,10 +28,10 @@ public final class BridgeSelector {
 
         this.active = selected;
         if (selected instanceof AnvilShadowBridge) {
-            plugin.getLogger().info("PocketWorld: no version-specific runtime bridge for this server; "
+            logger.info("PocketWorld: no version-specific runtime bridge for this server; "
                     + "using the Anvil-shadow fallback (slower world load/unload, fully functional).");
         } else {
-            plugin.getLogger().info("PocketWorld: using runtime bridge \"" + selected.name() + "\"");
+            logger.info("PocketWorld: using runtime bridge \"" + selected.name() + "\"");
         }
     }
 

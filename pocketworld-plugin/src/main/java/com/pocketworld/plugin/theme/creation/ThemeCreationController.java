@@ -4,6 +4,7 @@ import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.user.PocketUserInventory;
+import com.pocketworld.plugin.util.ChunkPrewarmer;
 import com.pocketworld.plugin.util.ColorFormat;
 import com.pocketworld.plugin.runtime.WorldProperties;
 import com.pocketworld.plugin.runtime.bridge.anvil.LevelDatWriter;
@@ -293,34 +294,34 @@ public class ThemeCreationController {
             world.setPVP(false);
             world.setDifficulty(org.bukkit.Difficulty.NORMAL);
 
-            // The origin chunk's very first-ever touch in a brand-new world forces Paper's own
-            // chunk-generation pipeline through an expensive, wide-radius pass - confirmed empirically
-            // to cost over a second of main-thread blocking. Unlike real pocket-world creation (the hot,
-            // frequent, per-player path - see AnvilSlotPool), editor-world creation is a rare, admin-only
-            // action, so it isn't worth Paper-only getChunkAtAsync's async pre-warm just to keep this one
-            // path portable to Spigot too; touching it synchronously here is an acceptable one-off cost.
-            world.getChunkAt(0, 0);
+            // Pre-warms the origin chunk before anything below would otherwise force it to load
+            // synchronously - via Paper's async chunk API when available, falling back to a plain
+            // synchronous touch on Spigot (still well under a second now that level.dat above already
+            // avoids vanilla's expensive spawn search - see ChunkPrewarmer's own doc and
+            // docs/ARCHITECTURE.md §20).
+            ChunkPrewarmer.prewarm(plugin, world, 0, 0, () -> {
+                // The player may have disconnected (or explicitly cancelled) while the chunk touch
+                // above was running - editorWorldGenerationTask.cancel() in cancelCreation() only stops
+                // this outer sync task, not this already-detached continuation, so without this check
+                // the world could still get fully set up after the controller itself was already
+                // removed from the registry, with nothing left to clean it up.
+                if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
+                    discardEditorWorld(world);
+                    return;
+                }
 
-            // The player may have disconnected (or explicitly cancelled) while the chunk touch above
-            // was running - editorWorldGenerationTask.cancel() in cancelCreation() only stops this outer
-            // sync task, so without this check the world could still get fully set up after the
-            // controller itself was already removed from the registry, with nothing left to clean it up.
-            if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
-                discardEditorWorld(world);
-                return;
-            }
+                world.setSpawnLocation(0, 100, 0);
+                world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
+                world.getWorldBorder().setCenter(0.0, 0.0);
+                world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
 
-            world.setSpawnLocation(0, 100, 0);
-            world.getBlockAt(0, 99, 0).setType(Material.BEDROCK);
-            world.getWorldBorder().setCenter(0.0, 0.0);
-            world.getWorldBorder().setSize(PocketWorld.DEFAULT_WORLD_SIZE);
-
-            long time = System.currentTimeMillis() - startTime;
-            if (player != null) {
-                plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
-                player.teleport(new Location(world, 0.5, 100, 0.5));
-            }
-            nextState();
+                long time = System.currentTimeMillis() - startTime;
+                if (player != null) {
+                    plugin.getMessageReader().send("theme-editor-world-generated", player, "{TIME}:" + time);
+                    player.teleport(new Location(world, 0.5, 100, 0.5));
+                }
+                nextState();
+            });
         });
     }
 

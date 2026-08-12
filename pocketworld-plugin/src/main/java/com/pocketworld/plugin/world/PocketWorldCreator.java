@@ -3,8 +3,10 @@ package com.pocketworld.plugin.world;
 import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.api.event.PocketWorldCreateEvent;
 import com.pocketworld.plugin.theme.PocketTheme;
+import com.pocketworld.plugin.util.ChunkPrewarmer;
 import com.pocketworld.slime.format.SlimeFormatException;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -106,31 +108,35 @@ public class PocketWorldCreator {
                 int dataVersion = plugin.getRuntime().prepareLoad(worldId);
 
                 Bukkit.getScheduler().runTask(plugin, () -> {
+                    World bWorld;
                     try {
-                        World bWorld = plugin.getRuntime().activate(worldId, dataVersion, world.toWorldProperties(plugin));
-                        long time = System.currentTimeMillis() - start;
+                        bWorld = plugin.getRuntime().activate(worldId, dataVersion, world.toWorldProperties(plugin));
+                    } catch (IOException e) {
+                        plugin.getLogger().severe("Failed to activate newly created pocket world " + worldId + ": " + e);
+                        onComplete.run();
+                        return;
+                    }
 
-                        world.setWorldBorder();
-                        bWorld.setSpawnLocation(world.getWorldSpawn().getBukkitLocation(bWorld));
+                    world.setWorldBorder();
+                    Location spawnLocation = world.getWorldSpawn().getBukkitLocation(bWorld);
+                    bWorld.setSpawnLocation(spawnLocation);
+
+                    // Pre-warm the spawn chunk before world.teleport() below would otherwise force it
+                    // to load synchronously - see ChunkPrewarmer's own doc for the Paper/Spigot split.
+                    ChunkPrewarmer.prewarm(plugin, bWorld, spawnLocation.getBlockX() >> 4, spawnLocation.getBlockZ() >> 4, () -> {
+                        long time = System.currentTimeMillis() - start;
                         world.setLoaded(true);
                         Bukkit.getPluginManager().callEvent(new PocketWorldCreateEvent(world, bWorld, creatorId));
 
                         Player creator = Bukkit.getPlayer(creatorId);
                         if (creator != null) {
                             plugin.getMessageReader().send("world-creation-complete", creator, "{TIME}:" + time);
-
-                            // Bukkit.createWorld() (called by activate() above) synchronously
-                            // prepares the spawn area before returning, so the world is already
-                            // ready to receive players by this point - no artificial delay needed.
                             world.teleport(creator);
                         }
 
                         plugin.getLogger().info("Successfully created pocket world " + world.getId() + " in " + time + "ms!");
-                    } catch (IOException e) {
-                        plugin.getLogger().severe("Failed to activate newly created pocket world " + worldId + ": " + e);
-                    } finally {
                         onComplete.run();
-                    }
+                    });
                 });
             } catch (SlimeFormatException e) {
                 // Distinguished from a generic IOException because this specifically means theme

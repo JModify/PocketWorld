@@ -445,7 +445,7 @@ and there's exactly one admin trust tier in this plugin's design. Added a `pocke
 (with explicit `children`) for permission-plugin convenience, since server owners commonly grant
 staff a single node rather than enumerating four.
 
-## 20. Spigot Compatibility and the Slot Pool
+## 20. Spigot Compatibility and the Real Cost of Creating a World
 
 **Spigot compatibility.** The plugin still compiles against `paper-api`, deliberately - Paper's API
 is a strict superset of Spigot's (Paper only ever adds to it, never removes), so a jar that never
@@ -461,43 +461,59 @@ which is what actually determines whether cancelling the legacy event suppresses
 reliably); `Player#sendActionBar(Component)` → `player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
 ...)` (bungeecord-chat API, bundled in spigot-api itself, `MessageReader`); `WorldCreator#keepSpawnLoaded
 (TriState)` → `World#setKeepSpawnInMemory(boolean)` called after creation instead of chained on the
-creator (`AnvilShadowBridge`, `ThemeCreationController`); `World#getChunkAtAsync` → a plain
-synchronous `getChunkAt` in `ThemeCreationController` specifically (editor-world creation is a rare,
-admin-only action, not the hot per-player path the slot pool below targets, so it isn't worth keeping
-a Paper-only async pre-warm just for this one call site); `JavaPlugin#getPluginMeta()` →
-`getDescription().getVersion()`.
+creator (`AnvilShadowBridge`, `ThemeCreationController`); `JavaPlugin#getPluginMeta()` →
+`getDescription().getVersion()`. The seventh, `World#getChunkAtAsync`, is handled differently - see
+`ChunkPrewarmer` below, since it turned out to be the more important lever, not just a Spigot-safety
+swap.
 
-**Slot pool - the empirical question.** Reducing the "new pocket world" freeze (the dominant cost of
-which, per §18, is a brand-new world folder's first-ever touch) matters more on Spigot, which has no
-`getChunkAtAsync` to shrink that cost at all. The previous session's measurement (fresh folder ~4.8s
-vs. reusing the *same-named* folder ~0.2s regardless of its content) didn't prove the case a reusable
-*pool* actually needs: each pocket world keeps its own permanent UUID name forever (assumed pervasively
-- `PocketWorld`, `WorldListener`, `PocketUser`, `PocketWorldAPIImpl` all derive "which pocket world is
-this" from `Bukkit.getWorld(id.toString())` or the reverse), so a pooled slot has to be handed over
-under a name it was never created with. Verified directly: create a world under name A, unload it,
-rename its on-disk folder to name B (never seen by Bukkit this session), then `Bukkit.createWorld()`
-under name B. Result: **134ms createWorld + 36ms first touch** (~170ms total) - indistinguishable from
-same-name reuse, versus a same-run fresh-folder baseline of **5255ms createWorld** for comparison. The
-speed benefit is tied to the folder's on-disk content already being touched, not to the name string
-having been seen by Bukkit/Paper before, so renaming a pre-warmed folder into place works.
+**A slot pool was built, measured, and removed.** The first attempt at reducing the "new pocket
+world" freeze was a pool of pre-warmed, empty world folders that a real creation could reuse instead
+of paying a virgin folder's first-touch cost - reasoned from a benchmark showing a fresh folder costs
+~4.8s versus ~0.2s to reuse an already-touched one (even after renaming it to a name Bukkit had never
+seen this session, confirmed empirically, see prior revision of this section for the raw numbers).
+It was fully implemented (`AnvilSlotPool`) and confirmed working live in production. It was then
+**removed**, for two reasons surfaced by directly questioning its value rather than just its
+mechanism:
 
-One wrinkle surfaced by this test: Paper 26.2 nests a non-primary world's actual data under
-`<primaryWorld>/dimensions/<namespace>/<name>`, not `<worldContainer>/<name>` directly (a naive rename
-using the classic path failed with `NoSuchFileException` until the test captured `World#getWorldFolder()`
-before unloading, exactly as `AnvilShadowBridge.afterUnload()`/`extractUnloaded()` already had to for
-the same reason - see §"On-disk layout" in `AnvilShadowBridge`'s class doc).
+1. It didn't reduce the server's total freeze-seconds, only *whose* action triggered it - every
+   consumed slot queues a same-cost replenishment that still freezes the whole server, just decoupled
+   in time from the player who benefited. The actual win (bursts of creations absorbing pre-paid
+   "credit" instead of queueing full-price) was real but much narrower than "eliminates the freeze."
+2. That ~4.8s benchmark turned out to measure a **worst case that doesn't represent real creation**,
+   not the typical cost - see below. Once the actual cost was understood, the pool solved a problem
+   several times larger than the one that actually exists.
 
-**`AnvilSlotPool`** (`runtime/bridge/anvil/AnvilSlotPool.java`) implements this: a configurable number
-of standby slots (`general.slot-pool-size`, default 3), each a `Bukkit.createWorld()`-ed-then-unloaded
-empty world folder named with a fixed non-UUID prefix (`_pocketworld_slot_N`) so `sweepOrphanedEditorWorlds`
-already leaves idle slots alone with zero changes (its orphan check already requires a UUID-shaped
-name). `AnvilShadowBridge.prepare()` writes a real creation's converted chunk data directly into a
-claimed slot's folder instead of the classic path when one's available; `activate()` renames that
-folder to `slotFolder.resolveSibling(worldName)` - deriving the destination from wherever the slot's
-own folder actually already lives rather than assuming a fixed layout, so this is correct whether or
-not the running platform nests non-primary worlds - before proceeding with `Bukkit.createWorld()`
-exactly as before. Every claim immediately queues replenishment of a fresh slot through the same
-`PocketWorldCreationQueue` real creations use, so warming never competes with or blocks an actual
-player's request; a burst of creations that outpaces replenishment just degrades to the un-pooled
-behavior rather than failing. Correctness never depends on a slot being available - both bridge methods
-fall back to exactly their pre-pool behavior when the pool is disabled, not yet warmed, or exhausted.
+**What the ~4.8s benchmark was actually measuring.** `AnvilShadowBridge.activate()` already writes
+`level.dat` with a known spawn via `LevelDatWriter` *before* calling `Bukkit.createWorld()` - an
+older fix (§18) for vanilla's spawn search, which runs unconditionally on a virgin folder and touches
+a large, fixed radius of chunks looking for solid ground. That prior benchmark never included this
+pre-seed step, so it measured the pathological case: a **100% void generator** (no solid ground
+*anywhere*) with **no known spawn**, forcing the search to hunt indefinitely. Testing the real,
+already-existing mechanism directly (not simulated - the actual `LevelDatWriter.write()` production
+code, called before `Bukkit.createWorld()`) on the same test server:
+
+| | createWorld | first chunk touch | Total |
+|---|---|---|---|
+| Void generator, no known spawn (the old benchmark) | 4770ms | 0ms | **~4.8s** |
+| Void generator, `level.dat` pre-seeded (the real, already-existing mechanism) | 86ms | 284ms | **~370ms** |
+| Pre-seeded + first touch moved async (`getChunkAtAsync`) | 81ms | *(off main thread)* | **~81ms blocking** |
+
+Real pocket-world and theme-editor-world creation were already landing around ~370-580ms before any
+of this session's work, not ~4.8s - the multi-second number was an artifact of a benchmark that
+didn't reflect how the bridge actually creates worlds. This matches §18's own conclusion about the
+spawn search being the dominant cost; it just hadn't been re-checked against the fix already in place.
+
+**`ChunkPrewarmer`** (`util/ChunkPrewarmer.java`) captures the remaining, real opportunity: the
+~280-530ms first-chunk-touch cost above still happens synchronously today, implicitly, whenever the
+creating/loading player is teleported in (a teleport forces its target chunk to load if it isn't
+already). Explicitly pre-warming that chunk *before* the teleport, via Paper's `getChunkAtAsync`,
+moves that cost off the main thread entirely rather than just shrinking it - dropping the main-thread
+blocking time to just `createWorld()` itself (~50-100ms). Since `getChunkAtAsync` doesn't exist on
+Spigot, `ChunkPrewarmer` resolves it once via `MethodHandles` at class-load time (never a direct
+compiled call, which would throw `NoSuchMethodError` the moment this class loaded on a Spigot server)
+and transparently falls back to a plain synchronous `getChunkAt` when absent - callers
+(`PocketWorldCreator`, `PocketWorld.load()`, `ThemeCreationController`) don't need to know which path
+ran; `onReady` always fires exactly once, always back on the main thread. Net effect: **Paper servers
+get the full async benefit (~80ms blocking); Spigot servers still get the ~370-580ms pre-seed benefit
+over the old un-pre-seeded cost, just without the extra async shrink** - worth stating plainly in any
+public listing, since it's a genuine, honest platform difference rather than a marketing rounding.
