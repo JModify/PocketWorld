@@ -84,6 +84,12 @@ public class KickPlayerConfirmationMenu extends PocketMenu {
         if (tag.equalsIgnoreCase("player-cancel-kick")) {
             previousMenu.open();
         } else if (tag.equalsIgnoreCase("player-confirm-kick")) {
+            if (world.getUsers().size() <= 1) {
+                plugin.getMessageReader().send("world-kick-only-member", player);
+                player.closeInventory();
+                return;
+            }
+
             world.announce(plugin.getMessageReader().read("world-kick-player",
                     "{PLAYER}:" + player.getName(),
                     "{TARGET}:" + Bukkit.getOfflinePlayer(userToKick.getId()).getName(),

@@ -37,13 +37,18 @@ public class AdminTeleportPlayerPrompt extends PocketAnvilMenu {
             return false;
         }
 
-        if (!world.isLoaded()) {
-            world.load(plugin, target.getUniqueId(), true, true);
-        } else {
-            world.teleport(target);
-        }
-
-        player.sendMessage(ColorFormat.format("&aTeleported " + target.getName() + " into \"" + world.getWorldName() + "\"."));
+        // Chat input is handled off the main thread (AsyncPlayerChatEvent) - world.teleport() below
+        // calls Player#teleport() directly, which Paper refuses to run off the main thread
+        // ("PlayerTeleportEvent may only be triggered synchronously"). world.load() already hops to
+        // the main thread internally, but wrapping the whole branch keeps this correct either way.
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!world.isLoaded()) {
+                world.load(plugin, target.getUniqueId(), true, true);
+            } else {
+                world.teleport(target);
+            }
+            player.sendMessage(ColorFormat.format("&aTeleported " + target.getName() + " into \"" + world.getWorldName() + "\"."));
+        });
         return true;
     }
 }
