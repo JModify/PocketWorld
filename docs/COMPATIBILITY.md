@@ -26,19 +26,24 @@ behind each swap.
 The one real behavioral difference is `ChunkPrewarmer` (`util/ChunkPrewarmer.java`): during world
 creation it uses Paper's `getChunkAtAsync` to move a small chunk-loading cost off the main thread
 when that method is actually present, detected safely via reflection so it can never throw
-`NoSuchMethodError` on Spigot. On Spigot it falls back to a plain synchronous touch instead -
-slower by a few hundred milliseconds, not the multiple seconds this used to mean before an
-unrelated fix; see `docs/ARCHITECTURE.md` §20 for the real measurements on both paths.
+`NoSuchMethodError` on Spigot. On Spigot it falls back to a plain synchronous `getChunkAt` call
+instead - and because that call runs on the main thread (world creation is main-thread-only), it
+blocks the *whole server* for its duration, not just the creating player. Measured on a real Spigot
+26.2 server, that single call took ~1064ms out of a ~1472ms total world-creation time - see
+`docs/ARCHITECTURE.md` §23 for the full breakdown and why it can't be moved off-thread on Spigot.
+This is the basis for the Paper recommendation in the root `README.md`'s "Paper vs. Spigot" section:
+fine for a small server, but every player online feels the freeze on a busier one.
 
-What's actually been verified: the API-compatibility swap, by re-grepping the whole tree for
-Paper-only imports after the fact; and `ChunkPrewarmer`'s reflection path, live against a real
-Paper server (it correctly detects the method and correctly falls back to the main thread
-afterward). What hasn't been verified is a full Spigot server actually running the plugin
-end-to-end - no Spigot jar was available in that testing environment (Spigot doesn't publish one to
-a public repo; building it requires running BuildTools.jar locally). The Spigot fallback path
-itself is simple enough (one synchronous `getChunkAt` call) to be low-risk by inspection, but
-that's a weaker claim than this project's usual standard of verifying empirically, worth stating
-plainly rather than glossing over.
+**Verified**, not just reasoned about: the API-compatibility swap, by re-grepping the whole tree for
+Paper-only imports after the fact; `ChunkPrewarmer`'s reflection path, live against a real Paper
+server (it correctly detects the method and correctly falls back to the main thread afterward); and,
+as of this session, the plugin actually running end-to-end on a real Spigot 26.2 server, provided by
+the user - two platform-specific bugs were caught and fixed this way (a missing
+`world_gen_settings.dat`, and pocket worlds loading in as empty voids from data written to the wrong
+on-disk path; see `docs/ARCHITECTURE.md` §21/§22), and the resulting creation-time numbers above
+came from that same server. Not yet done: the same debug-instrumented timing breakdown on Paper for
+a direct side-by-side, and a proposed fix (extending the warm-cache TTL so a world only pays the
+first-touch cost once per lifetime instead of once per return visit - §23) hasn't been implemented.
 
 ## One runtime bridge, not one per version
 
@@ -60,6 +65,9 @@ code. The seam for a future bridge (`WorldRuntimeBridge`, picked via `BridgeSele
 place in case a genuinely viable one turns up, but nothing today depends on that happening.
 
 ## The two floors are not equally fast, and that's expected
+
+This section is about the two **Minecraft version floors** (1.21.x vs. 26.2) - a separate axis from
+Paper vs. Spigot, covered above.
 
 The bridge keeps a world's on-disk folder as a warm, in-session cache after a normal unload instead
 of rebuilding it from scratch on every load — a world revisited soon after last use skips the
