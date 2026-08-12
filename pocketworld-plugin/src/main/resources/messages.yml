@@ -66,6 +66,12 @@ messages:
   world-manage-higher-rank:
     type: error
     message: "&cYou cannot manage a player with an equal or higher rank than you."
+  world-demote-owner-no-members:
+    type: error
+    message: "&cYou cannot demote this player from Owner - there are no other members to take their place."
+  world-owner-transfer-required:
+    type: info
+    message: "&eEvery pocket world must have an Owner - please select who should take over from the menu."
   world-permission-denied:
     type: raw
     message: "&cYou do not have permission to do that here."
@@ -112,6 +118,9 @@ messages:
   world-kick-player:
     type: raw
     message: "&e{PLAYER} kicked {TARGET} from {WORLD_NAME}."
+  world-kick-only-member:
+    type: error
+    message: "&cYou cannot kick the last remaining member of a pocket world."
 
   theme-creation-complete:
     type: success

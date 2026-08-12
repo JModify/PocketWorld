@@ -121,6 +121,10 @@ public class PlayerSetRankMenu extends PocketMenu {
                 player.sendMessage(ColorFormat.format("&4&lERROR &r&cUser is already a MEMBER."));
                 return;
             }
+            if (rank == WorldRank.OWNER) {
+                demoteOwner(WorldRank.MEMBER);
+                return;
+            }
 
             player.closeInventory();
 
@@ -135,6 +139,10 @@ public class PlayerSetRankMenu extends PocketMenu {
                 player.sendMessage(ColorFormat.format("&4&lERROR &r&cUser is already a MOD"));
                 return;
             }
+            if (rank == WorldRank.OWNER) {
+                demoteOwner(WorldRank.MOD);
+                return;
+            }
 
             player.closeInventory();
 
@@ -145,6 +153,11 @@ public class PlayerSetRankMenu extends PocketMenu {
                     "{RANK}:" + WorldRank.MOD.name(),
                     "{WORLD_NAME}:" + world.getWorldName()));
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
+            if (rank == WorldRank.OWNER) {
+                player.sendMessage(ColorFormat.format("&4&lERROR &r&cUser is already the OWNER."));
+                return;
+            }
+
             player.closeInventory();
             world.getUsers().put(userToSetRank.getId(), WorldRank.OWNER);
             // Only demote the acting player if they were already a member - an admin exercising this
@@ -159,5 +172,20 @@ public class PlayerSetRankMenu extends PocketMenu {
                     "{WORLD_NAME}:" + world.getWorldName(),
                     "{TARGET}:" + Bukkit.getOfflinePlayer(userToSetRank.getId()).getName()));
         }
+    }
+
+    /** Demoting the current Owner directly would leave the world without one - hand off to
+     *  {@link TransferOwnershipMenu} to pick a replacement first, or block outright with an error
+     *  if nobody else is a member to take their place. */
+    private void demoteOwner(WorldRank demoteTo) {
+        boolean hasOtherMembers = world.getUsers().keySet().stream()
+                .anyMatch(id -> !id.equals(userToSetRank.getId()));
+        if (!hasOtherMembers) {
+            plugin.getMessageReader().send("world-demote-owner-no-members", player);
+            return;
+        }
+
+        plugin.getMessageReader().send("world-owner-transfer-required", player);
+        new TransferOwnershipMenu(player, plugin, world, userToSetRank, demoteTo, this).open();
     }
 }

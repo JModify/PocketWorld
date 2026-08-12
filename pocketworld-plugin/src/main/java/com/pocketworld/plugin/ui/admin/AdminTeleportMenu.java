@@ -67,7 +67,7 @@ public class AdminTeleportMenu extends PocketMenu {
         inventory.setItem(22, back);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.GRAY_STAINED_GLASS_PANE)
+                .material(Material.MAGENTA_STAINED_GLASS_PANE)
                 .displayName(" ")
                 .build().get();
         addFillerBorder(fillerItem);
