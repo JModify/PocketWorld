@@ -1,8 +1,10 @@
 # PocketWorld
 
 A standalone Paper plugin for personal/instanced player worlds. PocketWorld implements the
-Hypixel **Slime Region Format (SRF)** itself — there is no dependency on AdvancedSlimePaper,
-SlimeWorldManager, or any custom server fork. It is a normal, installable plugin jar.
+Hypixel **Slime Region Format (SRF)** itself, entirely within a normal, installable plugin jar —
+it is not a server fork, so it can't take advantage of the world-loading speed a fork gets from
+keeping everything in a custom in-memory format. What it does get from the format: a compact,
+portable on-disk footprint per world instead of sprawling folders of loose region files.
 
 Every player can create their own small, private "pocket" world from a theme (a template an admin
 builds once), invite friends in with their own rank, tweak world settings, and hop between worlds
@@ -51,10 +53,11 @@ loose region files.
   plugins react to pocket world activity without touching PocketWorld's internals.
 - **Choice of metadata storage.** World/theme/user records (not the world data itself, see below) can
   live in local YAML files (the zero-setup default), MySQL, or MongoDB - pick one in `config.yml`.
-- **No server fork, no external dependency.** The Slime Region Format - normally something you'd need
-  AdvancedSlimePaper's forked server for - is implemented directly in this plugin
-  (`pocketworld-slime`, a standalone module with no Bukkit dependency of its own). Install it like any
-  other plugin on stock Paper.
+- **No server fork, no external dependency.** The Slime Region Format is implemented directly in
+  this plugin (`pocketworld-slime`, a standalone module with no Bukkit dependency of its own) -
+  install it like any other plugin on stock Paper. The tradeoff against a forked server is world-
+  loading speed; what you get instead is a small, compressed, portable per-world footprint on disk
+  and zero server-side installation beyond the jar.
 
 ## Minimum supported versions
 
