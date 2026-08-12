@@ -4,6 +4,7 @@ import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.theme.PocketTheme;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.user.PocketUserInventory;
+import com.pocketworld.plugin.util.ChunkPrewarmer;
 import com.pocketworld.plugin.util.ColorFormat;
 import com.pocketworld.plugin.runtime.WorldProperties;
 import com.pocketworld.plugin.runtime.bridge.anvil.LevelDatWriter;
@@ -279,32 +280,31 @@ public class ThemeCreationController {
                     .environment(World.Environment.NORMAL)
                     .generator(new VoidGenerator())
                     .biomeProvider(new SingleBiomeProvider(biome))
-                    .generateStructures(false)
-                    .keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE);
+                    .generateStructures(false);
             World world = Bukkit.createWorld(creator);
             if (world == null) {
                 plugin.getLogger().severe("Failed to generate editor world for theme " + themeId);
                 return;
             }
 
+            // setKeepSpawnInMemory is plain Bukkit/Spigot World API (unlike WorldCreator#keepSpawnLoaded,
+            // which is Paper-only), so it's set here after creation rather than on the WorldCreator chain.
+            world.setKeepSpawnInMemory(false);
             world.setSpawnFlags(false, false);
             world.setPVP(false);
             world.setDifficulty(org.bukkit.Difficulty.NORMAL);
 
-            // The origin chunk's very first-ever touch in a brand-new world forces Paper's own
-            // chunk-generation pipeline through an expensive, wide-radius pass - confirmed empirically
-            // to cost over a second of pure main-thread blocking when triggered synchronously (e.g. by
-            // placing a block directly, as this used to do right here). Pre-warming it asynchronously
-            // first moves that entire cost onto a background thread instead - confirmed empirically to
-            // keep the main thread completely responsive while it happens, at the cost of a sub-second
-            // delay before the editor world is actually ready. Nothing that needs the chunk already
-            // loaded runs until this completes.
-            world.getChunkAtAsync(0, 0, true).thenRun(() -> {
-                // The player may have disconnected (or explicitly cancelled) while this was
-                // generating in the background - editorWorldGenerationTask.cancel() in
-                // cancelCreation() only stops this outer sync task, not this already-detached async
-                // continuation, so this world can still get created after the controller itself was
-                // already removed from the registry. Nothing would ever clean it up otherwise.
+            // Pre-warms the origin chunk before anything below would otherwise force it to load
+            // synchronously - via Paper's async chunk API when available, falling back to a plain
+            // synchronous touch on Spigot (still well under a second now that level.dat above already
+            // avoids vanilla's expensive spawn search - see ChunkPrewarmer's own doc and
+            // docs/ARCHITECTURE.md §20).
+            ChunkPrewarmer.prewarm(plugin, world, 0, 0, () -> {
+                // The player may have disconnected (or explicitly cancelled) while the chunk touch
+                // above was running - editorWorldGenerationTask.cancel() in cancelCreation() only stops
+                // this outer sync task, not this already-detached continuation, so without this check
+                // the world could still get fully set up after the controller itself was already
+                // removed from the registry, with nothing left to clean it up.
                 if (!ThemeCreationRegistry.getInstance().containsUser(userId)) {
                     discardEditorWorld(world);
                     return;

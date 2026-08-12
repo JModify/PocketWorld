@@ -115,7 +115,7 @@ public final class PocketWorldPlugin extends JavaPlugin {
 
         getServer().getServicesManager().register(PocketWorldAPI.class, PocketWorldAPI.create(this), this, ServicePriority.Normal);
 
-        getLogger().info("PocketWorld " + getPluginMeta().getVersion() + " enabled.");
+        getLogger().info("PocketWorld " + getDescription().getVersion() + " enabled.");
     }
 
     /**

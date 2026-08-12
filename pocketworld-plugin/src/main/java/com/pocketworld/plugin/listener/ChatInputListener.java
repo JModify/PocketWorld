@@ -1,18 +1,18 @@
 package com.pocketworld.plugin.listener;
 
 import com.pocketworld.plugin.PocketWorldPlugin;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 /**
  * Bridges chat messages into {@link com.pocketworld.plugin.util.ChatInputRegistry} pending prompts.
- * Uses Paper's {@link AsyncChatEvent} rather than the deprecated, legacy-compatibility
- * {@code org.bukkit.event.player.AsyncPlayerChatEvent} - this plugin only ever targets Paper (never
- * vanilla Bukkit/Spigot), and cancelling the legacy event isn't reliably guaranteed to suppress the
- * message Paper's own chat pipeline actually renders in every configuration.
+ * Uses the plain Bukkit/Spigot {@link AsyncPlayerChatEvent} rather than Paper's own
+ * {@code io.papermc.paper.event.player.AsyncChatEvent} so the same listener works on both platforms -
+ * {@link #onPlayerChat} runs at {@link org.bukkit.event.EventPriority#LOWEST} specifically so this
+ * plugin's cancellation happens before any other plugin's chat formatter/renderer sees the event, which
+ * is what actually determines whether cancellation suppresses the message on Paper as well as Spigot.
  */
 public class ChatInputListener implements Listener {
 
@@ -22,11 +22,10 @@ public class ChatInputListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
-    public void onPlayerChat(AsyncChatEvent event) {
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-        if (plugin.getChatInputRegistry().handle(player.getUniqueId(), message)) {
+        if (plugin.getChatInputRegistry().handle(player.getUniqueId(), event.getMessage())) {
             event.setCancelled(true);
         }
     }

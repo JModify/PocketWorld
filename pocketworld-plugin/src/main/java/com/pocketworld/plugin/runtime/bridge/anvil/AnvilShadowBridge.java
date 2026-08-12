@@ -12,7 +12,6 @@ import com.pocketworld.slime.model.SlimeChunkData;
 import com.pocketworld.slime.model.SlimeWorldData;
 import com.pocketworld.slime.model.SlimeWorldFlag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
-import net.kyori.adventure.util.TriState;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.World;
@@ -62,6 +61,14 @@ import java.util.stream.Stream;
  * path - safely and automatically declines to trust the cache on a version where that migration
  * relocates the data out from under it (the region folder it's looking for is simply gone), rather
  * than needing an explicit per-version branch.
+ * <p>
+ * <b>Spawn pre-seeding</b>: {@link #activate} writes {@code level.dat} with a known spawn via
+ * {@link LevelDatWriter} before ever calling {@link Bukkit#createWorld}, so vanilla's own "find a
+ * valid spawn" search never runs at all - confirmed empirically to be the dominant cost of creating
+ * a brand-new world (several seconds, since that search behaves pathologically against a fully void
+ * generator with no solid ground anywhere), collapsing it to well under a second. See
+ * docs/ARCHITECTURE.md §20 and {@link com.pocketworld.plugin.util.ChunkPrewarmer}, which shaves the
+ * small remaining first-chunk-touch cost further on Paper.
  */
 public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
@@ -136,18 +143,20 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
                 // in real, random vanilla terrain having nothing to do with the stored world.
                 // Confirmed by a real in-game report of exactly that. VoidGenerator makes any chunk
                 // not already on disk come out as plain empty air instead.
-                .generator(new VoidGenerator())
-                // Pocket worlds are small and bounded by their own world border; forcing vanilla's
-                // ~11x11 chunk spawn-keep-alive area regardless of that size would mean most (or
-                // all) of a small world's chunks stay permanently loaded and ticking even with no
-                // one nearby. Loading lazily as players actually walk in is the right shape for a
-                // small instanced world, not a main-world-style always-on spawn.
-                .keepSpawnLoaded(TriState.FALSE);
+                .generator(new VoidGenerator());
         World world = Bukkit.createWorld(creator);
         if (world == null) {
             throw new IOException("Bukkit refused to create/load world \"" + worldName + "\"");
         }
 
+        // Pocket worlds are small and bounded by their own world border; forcing vanilla's ~11x11
+        // chunk spawn-keep-alive area regardless of that size would mean most (or all) of a small
+        // world's chunks stay permanently loaded and ticking even with no one nearby. Loading lazily
+        // as players actually walk in is the right shape for a small instanced world, not a
+        // main-world-style always-on spawn. setKeepSpawnInMemory is plain Bukkit/Spigot World API
+        // (unlike WorldCreator#keepSpawnLoaded, which is Paper-only), so this has to be set after
+        // creation rather than as part of the WorldCreator chain.
+        world.setKeepSpawnInMemory(false);
         world.setSpawnLocation((int) Math.floor(properties.spawnX()), (int) Math.floor(properties.spawnY()),
                 (int) Math.floor(properties.spawnZ()), properties.spawnYaw());
         world.setDifficulty(parseDifficulty(properties.difficulty()));

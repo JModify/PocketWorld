@@ -444,3 +444,76 @@ than fragmenting into per-subcommand permissions - consistent with how `reload` 
 and there's exactly one admin trust tier in this plugin's design. Added a `pocketworld.*` wildcard
 (with explicit `children`) for permission-plugin convenience, since server owners commonly grant
 staff a single node rather than enumerating four.
+
+## 20. Spigot Compatibility and the Real Cost of Creating a World
+
+**Spigot compatibility.** The plugin still compiles against `paper-api`, deliberately - Paper's API
+is a strict superset of Spigot's (Paper only ever adds to it, never removes), so a jar that never
+calls a Paper-exclusive symbol runs correctly on both platforms from that same compile target.
+Switching the Maven dependency to `spigot-api` instead would require running BuildTools.jar
+locally/in CI (Spigot doesn't publish it to any public repo) for no runtime benefit over the
+discipline-based approach. A full-tree audit found seven Paper-only call sites, all fixed the same
+way - swapped for the plain Bukkit/Spigot equivalent that also works unmodified on Paper:
+`io.papermc.paper.event.player.AsyncChatEvent` → `org.bukkit.event.player.AsyncPlayerChatEvent`
+(`ChatInputListener`, `ThemeCreationListener` - both now listen at `EventPriority.LOWEST` so this
+plugin's cancellation is decided before any other plugin's chat formatter/renderer sees the event,
+which is what actually determines whether cancelling the legacy event suppresses the message
+reliably); `Player#sendActionBar(Component)` → `player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+...)` (bungeecord-chat API, bundled in spigot-api itself, `MessageReader`); `WorldCreator#keepSpawnLoaded
+(TriState)` → `World#setKeepSpawnInMemory(boolean)` called after creation instead of chained on the
+creator (`AnvilShadowBridge`, `ThemeCreationController`); `JavaPlugin#getPluginMeta()` →
+`getDescription().getVersion()`. The seventh, `World#getChunkAtAsync`, is handled differently - see
+`ChunkPrewarmer` below, since it turned out to be the more important lever, not just a Spigot-safety
+swap.
+
+**A slot pool was built, measured, and removed.** The first attempt at reducing the "new pocket
+world" freeze was a pool of pre-warmed, empty world folders that a real creation could reuse instead
+of paying a virgin folder's first-touch cost - reasoned from a benchmark showing a fresh folder costs
+~4.8s versus ~0.2s to reuse an already-touched one (even after renaming it to a name Bukkit had never
+seen this session, confirmed empirically, see prior revision of this section for the raw numbers).
+It was fully implemented (`AnvilSlotPool`) and confirmed working live in production. It was then
+**removed**, for two reasons surfaced by directly questioning its value rather than just its
+mechanism:
+
+1. It didn't reduce the server's total freeze-seconds, only *whose* action triggered it - every
+   consumed slot queues a same-cost replenishment that still freezes the whole server, just decoupled
+   in time from the player who benefited. The actual win (bursts of creations absorbing pre-paid
+   "credit" instead of queueing full-price) was real but much narrower than "eliminates the freeze."
+2. That ~4.8s benchmark turned out to measure a **worst case that doesn't represent real creation**,
+   not the typical cost - see below. Once the actual cost was understood, the pool solved a problem
+   several times larger than the one that actually exists.
+
+**What the ~4.8s benchmark was actually measuring.** `AnvilShadowBridge.activate()` already writes
+`level.dat` with a known spawn via `LevelDatWriter` *before* calling `Bukkit.createWorld()` - an
+older fix (§18) for vanilla's spawn search, which runs unconditionally on a virgin folder and touches
+a large, fixed radius of chunks looking for solid ground. That prior benchmark never included this
+pre-seed step, so it measured the pathological case: a **100% void generator** (no solid ground
+*anywhere*) with **no known spawn**, forcing the search to hunt indefinitely. Testing the real,
+already-existing mechanism directly (not simulated - the actual `LevelDatWriter.write()` production
+code, called before `Bukkit.createWorld()`) on the same test server:
+
+| | createWorld | first chunk touch | Total |
+|---|---|---|---|
+| Void generator, no known spawn (the old benchmark) | 4770ms | 0ms | **~4.8s** |
+| Void generator, `level.dat` pre-seeded (the real, already-existing mechanism) | 86ms | 284ms | **~370ms** |
+| Pre-seeded + first touch moved async (`getChunkAtAsync`) | 81ms | *(off main thread)* | **~81ms blocking** |
+
+Real pocket-world and theme-editor-world creation were already landing around ~370-580ms before any
+of this session's work, not ~4.8s - the multi-second number was an artifact of a benchmark that
+didn't reflect how the bridge actually creates worlds. This matches §18's own conclusion about the
+spawn search being the dominant cost; it just hadn't been re-checked against the fix already in place.
+
+**`ChunkPrewarmer`** (`util/ChunkPrewarmer.java`) captures the remaining, real opportunity: the
+~280-530ms first-chunk-touch cost above still happens synchronously today, implicitly, whenever the
+creating/loading player is teleported in (a teleport forces its target chunk to load if it isn't
+already). Explicitly pre-warming that chunk *before* the teleport, via Paper's `getChunkAtAsync`,
+moves that cost off the main thread entirely rather than just shrinking it - dropping the main-thread
+blocking time to just `createWorld()` itself (~50-100ms). Since `getChunkAtAsync` doesn't exist on
+Spigot, `ChunkPrewarmer` resolves it once via `MethodHandles` at class-load time (never a direct
+compiled call, which would throw `NoSuchMethodError` the moment this class loaded on a Spigot server)
+and transparently falls back to a plain synchronous `getChunkAt` when absent - callers
+(`PocketWorldCreator`, `PocketWorld.load()`, `ThemeCreationController`) don't need to know which path
+ran; `onReady` always fires exactly once, always back on the main thread. Net effect: **Paper servers
+get the full async benefit (~80ms blocking); Spigot servers still get the ~370-580ms pre-seed benefit
+over the old un-pre-seeded cost, just without the extra async shrink** - worth stating plainly in any
+public listing, since it's a genuine, honest platform difference rather than a marketing rounding.

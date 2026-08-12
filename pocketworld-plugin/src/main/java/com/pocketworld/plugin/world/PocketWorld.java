@@ -4,6 +4,7 @@ import com.pocketworld.plugin.PocketWorldPlugin;
 import com.pocketworld.plugin.api.event.PocketWorldLoadEvent;
 import com.pocketworld.plugin.api.event.PocketWorldUnloadEvent;
 import com.pocketworld.plugin.user.PocketUser;
+import com.pocketworld.plugin.util.ChunkPrewarmer;
 import com.pocketworld.plugin.util.ColorFormat;
 import com.pocketworld.plugin.util.MessageReader;
 import com.pocketworld.plugin.runtime.WorldProperties;
@@ -232,11 +233,22 @@ public class PocketWorld implements Listener {
                 int dataVersion = plugin.getRuntime().prepareLoad(id.toString());
 
                 Bukkit.getScheduler().runTask(plugin, () -> {
+                    World bukkitWorld;
                     try {
-                        World bukkitWorld = plugin.getRuntime().activate(id.toString(), dataVersion, toWorldProperties(plugin));
+                        bukkitWorld = plugin.getRuntime().activate(id.toString(), dataVersion, toWorldProperties(plugin));
+                    } catch (IOException e) {
+                        plugin.getLogger().severe("Failed to activate pocket world " + id + ": " + e);
+                        onComplete.run();
+                        return;
+                    }
 
-                        setWorldBorder();
-                        setWorldSpawn(worldSpawn.getBukkitLocation(bukkitWorld));
+                    setWorldBorder();
+                    Location spawnLocation = worldSpawn.getBukkitLocation(bukkitWorld);
+                    setWorldSpawn(spawnLocation);
+
+                    // Pre-warm the spawn chunk before teleport() below would otherwise force it to
+                    // load synchronously - see ChunkPrewarmer's own doc for the Paper/Spigot split.
+                    ChunkPrewarmer.prewarm(plugin, bukkitWorld, spawnLocation.getBlockX() >> 4, spawnLocation.getBlockZ() >> 4, () -> {
                         setLoaded(true);
                         Bukkit.getPluginManager().callEvent(new PocketWorldLoadEvent(this, bukkitWorld));
 
@@ -247,18 +259,12 @@ public class PocketWorld implements Listener {
                                 plugin.getMessageReader().send("world-load-success", loader, "{TIME}:" + time);
                             }
                             if (shouldTeleport) {
-                                // Bukkit.createWorld() (called by activate() above) synchronously
-                                // prepares the spawn area before returning, so the world is already
-                                // ready to receive players by this point - no artificial delay needed.
                                 teleport(loader);
                             }
                         }
                         plugin.getLogger().info("Successfully loaded pocket world " + id + " in " + time + "ms!");
-                    } catch (IOException e) {
-                        plugin.getLogger().severe("Failed to activate pocket world " + id + ": " + e);
-                    } finally {
                         onComplete.run();
-                    }
+                    });
                 });
             } catch (SlimeFormatException e) {
                 // Distinguished from a generic IOException so both the admin log and the player see

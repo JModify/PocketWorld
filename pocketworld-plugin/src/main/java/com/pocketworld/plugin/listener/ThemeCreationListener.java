@@ -6,13 +6,13 @@ import com.pocketworld.plugin.theme.creation.ThemeCreationRegistry;
 import com.pocketworld.plugin.ui.PocketItem;
 import com.pocketworld.plugin.ui.theme_menus.SelectBiomeMenu;
 import com.pocketworld.plugin.ui.theme_menus.SelectIconMenu;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -164,8 +164,12 @@ public class ThemeCreationListener implements Listener {
         controller.cancelCreation();
     }
 
-    @EventHandler
-    public void onPlayerChat(AsyncChatEvent event) {
+    /** {@code LOWEST} so this cancellation is decided before any other plugin's chat formatter/
+     *  renderer sees the event - see {@link com.pocketworld.plugin.listener.ChatInputListener} for why
+     *  that's what actually makes cancelling {@link AsyncPlayerChatEvent} suppress the message
+     *  reliably on Paper as well as Spigot. */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         ThemeCreationRegistry registry = ThemeCreationRegistry.getInstance();
 
@@ -174,7 +178,6 @@ public class ThemeCreationListener implements Listener {
         }
 
         event.setCancelled(true);
-        String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-        registry.getController(player.getUniqueId()).handleChatInput(message);
+        registry.getController(player.getUniqueId()).handleChatInput(event.getMessage());
     }
 }
