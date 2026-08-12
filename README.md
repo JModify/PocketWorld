@@ -1,14 +1,13 @@
 # PocketWorld
 
-A standalone Paper plugin for personal/instanced player worlds. PocketWorld implements the
-Hypixel **Slime Region Format (SRF)** itself, entirely within a normal, installable plugin jar —
-it is not a server fork, so it can't take advantage of the world-loading speed a fork gets from
-keeping everything in a custom in-memory format. What it does get from the format: a compact,
-portable on-disk footprint per world instead of sprawling folders of loose region files.
+A Paper plugin for personal, instanced player worlds. Every player can create their own small,
+private "pocket" world from a theme (a template an admin builds once), invite friends in with
+their own rank, tweak world settings, and hop between worlds through a menu.
 
-Every player can create their own small, private "pocket" world from a theme (a template an admin
-builds once), invite friends in with their own rank, tweak world settings, and hop between worlds
-through a menu — all backed by a compact, portable storage format rather than sprawling folders of
+Worlds are stored using Hypixel's **Slime Region Format (SRF)**, implemented directly in the
+plugin rather than requiring a forked server - so it installs like any other plugin jar, at the
+cost of the world-loading speed a true fork gets from keeping everything in memory. What the
+format still gets you: a compact, portable footprint per world instead of sprawling folders of
 loose region files.
 
 ## Features
@@ -28,8 +27,8 @@ loose region files.
 - **Visitor permissions.** Anyone physically inside a world who isn't a member is a **Visitor**. An
   owner can configure, per rank (Visitor/Member/Mod), exactly which actions are allowed - build,
   break, and interact for visitors; invite, kick, and set-spawn for members/mods - from a dedicated
-  Permissions menu, and can expel every visitor from the world in one click. Defaults match the
-  original hardcoded behavior, so nothing changes until an owner opens the menu.
+  Permissions menu, and can expel every visitor from the world in one click. Every world starts
+  with sensible defaults, so nothing changes until an owner opens the menu.
 - **Invitations.** An owner or mod (or anyone else granted the invite permission) can invite any
   online player by typing their username in chat; the invited player accepts or declines from their
   own Invitations menu, and a pending invitation can be revoked before it's answered.
@@ -39,12 +38,12 @@ loose region files.
 - **World teleportation menu.** Jump directly to any world you're a member of from a single menu,
   without needing to remember or type its name.
 - **World creation queue.** World creation/loading is serialized server-wide (toggleable in
-  `config.yml`) so a burst of simultaneous requests can't stack their main-thread cost into one long
-  freeze - queued players see a live position indicator instead.
-- **Corruption detection.** Every stored world's bytes can be checked for structural corruption
-  on demand (`/pocketworldadmin validate`), and a corrupted world fails with a clear message to both
-  the affected player and the server log instead of silently doing nothing.
-- **Import/export tooling.** Move a real, ordinary Anvil-format world folder in or out of PocketWorld's
+  `config.yml`), so a burst of players creating worlds at the same moment doesn't freeze the server
+  for everyone at once - queued players see a live position indicator instead.
+- **Corruption detection.** Any stored world can be checked for corruption on demand
+  (`/pocketworldadmin validate`), and a corrupted world fails with a clear message to both the
+  affected player and the server log instead of silently doing nothing.
+- **Import/export tooling.** Move a standard Anvil-format world folder in or out of PocketWorld's
   storage with a single admin command - useful for backups, recovery, or bootstrapping a theme from
   an existing build.
 - **Public API for other plugins.** A `PocketWorldAPI` service (fetched via Bukkit's
@@ -53,11 +52,6 @@ loose region files.
   plugins react to pocket world activity without touching PocketWorld's internals.
 - **Choice of metadata storage.** World/theme/user records (not the world data itself, see below) can
   live in local YAML files (the zero-setup default), MySQL, or MongoDB - pick one in `config.yml`.
-- **No server fork, no external dependency.** The Slime Region Format is implemented directly in
-  this plugin (`pocketworld-slime`, a standalone module with no Bukkit dependency of its own) -
-  install it like any other plugin on stock Paper. The tradeoff against a forked server is world-
-  loading speed; what you get instead is a small, compressed, portable per-world footprint on disk
-  and zero server-side installation beyond the jar.
 
 ## Minimum supported versions
 
@@ -100,7 +94,7 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 ## Permissions
 
 Every command that takes sub-arguments has its own base "can you run this command at all" node, plus
-one further node per sub-argument - so, for example, an admin can grant `pocketworld.theme.manage`
+one further node per sub-argument. For example, an admin can grant `pocketworld.theme.manage`
 without also handing out `pocketworld.theme.create`. `/pocketworld` has no sub-arguments, so it has
 just the one node.
 
@@ -130,17 +124,17 @@ just the one node.
 | `debug` | `false` | Verbose diagnostic logging (world load/unload timings, which runtime bridge was selected, etc). |
 | `general.max-worlds` | `5` | Maximum pocket worlds a single player may own at once. |
 | `general.auto-unload-delay-seconds` | `60` | How long an empty, loaded pocket world waits before auto-unloading. Cancelled if a member rejoins first. |
-| `general.creation-queue-enabled` | `true` | Serializes world creation/loading server-wide so a burst of simultaneous requests can't stack into one long main-thread freeze. Disable to let every request start immediately instead. |
+| `general.creation-queue-enabled` | `true` | Serializes world creation/loading server-wide so a burst of simultaneous requests can't pile up into one long freeze. Disable to let every request start immediately instead. |
 | `general.creation-queue-delay-seconds` | `0` | Extra pause between one queued creation/load finishing and the next one starting, spreading server load out further than the queue alone. Has no effect when the queue is disabled. |
 | `world-difficulty` | `normal` | Difficulty applied to every pocket world. One of `peaceful`, `easy`, `normal`, `hard`. |
 | `mongodb.use` / `mysql.use` | `false` / `false` | Which backend stores world/theme/user *metadata* (not the world data itself - see Features above). Local YAML files are used if neither is enabled; enabling both at once is an error. |
 
 ## Project layout
 
-- **`pocketworld-slime`** — the Slime format/storage engine: binary read/write, compression,
+- **`pocketworld-slime`** - the Slime format/storage engine: binary read/write, compression,
   in-memory world model, Anvil (`.mca`) import/export, and pluggable storage backends
-  (file/MySQL/MongoDB). Has no dependency on Bukkit/Paper — built and tested independently.
-- **`pocketworld-plugin`** — the Paper plugin: world lifecycle/runtime, the PocketWorld domain
+  (file/MySQL/MongoDB). Has no dependency on Bukkit/Paper - built and tested independently.
+- **`pocketworld-plugin`** - the Paper plugin: world lifecycle/runtime, the PocketWorld domain
   model (worlds, themes/templates, ranks, invitations), commands, menus, configuration,
   permissions, and a public API for other plugins.
 
@@ -157,5 +151,5 @@ The final, shaded plugin jar is produced at `pocketworld-plugin/target/PocketWor
 ## Status
 
 Feature-complete against the original design (`docs/ARCHITECTURE.md` §12) and verified through
-extended live play on real Paper 1.21.x and 26.2 servers, including several bugs found and fixed
-from that testing rather than assumed away.
+extended live play on real Paper 1.21.x and 26.2 servers, with several bugs caught and fixed
+along the way.
