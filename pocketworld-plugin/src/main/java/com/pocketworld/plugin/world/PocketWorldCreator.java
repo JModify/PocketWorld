@@ -105,10 +105,15 @@ public class PocketWorldCreator {
                 }
 
                 plugin.getThemeRuntime().cloneInto(themeId, plugin.getRuntime(), worldId);
+                long afterClone = System.currentTimeMillis();
                 int dataVersion = plugin.getRuntime().prepareLoad(worldId);
+                long afterPrepare = System.currentTimeMillis();
+                plugin.getDebugger().info("[PocketWorldCreator] " + worldId + " clone=" + (afterClone - start)
+                        + "ms, prepareLoad=" + (afterPrepare - afterClone) + "ms");
 
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     World bWorld;
+                    long beforeActivate = System.currentTimeMillis();
                     try {
                         bWorld = plugin.getRuntime().activate(worldId, dataVersion, world.toWorldProperties(plugin));
                     } catch (IOException e) {
@@ -116,6 +121,8 @@ public class PocketWorldCreator {
                         onComplete.run();
                         return;
                     }
+                    long afterActivate = System.currentTimeMillis();
+                    plugin.getDebugger().info("[PocketWorldCreator] " + worldId + " activate=" + (afterActivate - beforeActivate) + "ms");
 
                     world.setWorldBorder();
                     Location spawnLocation = world.getWorldSpawn().getBukkitLocation(bWorld);
@@ -125,6 +132,8 @@ public class PocketWorldCreator {
                     // to load synchronously - see ChunkPrewarmer's own doc for the Paper/Spigot split.
                     ChunkPrewarmer.prewarm(plugin, bWorld, spawnLocation.getBlockX() >> 4, spawnLocation.getBlockZ() >> 4, () -> {
                         long time = System.currentTimeMillis() - start;
+                        plugin.getDebugger().info("[PocketWorldCreator] " + worldId + " chunkTouch="
+                                + (System.currentTimeMillis() - afterActivate) + "ms, total=" + time + "ms");
                         world.setLoaded(true);
                         Bukkit.getPluginManager().callEvent(new PocketWorldCreateEvent(world, bWorld, creatorId));
 
