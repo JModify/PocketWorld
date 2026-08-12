@@ -153,6 +153,11 @@ public class PlayerSetRankMenu extends PocketMenu {
                     "{RANK}:" + WorldRank.MOD.name(),
                     "{WORLD_NAME}:" + world.getWorldName()));
         } else if (tag.equalsIgnoreCase("set-rank-owner")) {
+            if (rank == WorldRank.OWNER) {
+                player.sendMessage(ColorFormat.format("&4&lERROR &r&cUser is already the OWNER."));
+                return;
+            }
+
             player.closeInventory();
             world.getUsers().put(userToSetRank.getId(), WorldRank.OWNER);
             // Only demote the acting player if they were already a member - an admin exercising this
@@ -180,6 +185,7 @@ public class PlayerSetRankMenu extends PocketMenu {
             return;
         }
 
+        plugin.getMessageReader().send("world-owner-transfer-required", player);
         new TransferOwnershipMenu(player, plugin, world, userToSetRank, demoteTo, this).open();
     }
 }

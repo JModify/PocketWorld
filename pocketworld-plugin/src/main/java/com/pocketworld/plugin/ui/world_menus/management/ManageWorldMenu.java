@@ -184,7 +184,9 @@ public class ManageWorldMenu extends PocketMenu {
 
         World defaultWorld = Bukkit.getWorlds().get(0);
         for (Player visitor : bukkitWorld.getPlayers()) {
-            if (!world.getUsers().containsKey(visitor.getUniqueId())) {
+            // An admin with bypass mode on is only "visiting" to oversee/moderate the world - expelling
+            // them along with everyone else would defeat the point of them being there in the first place.
+            if (!world.getUsers().containsKey(visitor.getUniqueId()) && !plugin.isBypassing(visitor.getUniqueId())) {
                 visitor.teleport(defaultWorld.getSpawnLocation());
             }
         }

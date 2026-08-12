@@ -69,6 +69,9 @@ messages:
   world-demote-owner-no-members:
     type: error
     message: "&cYou cannot demote this player from Owner - there are no other members to take their place."
+  world-owner-transfer-required:
+    type: info
+    message: "&eEvery pocket world must have an Owner - please select who should take over from the menu."
   world-permission-denied:
     type: raw
     message: "&cYou do not have permission to do that here."

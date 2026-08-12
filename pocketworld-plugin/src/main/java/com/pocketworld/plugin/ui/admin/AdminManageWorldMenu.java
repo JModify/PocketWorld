@@ -32,7 +32,7 @@ public class AdminManageWorldMenu extends PocketMenu {
 
     @Override
     public int getMenuSlots() {
-        return 36;
+        return 45;
     }
 
     @SuppressWarnings("deprecation")
@@ -83,15 +83,15 @@ public class AdminManageWorldMenu extends PocketMenu {
                 .tag("is-back-button")
                 .build().get();
 
-        inventory.setItem(11, viewMembers);
         inventory.setItem(13, globe);
-        inventory.setItem(15, setSize);
-        inventory.setItem(20, teleport);
-        inventory.setItem(24, wipe);
-        inventory.setItem(31, back);
+        inventory.setItem(20, viewMembers);
+        inventory.setItem(24, setSize);
+        inventory.setItem(29, teleport);
+        inventory.setItem(33, wipe);
+        inventory.setItem(40, back);
 
         ItemStack fillerItem = new PocketItem.Builder(plugin)
-                .material(Material.GRAY_STAINED_GLASS_PANE)
+                .material(Material.RED_STAINED_GLASS_PANE)
                 .displayName(" ")
                 .build().get();
         addFillerBorder(fillerItem);
