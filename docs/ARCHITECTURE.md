@@ -550,3 +550,42 @@ reproduced or re-tested directly - no Spigot server was available in this enviro
 own verification-limits note). This fix is well-founded (it directly addresses a file confirmed
 missing, with a structure confirmed correct against real Minecraft output) but needs confirmation
 on a real Spigot server before being considered fully verified.
+
+## 22. Spigot-Only Empty-Pocket-World Bug: Region Data at the Wrong Path
+
+Reported live, again from a real Spigot 26.2 server, once §21's crash fix let theme creation
+actually complete: every pocket world created from a theme came out as an empty void - the
+admin's built content never made it in, even though the theme itself extracted and stored
+correctly (confirmed by the user's own end-to-end test: fresh theme, tried twice, both pocket
+worlds empty).
+
+Root cause, confirmed by direct inspection of a real Spigot 26.2 server's own files (not
+guessed): `AnvilShadowBridge` writes/reads chunk data at the classic `<world>/region`,
+`<world>/entities` layout, relying on Paper's own migration to relocate it into whatever internal
+structure Paper actually uses (§ "On-disk layout" above). Comparing a real Spigot-generated world
+(the theme's own editor world, built via ordinary gameplay with no involvement from this bridge)
+against a real Spigot pocket-world folder confirmed: Spigot performs no such relocation at all,
+and a NORMAL-environment world's own data instead lives at the vanilla-native
+`dimensions/minecraft/overworld/region` path from the moment it's created. Writing to the classic
+path on Spigot leaves that data orphaned and silently unread: `Bukkit.createWorld()` finds nothing
+at the path it actually looks at and generates fresh, empty content there via `VoidGenerator`
+instead - explaining both symptoms the user reported at once (an empty world, and a ~3.3s creation
+time matching the "virgin folder" cost §20 already measured, since the freshly-generated content
+still pays that cost even though it's pointless output).
+
+Confirmed this really is a platform difference, not a version-wide one, by testing directly on
+Paper: writing the *same* pre-existing region data to *both* the classic and modern paths
+simultaneously **breaks Paper** (`Failed to migrate legacy world ...` - Paper's own migration
+trips over finding its relocation target already occupied). So the fix has to pick one path per
+platform, not write both defensively. `AnvilShadowBridge.regionFolder()`/`entitiesFolder()` now
+branch on `ChunkPrewarmer.isAsyncAvailable()` (Paper's own already-proven presence check, reused
+rather than adding a second detection mechanism) to choose the classic path on Paper or the
+modern nested path on Spigot, consistently across `prepare()`, `cachedDataVersion()`, and
+`extractUnloaded()`.
+
+**Verification limits, stated plainly**: re-ran the exact real end-to-end pipeline test from §21
+against this fix on Paper - full round trip still works, still writes the classic path, zero
+regression. The Spigot-side fix itself rests on strong, directly-observed evidence (a real
+Spigot-generated folder's actual layout) but - same limitation as §20 and §21 - could not be
+tested by actually running it on a Spigot server in this environment. Needs the user's
+confirmation before being considered fully verified.
