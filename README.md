@@ -1,8 +1,11 @@
 # PocketWorld
 
-A Paper plugin for personal, instanced player worlds. Every player can create their own small,
-private "pocket" world from a theme (a template an admin builds once), invite friends in with
-their own rank, tweak world settings, and hop between worlds through a menu.
+A plugin for personal, instanced player worlds, built primarily for Paper - it also runs on plain
+Spigot (same 1.21.x and current 26.2 version floors), with slightly slower world creation there,
+since Spigot has no equivalent of an async chunk-loading trick Paper offers (both are still well
+under a second). Every player can create their own small, private "pocket" world from a theme (a
+template an admin builds once), invite friends in with their own rank, tweak world settings, and
+hop between worlds through a menu.
 
 Worlds are stored using Hypixel's **Slime Region Format (SRF)**, implemented directly in the
 plugin rather than requiring a forked server - so it installs like any other plugin jar, at the
@@ -59,7 +62,8 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full, current answer.
 
 | | Minimum |
 |---|---|
-| Minecraft / Paper | 1.21.x, and current 26.2 |
+| Minecraft | 1.21.x, and current 26.2 |
+| Server software | Paper or Spigot |
 | Java | 21 (to build and to run on the 1.21.x floor); 25 required to run a 26.2 server |
 | Build tool | Maven 3.9+ |
 
@@ -152,4 +156,6 @@ The final, shaded plugin jar is produced at `pocketworld-plugin/target/PocketWor
 
 Feature-complete against the original design (`docs/ARCHITECTURE.md` §12) and verified through
 extended live play on real Paper 1.21.x and 26.2 servers, with several bugs caught and fixed
-along the way.
+along the way. Spigot support is verified by compiling out every Paper-only API and testing the
+platform-specific pieces directly (see `docs/COMPATIBILITY.md`), but hasn't yet had the same
+extended live play on an actual Spigot server.
