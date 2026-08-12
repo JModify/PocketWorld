@@ -517,3 +517,75 @@ ran; `onReady` always fires exactly once, always back on the main thread. Net ef
 get the full async benefit (~80ms blocking); Spigot servers still get the ~370-580ms pre-seed benefit
 over the old un-pre-seeded cost, just without the extra async shrink** - worth stating plainly in any
 public listing, since it's a genuine, honest platform difference rather than a marketing rounding.
+
+## 21. Spigot-Only World-Creation Crash: `world_gen_settings.dat`
+
+Reported live from a real Spigot 26.2 server: creating a theme's editor world threw
+`IllegalStateException: Overworld settings missing` out of `Bukkit.createWorld()`, preceded by
+`Unable to read or access the world gen settings file! ... data/minecraft/world_gen_settings.dat`.
+Never seen on Paper 26.2 despite extensive testing there this session.
+
+Root cause, confirmed empirically (not guessed): on this project's current Minecraft floor, a
+non-primary world's dimension-generator settings (seed, generator type, structure/feature flags)
+are read from a separate `data/minecraft/world_gen_settings.dat` file, not from `level.dat`'s
+embedded `WorldGenSettings` tag - confirmed by letting a real server generate and save an ordinary
+secondary world, then inspecting the result directly. `LevelDatWriter` only ever wrote `level.dat`;
+this bridge-materialized world folders never had this file at all. Paper 26.2 tolerates its absence
+(falls back silently to defaults); Spigot 26.2 does not - its fallback path itself throws instead
+of recovering. This is exactly the same class of platform-specific loading quirk §16 already found
+with the warm-cache path, just in a different corner of world creation.
+
+A second, independent bug surfaced while building the real reference file for comparison:
+`LevelDatWriter`'s `WorldGenSettings` compound used the field name `generate_features`; the actual
+schema (confirmed against the real file) uses `generate_structures`. Both bugs are fixed together in
+`LevelDatWriter.writeWorldGenSettingsFile` - see its class doc. Since `AnvilShadowBridge.activate()`
+and `ThemeCreationController.generateEditorWorld()` both call the same `LevelDatWriter.write()`, this
+one fix covers both regular pocket-world creation and theme editor-world creation - the live crash
+was only ever reported for the latter, but the missing file affected both identically.
+
+**Verification limits, stated plainly**: confirmed on Paper that the file is now written with the
+correct structure (byte-for-byte matching a real reference file) and that `Bukkit.createWorld()` no
+longer logs the "unable to read" warning for it. The actual Spigot-specific crash could not be
+reproduced or re-tested directly - no Spigot server was available in this environment (see §20's
+own verification-limits note). This fix is well-founded (it directly addresses a file confirmed
+missing, with a structure confirmed correct against real Minecraft output) but needs confirmation
+on a real Spigot server before being considered fully verified.
+
+## 22. Spigot-Only Empty-Pocket-World Bug: Region Data at the Wrong Path
+
+Reported live, again from a real Spigot 26.2 server, once §21's crash fix let theme creation
+actually complete: every pocket world created from a theme came out as an empty void - the
+admin's built content never made it in, even though the theme itself extracted and stored
+correctly (confirmed by the user's own end-to-end test: fresh theme, tried twice, both pocket
+worlds empty).
+
+Root cause, confirmed by direct inspection of a real Spigot 26.2 server's own files (not
+guessed): `AnvilShadowBridge` writes/reads chunk data at the classic `<world>/region`,
+`<world>/entities` layout, relying on Paper's own migration to relocate it into whatever internal
+structure Paper actually uses (§ "On-disk layout" above). Comparing a real Spigot-generated world
+(the theme's own editor world, built via ordinary gameplay with no involvement from this bridge)
+against a real Spigot pocket-world folder confirmed: Spigot performs no such relocation at all,
+and a NORMAL-environment world's own data instead lives at the vanilla-native
+`dimensions/minecraft/overworld/region` path from the moment it's created. Writing to the classic
+path on Spigot leaves that data orphaned and silently unread: `Bukkit.createWorld()` finds nothing
+at the path it actually looks at and generates fresh, empty content there via `VoidGenerator`
+instead - explaining both symptoms the user reported at once (an empty world, and a ~3.3s creation
+time matching the "virgin folder" cost §20 already measured, since the freshly-generated content
+still pays that cost even though it's pointless output).
+
+Confirmed this really is a platform difference, not a version-wide one, by testing directly on
+Paper: writing the *same* pre-existing region data to *both* the classic and modern paths
+simultaneously **breaks Paper** (`Failed to migrate legacy world ...` - Paper's own migration
+trips over finding its relocation target already occupied). So the fix has to pick one path per
+platform, not write both defensively. `AnvilShadowBridge.regionFolder()`/`entitiesFolder()` now
+branch on `ChunkPrewarmer.isAsyncAvailable()` (Paper's own already-proven presence check, reused
+rather than adding a second detection mechanism) to choose the classic path on Paper or the
+modern nested path on Spigot, consistently across `prepare()`, `cachedDataVersion()`, and
+`extractUnloaded()`.
+
+**Verification limits, stated plainly**: re-ran the exact real end-to-end pipeline test from §21
+against this fix on Paper - full round trip still works, still writes the classic path, zero
+regression. The Spigot-side fix itself rests on strong, directly-observed evidence (a real
+Spigot-generated folder's actual layout) but - same limitation as §20 and §21 - could not be
+tested by actually running it on a Spigot server in this environment. Needs the user's
+confirmation before being considered fully verified.

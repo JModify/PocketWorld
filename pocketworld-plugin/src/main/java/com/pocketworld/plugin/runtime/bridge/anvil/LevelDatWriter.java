@@ -14,17 +14,18 @@ import java.nio.file.Path;
  * is left for the server to synthesize via {@link org.bukkit.WorldCreator}'s own parameters, the
  * same way the Slime format itself never captured any of that either.
  * <p>
- * {@code WorldGenSettings} is the one exception: Paper 26.2 tolerates its absence, but Paper
- * 1.21.11's world-loading codec throws ({@code IllegalStateException: No key dimensions ...; No key
- * seed ...}) without one - discovered by actually activating a bridge-materialized world against a
- * real 1.21.11 server, not documented anywhere. The block written here is a structural copy of what
- * a real Paper 1.21.11 server writes for an ordinary, freshly-generated secondary world (confirmed
- * by creating one and inspecting its level.dat directly): {@code generator.settings} is just a
- * string reference to a built-in noise-settings preset name ({@code "minecraft:overworld"} etc.),
- * not an inline definition, so this needs no per-world generation parameters of our own. The seed
- * and generator are never actually exercised in normal operation - every chunk a pocket world's
- * world border lets a player reach is one this bridge already wrote explicitly - so a fixed
- * constant seed is fine; this exists purely to satisfy the schema, not to drive real generation.
+ * {@code WorldGenSettings} is embedded in {@code level.dat} for older-version compatibility (Paper
+ * 1.21.11's world-loading codec throws {@code IllegalStateException: No key dimensions ...; No key
+ * seed ...} without one - discovered by actually activating a bridge-materialized world against a
+ * real 1.21.11 server), but on this project's current floor it's actually vestigial: confirmed
+ * empirically (by creating an ordinary secondary world, saving it, and inspecting the result) that
+ * a non-primary world's dimension-generator settings are read from a separate
+ * {@code data/minecraft/world_gen_settings.dat} file instead - {@link #writeWorldGenSettingsFile}
+ * writes that same structure there. Paper 26.2 happens to tolerate that file's absence (falls back
+ * silently); Spigot 26.2 does not (throws {@code IllegalStateException: Overworld settings missing}
+ * out of {@code Bukkit.createWorld()} - a real, live-server-observed crash, not a hypothetical),
+ * which is what actually forced writing this file rather than leaving it as a nice-to-have. Both
+ * copies share the same dimensions structure, built once by {@link #worldGenSettings()}.
  */
 public final class LevelDatWriter {
 
@@ -92,12 +93,30 @@ public final class LevelDatWriter {
         CompoundBinaryTag root = CompoundBinaryTag.builder().put("Data", data).build();
 
         BinaryTagIO.writer().write(root, worldFolder.resolve("level.dat"), BinaryTagIO.Compression.GZIP);
+        writeWorldGenSettingsFile(worldFolder, dataVersion);
+    }
+
+    /**
+     * The actual, load-bearing source of a non-primary world's dimension-generator settings on this
+     * project's current floor - see the class doc. Structure confirmed against a real Paper 26.2
+     * (DataVersion 4903) {@code data/minecraft/world_gen_settings.dat}, created by letting a real
+     * server generate and save an ordinary secondary world, then inspecting the result directly.
+     */
+    private static void writeWorldGenSettingsFile(Path worldFolder, int dataVersion) throws IOException {
+        CompoundBinaryTag root = CompoundBinaryTag.builder()
+                .put("data", worldGenSettings())
+                .putInt("DataVersion", dataVersion)
+                .build();
+
+        Path dataFolder = worldFolder.resolve("data").resolve("minecraft");
+        java.nio.file.Files.createDirectories(dataFolder);
+        BinaryTagIO.writer().write(root, dataFolder.resolve("world_gen_settings.dat"), BinaryTagIO.Compression.GZIP);
     }
 
     private static CompoundBinaryTag worldGenSettings() {
         return CompoundBinaryTag.builder()
                 .putLong("seed", PLACEHOLDER_SEED)
-                .putByte("generate_features", (byte) 1)
+                .putByte("generate_structures", (byte) 1)
                 .putByte("bonus_chest", (byte) 0)
                 .put("dimensions", CompoundBinaryTag.builder()
                         .put("minecraft:overworld", dimension("minecraft:overworld", "minecraft:overworld", "minecraft:overworld"))

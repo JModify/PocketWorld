@@ -3,6 +3,7 @@ package com.pocketworld.plugin.runtime.bridge.anvil;
 import com.pocketworld.plugin.runtime.WorldProperties;
 import com.pocketworld.plugin.runtime.bridge.ChunkBounds;
 import com.pocketworld.plugin.runtime.bridge.WorldRuntimeBridge;
+import com.pocketworld.plugin.util.ChunkPrewarmer;
 import com.pocketworld.plugin.util.VoidGenerator;
 import com.pocketworld.slime.anvil.AnvilChunkConverter;
 import com.pocketworld.slime.anvil.AnvilWorldReader;
@@ -48,19 +49,29 @@ import java.util.stream.Stream;
  * than risking serving out-of-date data. The authoritative copy of every world is always the Slime
  * bytes in storage; this cache only ever mirrors it, never diverges from it.
  * <p>
- * <b>On-disk layout</b>: chunks are always written using the classic, long-established
- * {@code <world>/region}, {@code <world>/entities} layout. Minecraft 26.2 restructured how it
- * actually stores per-dimension data on disk (discovered empirically, not documented anywhere
- * available at design time - see docs/ARCHITECTURE.md); rather than reverse-engineer and hardcode
- * that internal layout, this bridge deliberately writes the classic layout and lets Paper's own
- * {@code LegacyCraftBukkitWorldMigration} relocate it on world creation, which was confirmed (by
- * actually running it) to fully relocate the data with no leftover. Reading a *live* world back out
- * uses {@link World#getWorldFolder()} directly, which reliably points at wherever the data actually
- * ended up regardless of internal layout - Bukkit already abstracts this away once the world exists.
- * This also means the warm-cache check below - which only ever looks at the classic pre-migration
- * path - safely and automatically declines to trust the cache on a version where that migration
- * relocates the data out from under it (the region folder it's looking for is simply gone), rather
- * than needing an explicit per-version branch.
+ * <b>On-disk layout</b>: which path a chunk is written to/read from depends on the platform,
+ * confirmed empirically (not documented anywhere available at design time) rather than assumed to
+ * be uniform - see {@link #regionFolder}/{@link #entitiesFolder}. Paper relocates a classic
+ * {@code <world>/region}, {@code <world>/entities} layout into its own consolidated folder
+ * structure during {@code Bukkit.createWorld()} (confirmed by actually running it - the data ends
+ * up directly inside the relocated folder, no further nesting), so writing/reading that classic
+ * layout is correct there. Plain Spigot does neither: nothing gets relocated, and - confirmed by
+ * inspecting a world Spigot generated natively, with no involvement from this bridge - a
+ * NORMAL-environment world's own data instead lives at the vanilla-native
+ * {@code dimensions/minecraft/overworld} path from the start. Writing to the classic path on
+ * Spigot leaves it orphaned and silently ignored: {@code Bukkit.createWorld()} finds nothing at
+ * the path it actually reads from and generates fresh (empty) content there instead - a real,
+ * live-server-observed bug (an admin's built theme content silently not making it into any pocket
+ * world created from it), not a hypothetical. Reading a *live* world back out uses
+ * {@link World#getWorldFolder()} directly, which reliably points at wherever the world's own root
+ * actually is regardless of platform - Bukkit already abstracts this away once the world exists;
+ * {@link #regionFolder}/{@link #entitiesFolder} still need applying to that root, the same as when
+ * writing, since the platform split is about where *within* that root the data lives.
+ * <p>
+ * This also means the warm-cache check below - which uses {@link #regionFolder} against the
+ * classic pre-migration root - safely and automatically declines to trust the cache on a version/
+ * platform combination where migration relocates the data out from under it, rather than needing
+ * an explicit per-version branch.
  * <p>
  * <b>Spawn pre-seeding</b>: {@link #activate} writes {@code level.dat} with a known spawn via
  * {@link LevelDatWriter} before ever calling {@link Bukkit#createWorld}, so vanilla's own "find a
@@ -101,7 +112,7 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
         // in the shape prepare()/activate() left it in, treat it as a miss and let the normal path
         // rebuild it - covers a version whose world-creation migration relocated the data elsewhere,
         // a folder removed externally, or any other state we didn't cause ourselves.
-        Path regionFolder = Bukkit.getWorldContainer().toPath().resolve(worldName).resolve("region");
+        Path regionFolder = regionFolder(Bukkit.getWorldContainer().toPath().resolve(worldName));
         if (!Files.isDirectory(regionFolder)) {
             warmCache.remove(worldName);
             return OptionalInt.empty();
@@ -124,8 +135,24 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
             entityChunks.put(pos, vanilla.entities());
         }
 
-        AnvilWorldWriter.writeAll(worldFolder.resolve("region"), regionChunks);
-        AnvilWorldWriter.writeAll(worldFolder.resolve("entities"), entityChunks);
+        AnvilWorldWriter.writeAll(regionFolder(worldFolder), regionChunks);
+        AnvilWorldWriter.writeAll(entitiesFolder(worldFolder), entityChunks);
+    }
+
+    /** See the class doc's "On-disk layout" section - Paper wants the classic path (which it then
+     *  relocates itself), plain Spigot wants the vanilla-native nested path directly. Reuses
+     *  {@link ChunkPrewarmer}'s existing, already-proven Paper-presence check rather than adding a
+     *  second, separate detection mechanism. */
+    private static Path regionFolder(Path worldFolder) {
+        return ChunkPrewarmer.isAsyncAvailable()
+                ? worldFolder.resolve("region")
+                : worldFolder.resolve("dimensions").resolve("minecraft").resolve("overworld").resolve("region");
+    }
+
+    private static Path entitiesFolder(Path worldFolder) {
+        return ChunkPrewarmer.isAsyncAvailable()
+                ? worldFolder.resolve("entities")
+                : worldFolder.resolve("dimensions").resolve("minecraft").resolve("overworld").resolve("entities");
     }
 
     @Override
@@ -167,8 +194,8 @@ public final class AnvilShadowBridge implements WorldRuntimeBridge {
 
     @Override
     public SlimeWorldData extractUnloaded(Path worldFolder, ChunkBounds bounds) throws IOException {
-        Map<ChunkPos, CompoundBinaryTag> regionChunks = AnvilWorldReader.readAll(worldFolder.resolve("region"));
-        Map<ChunkPos, CompoundBinaryTag> entityChunks = AnvilWorldReader.readAll(worldFolder.resolve("entities"));
+        Map<ChunkPos, CompoundBinaryTag> regionChunks = AnvilWorldReader.readAll(regionFolder(worldFolder));
+        Map<ChunkPos, CompoundBinaryTag> entityChunks = AnvilWorldReader.readAll(entitiesFolder(worldFolder));
 
         List<SlimeChunkData> chunks = new ArrayList<>();
         for (Map.Entry<ChunkPos, CompoundBinaryTag> entry : regionChunks.entrySet()) {
