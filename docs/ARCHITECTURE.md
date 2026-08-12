@@ -514,13 +514,9 @@ compiled call, which would throw `NoSuchMethodError` the moment this class loade
 and transparently falls back to a plain synchronous `getChunkAt` when absent - callers
 (`PocketWorldCreator`, `PocketWorld.load()`, `ThemeCreationController`) don't need to know which path
 ran; `onReady` always fires exactly once, always back on the main thread. Net effect: **Paper servers
-get the full async benefit (~80ms blocking); Spigot servers still pay the pre-seed benefit over the
-old un-pre-seeded cost, just without the extra async shrink** - worth stating plainly in any public
-listing, since it's a genuine, honest platform difference rather than a marketing rounding. This
-paragraph's ~370-580ms Spigot estimate was projected from Paper-pattern measurements, before a real
-Spigot server was available to test against directly - §23 replaces it with real numbers, which came
-in meaningfully higher (~1s+) and surfaced a more important consequence than the raw duration: on
-Spigot this cost blocks the main thread, so it's a whole-server freeze, not a per-player one.
+get the full async benefit (~80ms blocking); Spigot servers still get the ~370-580ms pre-seed benefit
+over the old un-pre-seeded cost, just without the extra async shrink** - worth stating plainly in any
+public listing, since it's a genuine, honest platform difference rather than a marketing rounding.
 
 ## 21. Spigot-Only World-Creation Crash: `world_gen_settings.dat`
 
@@ -547,12 +543,13 @@ and `ThemeCreationController.generateEditorWorld()` both call the same `LevelDat
 one fix covers both regular pocket-world creation and theme editor-world creation - the live crash
 was only ever reported for the latter, but the missing file affected both identically.
 
-**Verification**: confirmed on Paper that the file is now written with the correct structure
-(byte-for-byte matching a real reference file) and that `Bukkit.createWorld()` no longer logs the
-"unable to read" warning for it. The fix was then confirmed live on the user's own real Spigot 26.2
-server - theme creation, which previously threw the crash on every attempt, completed successfully
-with a fresh theme. See §23 for the follow-up: theme creation worked, but pocket worlds created
-from that theme still came out empty, which turned out to be the separate bug §22 covers.
+**Verification limits, stated plainly**: confirmed on Paper that the file is now written with the
+correct structure (byte-for-byte matching a real reference file) and that `Bukkit.createWorld()` no
+longer logs the "unable to read" warning for it. The actual Spigot-specific crash could not be
+reproduced or re-tested directly - no Spigot server was available in this environment (see §20's
+own verification-limits note). This fix is well-founded (it directly addresses a file confirmed
+missing, with a structure confirmed correct against real Minecraft output) but needs confirmation
+on a real Spigot server before being considered fully verified.
 
 ## 22. Spigot-Only Empty-Pocket-World Bug: Region Data at the Wrong Path
 
@@ -586,86 +583,9 @@ rather than adding a second detection mechanism) to choose the classic path on P
 modern nested path on Spigot, consistently across `prepare()`, `cachedDataVersion()`, and
 `extractUnloaded()`.
 
-**Verification**: re-ran the exact real end-to-end pipeline test from §21 against this fix on
-Paper - full round trip still works, still writes the classic path, zero regression. The fix was
-then confirmed live on the user's own real Spigot 26.2 server: pocket worlds created from a theme
-now load with the theme's actual built content, no longer empty voids. See §23 for what came next
-- the user asked whether the resulting creation time (~1.3s) was expected, which led to a deeper
-look at where that time actually goes.
-
-## 23. Empirical Findings — Real Spigot Server: Confirmed Fixes and the True Cost of `chunkTouch`
-
-With §21 and §22 both fixed, the user re-tested end-to-end on their own real Spigot 26.2 server:
-theme creation completed in 4598ms, and a pocket world created from that theme in 1299ms, with the
-theme's built content correctly present. Both fixes are therefore now **confirmed working on real
-Spigot**, not just well-founded by inspection - the verification-limit caveats in §21 and §22 no
-longer apply.
-
-**The real number is higher than this document's earlier Spigot projections, and the shape of the
-cost matters more than its size.** §20 estimated Spigot's per-world cost at ~370-580ms, extrapolated
-from Paper-pattern measurements taken before a real Spigot server was available. Debug-gated timing
-instrumentation added to `PocketWorldCreator.createNow()` (three checkpoints: clone+`prepareLoad`,
-`activate`, `ChunkPrewarmer`'s touch) gave a real breakdown from the user's own server:
-
-| Stage | Cost | What it does |
-|---|---|---|
-| `activate()` (level.dat write + `Bukkit.createWorld()`) | 65ms | Fast - confirms §22's path fix is working; valid on-disk data is found immediately, no fallback generation happens |
-| `ChunkPrewarmer`'s spawn-chunk touch | 1064ms | Dominant - ~72% of total |
-| **Total** | **1472ms** | |
-
-`chunkTouch` is the same "first-ever chunk touch, wide-radius pass, likely structure-reference
-checks needing a neighbor radius" cost §18 identified early in this project's history - just
-proportionally more expensive on Spigot than the ~280-530ms range measured on Paper for the
-equivalent operation, plausibly because Spigot lacks Paper's own internal chunk-system work (the
-"Moonrise" chunk system referenced in earlier stack traces, §2). Critically, **this cost has no
-async alternative on Spigot**: `ChunkPrewarmer.prewarm()`'s fallback branch (`GET_CHUNK_AT_ASYNC ==
-null`) calls `world.getChunkAt(chunkX, chunkZ)` directly, synchronously, already on the main thread
-(the same `runTask()` block `activate()` runs in, since world creation is main-thread-only). There
-is no known way to move this off-thread through public API on Spigot; going deeper would mean NMS
-or a fork, already investigated and ruled out project-wide (§2, §15, §17, "One runtime bridge, not
-one per version" in `docs/COMPATIBILITY.md`).
-
-**Why this matters more than "1.3-1.5 seconds" sounds.** Because the fallback touch runs
-synchronously on the main thread, it doesn't just delay the creating player - it stops the entire
-server from ticking for that whole window. Every online player, regardless of what they're doing,
-feels a hard freeze each time *any* player creates a pocket world or theme editor world. Combined
-with `PocketWorldCreationQueue` (serializes all world creation/loading server-wide by design, to
-cap simultaneous main-thread work), a burst of several players creating within a short window - a
-restart, a build event, anything that draws concurrent activity - turns into a **chain** of
-back-to-back full-server freezes rather than one bounded one. On Paper, by contrast, the same
-`ChunkPrewarmer` call takes the async branch, so this cost never touches the main thread at all;
-only the creating player experiences anything, as a private, ordinary loading pause. This is a
-categorical difference, not just a speed difference, and it's the basis for the "Paper vs. Spigot"
-guidance now in `README.md` (Paper recommended; Spigot workable but only advised under roughly
-10-20 concurrent players).
-
-**Levers considered and their actual effect:**
-
-- **World border size** - `prepareLoad()`/`prepare()` (decode + convert + write every chunk within
-  `ChunkBounds`) scales with the world's configured border, so a smaller default border would trim
-  that step (a modest, unmeasured-but-bounded saving, likely low hundreds of ms at most). It does
-  **not** touch `chunkTouch`, which is a single-chunk cost independent of border size - the
-  dominant 1064ms figure above would be unchanged.
-- **Keep every pocket world loaded permanently** - considered and rejected. A loaded world ticks
-  (mob AI, block/fluid ticks, entity updates) 20 times a second and holds chunks in memory whether
-  or not anyone is present; with `general.max-worlds` defaulting to 5 per player, the total possible
-  world count scales with the whole player base, not concurrent usage, making this a standing
-  RAM/CPU tax likely to outweigh the freeze it avoids for anything beyond a small server.
-- **Extend or remove the warm-cache TTL (not yet implemented)** - the more targeted version of the
-  same idea. `chunkTouch`'s cost is tied to a folder being touched for the *first time ever*, not to
-  whether it's currently loaded: reloading an already-touched folder, even after a full unload, was
-  separately measured at ~150-200ms regardless of how long it had been unloaded (§16-adjacent
-  finding, this session). `AnvilShadowBridge`'s warm-cache TTL (`CACHE_TTL_MILLIS`, hardcoded to 30
-  minutes) currently deletes a world's on-disk data after that much disuse, so a player returning
-  after a longer break pays the full first-touch cost again, same as a brand-new world. Since these
-  bordered pocket worlds are small on disk (low hundreds of KB, per §22's own measurements),
-  extending or removing this TTL would let each world pay the first-touch cost once per lifetime
-  instead of once per return visit, at near-zero ongoing cost. Proposed to the user; not yet
-  actioned as of this writing.
-
-**Verification limits, stated plainly**: the 4598ms/1299ms and the 65ms/1064ms/1472ms breakdown
-above are both real numbers from the user's own live Spigot 26.2 server, not projections - this is
-the first genuinely first-party Spigot performance data this project has. What hasn't been done:
-the same debug-instrumented breakdown on Paper for a direct side-by-side (Paper's ~280-530ms
-first-touch figure predates this instrumentation and comes from an earlier, differently-shaped
-benchmark, §20), and the warm-cache-TTL change proposed above hasn't been implemented or measured.
+**Verification limits, stated plainly**: re-ran the exact real end-to-end pipeline test from §21
+against this fix on Paper - full round trip still works, still writes the classic path, zero
+regression. The Spigot-side fix itself rests on strong, directly-observed evidence (a real
+Spigot-generated folder's actual layout) but - same limitation as §20 and §21 - could not be
+tested by actually running it on a Spigot server in this environment. Needs the user's
+confirmation before being considered fully verified.
